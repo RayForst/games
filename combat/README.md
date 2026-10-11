@@ -85,6 +85,40 @@ npm run typecheck    # tsc --noEmit
 npm run lint         # expo lint
 ```
 
+## Потестить с телефона без компьютера
+
+**Веб-версия на GitHub Pages** (без аккаунтов, обновляется сама при каждом пуше в ветку):
+
+https://rayforst.github.io/games/
+
+Открой в Safari на iPhone, через «Поделиться → На экран „Домой“» ярлык будет выглядеть как приложение.
+Прогресс хранится в localStorage браузера. Сборку делает `.github/workflows/deploy-web.yml`;
+один раз нужно включить Pages руками: Settings → Pages → Build and deployment → Source: «GitHub Actions»,
+после этого запустить workflow заново (Actions → Deploy web to GitHub Pages → Re-run jobs).
+Отличие от нативной версии: нет вибрации и системных диалогов подтверждения.
+
+**Нативная версия в Expo Go через EAS Update** (нужен бесплатный аккаунт expo.dev, Apple-аккаунт не нужен):
+
+```bash
+cd combat
+npx eas-cli@latest login
+npx eas-cli@latest update:configure      # добавит expo-updates и projectId в app.json
+npx eas-cli@latest update --branch preview --message "первая сборка"
+```
+
+После публикации на странице обновления в https://expo.dev появится QR-код «Open in Expo Go».
+Один раз отсканировал, дальше проект лежит в Expo Go во вкладке проектов и открывается где угодно.
+Каждый новый `eas update` подтягивается при следующем запуске.
+
+**TestFlight** — как настоящее приложение, но нужен Apple Developer Program (99 $/год):
+
+```bash
+npx eas-cli@latest build -p ios --profile production
+npx eas-cli@latest submit -p ios
+```
+
+Дальше в App Store Connect → TestFlight добавь себя тестировщиком и поставь приложение TestFlight на iPhone.
+
 ## Публикация в App Store
 
 Mac не нужен — сборку и отправку делает облако EAS.

@@ -1,5 +1,7 @@
 # Веб-версия игры на GitHub Pages: https://rayforst.github.io/games/
 # Деплой идёт при пуше в main или в рабочую ветку, а также вручную (workflow_dispatch).
+# Один раз вручную: Settings → Pages → Build and deployment → Source: «GitHub Actions».
+# Без этого шаг configure-pages падает с «Resource not accessible by integration».
 name: Deploy web to GitHub Pages
 
 on:
