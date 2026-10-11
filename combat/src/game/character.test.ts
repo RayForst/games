@@ -77,3 +77,18 @@ describe('ИИ', () => {
     expect(m.block).toBeDefined();
   });
 });
+
+describe('баланс зала на нулевом уровне', () => {
+  it('слабый соперник в среднем почти без вещей, сильный — одет', () => {
+    let weakItems = 0;
+    let strongItems = 0;
+    const runs = 300;
+    for (let i = 0; i < runs; i += 1) {
+      const arena = generateArena(0, Math.random);
+      weakItems += arena[0].itemIds.length;
+      strongItems += arena[3].itemIds.length;
+    }
+    expect(weakItems / runs).toBeLessThan(1);
+    expect(strongItems / runs).toBeGreaterThan(weakItems / runs);
+  });
+});
