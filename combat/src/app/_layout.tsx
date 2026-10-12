@@ -51,6 +51,7 @@ export default function RootLayout() {
           name="fight"
           options={{ presentation: 'fullScreenModal', gestureEnabled: false, animation: 'slide_from_bottom' }}
         />
+        <Stack.Screen name="stats" options={{ presentation: 'modal' }} />
       </Stack>
     </>
   );

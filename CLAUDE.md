@@ -30,7 +30,10 @@
 - Телефон: `cd combat && npm install && npx expo start`, QR в Expo Go (`--tunnel`, если другая сеть).
 - Браузер: `npx expo start --web`. Прогон в headless Chromium делался Playwright-скриптом
   (создание → бой → магазин → рюкзак → перезагрузка); при кликах по тексту фильтровать видимые элементы,
-  потому что экраны под модалкой остаются в DOM.
+  потому что экраны под модалкой остаются в DOM. Playwright стоит глобально
+  (`/opt/node22/lib/node_modules/playwright`), Chromium запускать с `--no-sandbox`.
+- В облачном контейнере Metro не видит изменения файлов: после правок перезапускать dev-сервер
+  (`fuser -k 8081/tcp`, не `pkill -f "expo start"` — он убьёт и свой шелл).
 - Веб-версия публикуется на https://rayforst.github.io/games/ workflow'ом `.github/workflows/deploy-web.yml`
   при пуше в `main` (окружение `github-pages` разрешает только `main`).
 - Из облачной сессии Claude недоступны docs.expo.dev, api.expo.dev, github.io и ngrok; `npx expo install`
@@ -40,12 +43,16 @@
 
 - Коммитить от имени владельца: `Sergio Kolpachello <sergeikalpakov@gmail.com>` (настроено в `.git/config`),
   Claude — соавтор в трейлере. Владелец разрешил пушить в `main` напрямую.
-- Рабочая ветка облачных сессий: `claude/fervent-franklin-ikmakg`, держать её равной `main`.
+- Рабочая ветка облачных сессий меняется от сессии к сессии (`claude/...`); пушить в неё и в `main`,
+  держать их равными.
 
 ## Состояние и следующие шаги
 
 - Сделано: MVP игры, тесты (29), деплой веб-версии, README с инструкциями по Expo Go, EAS Update, TestFlight.
+  Экран персонажа переделан в «тамагочи» (аватар-заглушка `Avatar`, слоты по краям в `PaperDoll`,
+  цифры в модалке `src/app/stats.tsx`).
 - Открыто: графика. План владельца — генерировать ассеты нейросетями: иконки предметов и UI в 2D (Recraft / Scenario),
   персонажей через 3D (Tripo / Meshy / Rodin) с рендером в 2D из Blender по bpy-скрипту.
-  Когда появятся картинки: иконки по `id` предмета из `src/game/items.ts`, портреты бойцов, фигура в `ZonePicker`.
+  Когда появятся картинки: иконки по `id` предмета из `src/game/items.ts` (сейчас в `PaperDoll` временные
+  иконки по слоту), портрет вместо силуэта в `Avatar`, портреты бойцов, фигура в `ZonePicker`.
 - Идеи дальше: травмы, прочность вещей, кольца/амулеты, онлайн PvP, публикация в App Store через EAS.
