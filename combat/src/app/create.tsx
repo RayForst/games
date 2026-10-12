@@ -59,7 +59,7 @@ export default function CreateScreen() {
   const submit = () => {
     if (!valid) return;
     createCharacter(trimmed, build.stats, build.freePoints);
-    router.replace('/(tabs)/character');
+    router.replace('/(tabs)/city');
   };
 
   return (

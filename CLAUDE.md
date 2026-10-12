@@ -21,7 +21,11 @@
 - Чистая игровая логика в `src/game/` без React, покрыта vitest. Все формулы баланса — `src/game/formulas.ts`.
 - Стор — `src/store/useGame.ts` (один файл, все действия возвращают `{ ok, reason }`).
 - UI-кирпичи в `src/components/`, токены темы в `src/ui/theme.ts`. Тёмная «клубная» палитра: дерево, латунь, кровь.
-- Выход из экрана боя — `router.dismissTo('/(tabs)/arena')`, не `replace` (иначе дублируются табы).
+- Навигация: табы `(tabs)/city` (хаб-карта, стартовый), `character`, `backpack`. Арена, магазин, лекарь и шахта —
+  экраны стека (`src/app/arena.tsx`, `shop.tsx`, `healer.tsx`, `mine.tsx`), открываются с карты, наверху `BackBar`.
+  Заведения и их точки на карте — `src/game/city.ts`, картинка `assets/map/city.webp`, компонент `CityMap`.
+- Выход из экрана боя — `router.dismissTo('/arena')`, не `replace` (иначе дублируются экраны).
+- Шахта — офлайн-доход: `src/game/mine.ts`, в сторе `mining`, `startMining`/`collectMining`; во время смены бой запрещён.
 - `experiments.baseUrl = "/games"` в `app.json` нужен для GitHub Pages; на dev-сервер не влияет.
 - Перед завершением задачи: `npm test`, `npm run typecheck`, `npm run lint` в `combat/`.
 

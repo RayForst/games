@@ -8,5 +8,5 @@ export default function Index() {
 
   if (!character) return <Redirect href="/create" />;
   if (fight?.status === 'active') return <Redirect href="/fight" />;
-  return <Redirect href="/(tabs)/character" />;
+  return <Redirect href="/(tabs)/city" />;
 }

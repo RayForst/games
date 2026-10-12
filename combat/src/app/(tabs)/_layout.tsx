@@ -24,9 +24,8 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: colors.textDim,
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
       }}>
+      <Tabs.Screen name="city" options={{ title: 'Город', tabBarIcon: icon('map') }} />
       <Tabs.Screen name="character" options={{ title: 'Персонаж', tabBarIcon: icon('person') }} />
-      <Tabs.Screen name="arena" options={{ title: 'Зал боя', tabBarIcon: icon('skull') }} />
-      <Tabs.Screen name="shop" options={{ title: 'Магазин', tabBarIcon: icon('storefront') }} />
       <Tabs.Screen name="backpack" options={{ title: 'Рюкзак', tabBarIcon: icon('bag-handle') }} />
     </Tabs>
   );

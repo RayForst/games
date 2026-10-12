@@ -47,6 +47,11 @@ export default function RootLayout() {
         <Stack.Screen name="index" />
         <Stack.Screen name="create" />
         <Stack.Screen name="(tabs)" />
+        {/* Заведения города — обычные экраны стека поверх табов, назад ведёт в город. */}
+        <Stack.Screen name="arena" />
+        <Stack.Screen name="shop" />
+        <Stack.Screen name="healer" />
+        <Stack.Screen name="mine" />
         <Stack.Screen
           name="fight"
           options={{ presentation: 'fullScreenModal', gestureEnabled: false, animation: 'slide_from_bottom' }}

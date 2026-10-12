@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { Alert, StyleSheet, View } from 'react-native';
 
+import { BackBar } from '@/components/BackBar';
 import { Bar } from '@/components/Bar';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
@@ -26,7 +27,7 @@ export default function ArenaScreen() {
     const go = () => {
       const r = startFight(o.id);
       if (!r.ok) {
-        Alert.alert('Зал боя', r.reason ?? 'Не получилось');
+        Alert.alert('Арена', r.reason ?? 'Не получилось');
         return;
       }
       router.push('/fight');
@@ -43,8 +44,9 @@ export default function ArenaScreen() {
 
   return (
     <Screen>
+      <BackBar right={<Txt variant="gold">{character.kredits} кр.</Txt>} />
       <View style={styles.header}>
-        <Txt variant="title">Зал боя</Txt>
+        <Txt variant="title">Арена</Txt>
         <Txt variant="muted">Выбери соперника. Бой — до первого упавшего.</Txt>
       </View>
 

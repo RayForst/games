@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
+import { BackBar } from '@/components/BackBar';
 import { Chip } from '@/components/Chip';
 import { Flash } from '@/components/Flash';
 import { ItemCard } from '@/components/ItemCard';
@@ -28,6 +29,7 @@ export default function ShopScreen() {
 
   return (
     <Screen>
+      <BackBar />
       <View style={styles.header}>
         <View style={styles.flex}>
           <Txt variant="title">Магазин</Txt>

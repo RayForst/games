@@ -6,3 +6,5 @@ export * from './combat';
 export * from './ai';
 export * from './opponents';
 export * from './character';
+export * from './city';
+export * from './mine';

@@ -34,7 +34,7 @@ export default function FightScreen() {
   // Боя нет (закончили или открыли экран напрямую) — уходим в зал. Единственный путь навигации отсюда.
   // dismissTo закрывает модалку и возвращает к уже открытым табам, а не создаёт их вторую копию.
   useEffect(() => {
-    if (!fight) router.dismissTo('/(tabs)/arena');
+    if (!fight) router.dismissTo('/arena');
   }, [fight]);
 
   if (!character || !fight) return null;

@@ -13,8 +13,11 @@ import {
   getItem,
   healCost,
   isEquipped,
+  isShiftHours,
   levelForExp,
   makeLogLine,
+  mineEarnings,
+  mineRatePerHour,
   newCharacter,
   POINTS_PER_LEVEL,
   resolveTurn,
@@ -24,12 +27,17 @@ import {
   type Character,
   type Check,
   type FightState,
+  type Mining,
   type Move,
   type Opponent,
   type Slot,
   type StatKey,
   type Stats,
 } from '@/game';
+
+export interface MineResult extends Check {
+  kredits?: number;
+}
 
 const rng = Math.random;
 
@@ -41,6 +49,8 @@ export interface GameState {
   character: Character | null;
   fight: FightState | null;
   arena: Opponent[];
+  /** Текущая смена в шахте. */
+  mining: Mining | null;
   hydrated: boolean;
 
   setHydrated: () => void;
@@ -60,6 +70,9 @@ export interface GameState {
   startFight: (opponentId: string) => Check;
   playTurn: (move: Move) => void;
   endFight: () => void;
+
+  startMining: (hours: number) => Check;
+  collectMining: () => MineResult;
 }
 
 export const useGame = create<GameState>()(
@@ -68,16 +81,17 @@ export const useGame = create<GameState>()(
       character: null,
       fight: null,
       arena: [],
+      mining: null,
       hydrated: false,
 
       setHydrated: () => set({ hydrated: true }),
 
       createCharacter: (name, stats, freePoints) => {
         const character = newCharacter(name, stats, freePoints);
-        set({ character, fight: null, arena: generateArena(character.level, rng) });
+        set({ character, fight: null, mining: null, arena: generateArena(character.level, rng) });
       },
 
-      resetGame: () => set({ character: null, fight: null, arena: [] }),
+      resetGame: () => set({ character: null, fight: null, mining: null, arena: [] }),
 
       addStat: (stat) => {
         const c = get().character;
@@ -180,6 +194,7 @@ export const useGame = create<GameState>()(
         const c = state.character;
         if (!c) return { ok: false, reason: 'Нет персонажа' };
         if (state.fight?.status === 'active') return { ok: false, reason: 'Бой уже идёт' };
+        if (state.mining) return { ok: false, reason: 'Ты в шахте. Сначала забери заработок.' };
         const opponent = state.arena.find((o) => o.id === opponentId);
         if (!opponent) return { ok: false, reason: 'Соперник ушёл' };
         const fresh = applyRegen(c);
@@ -264,11 +279,29 @@ export const useGame = create<GameState>()(
         const c = get().character;
         set({ fight: null, arena: c ? generateArena(c.level, rng) : [] });
       },
+
+      startMining: (hours) => {
+        const state = get();
+        if (!state.character) return { ok: false, reason: 'Нет персонажа' };
+        if (state.fight?.status === 'active') return { ok: false, reason: 'Сначала закончи бой' };
+        if (state.mining) return { ok: false, reason: 'Ты уже в шахте' };
+        if (!isShiftHours(hours)) return { ok: false, reason: 'Такой смены нет' };
+        set({ mining: { startedAt: Date.now(), hours } });
+        return { ok: true };
+      },
+
+      collectMining: () => {
+        const { mining, character } = get();
+        if (!mining || !character) return { ok: false, reason: 'Ты не в шахте' };
+        const earned = mineEarnings(mining, mineRatePerHour(deriveCharacter(character)), Date.now());
+        set({ mining: null, character: { ...character, kredits: character.kredits + earned } });
+        return { ok: true, kredits: earned };
+      },
     }),
     {
       name: 'combat-save-v1',
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: (s) => ({ character: s.character, fight: s.fight, arena: s.arena }),
+      partialize: (s) => ({ character: s.character, fight: s.fight, arena: s.arena, mining: s.mining }),
       onRehydrateStorage: () => (state) => state?.setHydrated(),
     },
   ),
