@@ -62,6 +62,7 @@ combat/
     index.tsx           редирект: создание / бой / персонаж
     create.tsx          создание персонажа
     fight.tsx           экран боя (fullScreenModal)
+    stats.tsx           лист характеристик и модификаторов (modal поверх табов)
     (tabs)/             персонаж, зал боя, магазин, рюкзак
   src/game/             чистая логика без React, покрыта тестами
     types.ts            зоны, блоки, слоты, типы персонажа и боя
@@ -73,7 +74,7 @@ combat/
     leveling.ts         таблица уровней и награды
     character.ts        создание, экипировка, регенерация
   src/store/useGame.ts  zustand-стор + persist в AsyncStorage
-  src/components/       UI-кирпичи (ZonePicker, FightLog, ItemCard, PaperDoll…)
+  src/components/       UI-кирпичи (ZonePicker, FightLog, ItemCard, PaperDoll, Avatar…)
   src/ui/theme.ts       цвета, отступы, шрифты
 ```
 
