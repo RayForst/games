@@ -50,6 +50,26 @@ busy background, scene, frame, border, pixel art, flat vector, cartoon, anime, g
 Размер: в Scenario генерировать **1024×1024** (квадрат 1:1), PNG, фон убрать через Remove Background.
 В игре иконки показываются 56–72 pt, так что при подключении уменьшу до 512 и 256.
 
+## Один промпт для GPT Image (Scenario, модель GPT Image 2.5)
+
+У GPT-моделей нет negative prompt и настроек стиля: всё одним текстом, запреты внутри, референсы прикрепляются
+к промпту и задают стиль. Настройки: Dimensions → квадрат 1024×1024, Background → Transparent,
+Quality → High, Image Count → 2–3 на предмет (10 вариантов одного ножа жгут кредиты впустую).
+Референсы держать одни и те же для всех 31 предметов, менять только часть в фигурных скобках.
+
+```
+Match the exact art style, lighting, camera angle and rendering of the reference images:
+a realistic painterly dark fantasy game inventory icon. Generate ONE item only:
+{rusty kitchen knife with a worn wooden handle and a chipped blade}.
+Single object centered, three-quarter view with a slight tilt, filling about 80% of the frame,
+worn leather and cold dark iron, warm candlelight highlights, soft shadow under the object,
+muted desaturated palette, transparent background.
+No text, no letters, no watermark, no hands, no characters, no extra items, no frame or border,
+no cartoon or flat vector look.
+```
+
+Части в скобках берутся из таблицы ниже (столбец «Промпт»).
+
 ## Предметы (31)
 
 Промпт — только первая часть шаблона, остальное добавляется ко всем одинаково.
