@@ -6,8 +6,8 @@
 
 ## Текущая карта
 
-Принята сгенерированная картинка `combat/assets/map/city.webp` (2000×750, стиль ушёл в средневековье,
-лор подстроен). Точки кнопок в долях ширины и высоты живут в `src/game/city.ts`:
+Принята сгенерированная картинка `combat/assets/map/city.webp` (2000×750, средневековое дарк-фэнтези,
+как и весь сеттинг). Точки кнопок в долях ширины и высоты живут в `src/game/city.ts`:
 
 | Заведение | x | y |
 | --- | --- | --- |
@@ -49,14 +49,14 @@
 ## Промпт (основной, Scenario / Midjourney / Flux)
 
 ```
-wide panoramic game map of a small Russian provincial town at dusk, early 2000s, view from above at a
+wide panoramic game map of a small late-medieval town at dusk, dark fantasy, realistic, view from above at a
 35 degree angle like a diorama, one street running left to right with six distinct landmark buildings
 in a row, from left to right: an old coal mine entrance on a hill with wooden supports, rails and a mine
-cart; a brick smithy with a chimney and a glowing orange forge; a pawn shop with an awning and barred
-windows; a large old Soviet house of culture with columns and a crowd by the entrance lit by red lanterns;
-a small pharmacy annex with a green lamp over the door; a half-basement beer hall with warm windows and
-barrels. Dark muted palette, warm lights in windows and street lamps, wet asphalt reflections, painterly
-stylized game art, clean readable silhouettes, empty space between buildings, no text, no signs with
+cart; a brick smithy with a chimney and a glowing orange forge; a timber-framed pawn shop with an awning and barred
+windows; a large old stone hall with red banners and a crowd by the entrance lit by red lanterns;
+a small healer's house with a green lamp over the door; a half-basement tavern with warm windows and
+barrels. Dark muted palette, warm lights in windows and lanterns, wet cobblestone reflections, painterly
+realistic game art, clean readable silhouettes, empty space between buildings, no text, no signs with
 letters, no logos
 ```
 
@@ -64,7 +64,7 @@ Negative prompt:
 
 ```
 text, letters, words, signs, logo, watermark, frame, border, split screen, collage, close-up people,
-daytime, snow, cartoon flat vector, pixel art, blurry
+daytime, snow, cartoon flat vector, pixel art, blurry, modern buildings, cars, neon
 ```
 
 Для Midjourney добавить в конец: `--ar 3:1 --no text, letters, signs --stylize 200`.

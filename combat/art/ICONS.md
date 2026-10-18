@@ -2,16 +2,17 @@
 
 Цель: 31 иконка предметов из `src/game/items.ts` в одном стиле + несколько иконок интерфейса.
 Файлы кладём в `combat/assets/items/<id>.png`, где `<id>` — id предмета из каталога (например `knife.png`).
-Формат: PNG, прозрачный фон, квадрат 512×512, предмет занимает ~80 % кадра, по центру.
+Формат: PNG, прозрачный фон, квадрат (генерировать 1024×1024, в игру пойдут 512 и 256), предмет занимает ~80 % кадра, по центру.
 
 ## Стиль (один на всё)
 
-Из `LORE.md`: подвал, кожа, латунь, кровь. Для иконок:
+Сеттинг из `LORE.md`: средневековое дарк-фэнтези, реализм. Для иконок:
 
-- Полуреалистичная живописная стилизация, не пиксель-арт и не flat.
-- Тёмная приглушённая палитра, тёплые латунные блики, лёгкая тёмная обводка, мягкая тень под предметом.
-- Ракурс 3/4, лёгкий наклон, как в старых браузерных RPG. Один предмет в кадре, без рук и персонажей.
-- Изношенность: царапины, потёртая кожа, ржавчина на дешёвых вещах; дорогие вещи чище и ярче.
+- Реалистичная живописная подача, как концепт-арт к мрачной RPG: правдоподобные материалы, вес, износ.
+  Не пиксель-арт, не flat, не мультяшность.
+- Тёмная приглушённая палитра, холодный металл и тёплая кожа, тёплые блики от свечи, мягкая тень под предметом.
+- Ракурс 3/4, лёгкий наклон. Один предмет в кадре, без рук и персонажей.
+- Износ: царапины, потёртая кожа, ржавчина на дешёвых вещах; дорогие чище и с деталями, но без блеска «из магазина».
 
 ## Порядок работы в Scenario
 
@@ -34,17 +35,20 @@
 ## Шаблон промпта
 
 ```
-{предмет и детали}, game inventory item icon, single object centered, three-quarter view,
-worn leather and dark iron, warm brass highlights, soft dark outline, subtle drop shadow,
-muted dark palette, isolated on plain neutral background
+{предмет и детали}, dark fantasy game inventory item icon, realistic painterly render,
+single object centered, three-quarter view, worn leather and cold dark iron, candlelight highlights,
+subtle drop shadow, muted desaturated palette, isolated on plain neutral background
 ```
 
 Negative prompt:
 
 ```
 text, letters, watermark, logo, multiple items, hands, character, person, cropped, blurry,
-busy background, scene, frame, border, pixel art, flat vector
+busy background, scene, frame, border, pixel art, flat vector, cartoon, anime, glossy plastic, neon
 ```
+
+Размер: в Scenario генерировать **1024×1024** (квадрат 1:1), PNG, фон убрать через Remove Background.
+В игре иконки показываются 56–72 pt, так что при подключении уменьшу до 512 и 256.
 
 ## Предметы (31)
 
