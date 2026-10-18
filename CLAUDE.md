@@ -26,6 +26,8 @@
 - Навигация: табы `(tabs)/city` (хаб-карта, стартовый), `character`, `backpack`. Арена, магазин, лекарь и шахта —
   экраны стека (`src/app/arena.tsx`, `shop.tsx`, `healer.tsx`, `mine.tsx`), открываются с карты, наверху `BackBar`.
   Заведения и их точки на карте — `src/game/city.ts`, картинка `assets/map/city.webp`, компонент `CityMap`.
+  Карта растянута на всю сцену (cover по высоте, лишнее листается), шапка и панель заведения лежат поверх;
+  затемнения — `expo-linear-gradient`. Фон полосой с тёмными полями делать нельзя (см. `combat/art/MAP.md`).
 - Выход из экрана боя — `router.dismissTo('/arena')`, не `replace` (иначе дублируются экраны).
 - Шахта — офлайн-доход: `src/game/mine.ts`, в сторе `mining`, `startMining`/`collectMining`; во время смены бой запрещён.
 - `experiments.baseUrl = "/games"` в `app.json` нужен для GitHub Pages; на dev-сервер не влияет.
