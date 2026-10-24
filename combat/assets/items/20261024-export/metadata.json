@@ -1,0 +1,831 @@
+{
+  "query": {
+    "assetIds": [
+      "asset_scHtBiTAghwZHv32ddjSMY5g",
+      "asset_P8RB9MT2SjvJG3b6AnPUg39m",
+      "asset_yxhKTnXP6JGNqbctXPJy1Epa",
+      "asset_36ey7YDXBLui8iQ7EnniL8rt",
+      "asset_HxauoAz4uyBazLnnDxEYySCV",
+      "asset_8z4sugrUTBN8xtKf2mc7Sihu",
+      "asset_Rf7ojDC3DUhYpAJAtjTLcwiw",
+      "asset_AAkLqKVwyae5nQ7cvi5PCY5P",
+      "asset_n4j1N2caM65K8Ro26WRkLJ2z",
+      "asset_r4hDbrAsF1UfSytrpAv5iRQA",
+      "asset_uJ3VRSHk2unMtUMQeoxyRMxn",
+      "asset_xRtG1Eon6aL87RWhZSiMhtq1",
+      "asset_MZtAFPysdL2R3jJxomK9o5Fd",
+      "asset_jrDMUGZJewhByydEpKbEZMKL",
+      "asset_bkTrehZCXeeL4PmfWVrXkScb",
+      "asset_hqMaztLUxqGwLZTHFhusDbpB",
+      "asset_v8GoP8z3bigaHTtVrmEhmmeC",
+      "asset_2PiS8TJUvwFm8RwEZeQe9pby",
+      "asset_JB6JTsvqx4taJCbj82FVom8r",
+      "asset_HTjiwb6ugJBZgu5UtoLVjnZM",
+      "asset_95xA8tFgKPg5pRjktBW2NNXE",
+      "asset_RU7S2nnR4Mrx76LyCnFKRS6X",
+      "asset_3ACG8Vu6ptSwYTpPZFUMWPeM",
+      "asset_6HD1EyAvz11T1ykaueH7wUF9",
+      "asset_Sb8c9BMzpkahAzaMzD3d8gpj",
+      "asset_9ziSKadwXWop5uisAqh2rXRk",
+      "asset_iyJvcrQuZ2XUzWusdxjut3Mr",
+      "asset_wR1m4WoXMwzpSqytwQpRfXFJ",
+      "asset_3sz3j2mdLK2j16JQh2uL2LXs",
+      "asset_eJhFEknovk91t25hig9e1H2j",
+      "asset_hrdstpg5uNeidDpurvSdYTtU",
+      "asset_WPBEMHuAu3MERihbcRhw7eeJ",
+      "asset_HCdcghmgPNJotsZpguzdAwxX",
+      "asset_MTysgciDwEX7uN3VoDrsj79Y",
+      "asset_JdHb8kP9ZuMpXfuAZkCy5SsG",
+      "asset_nCtmSQbh62c1jUZANgnwNHSv",
+      "asset_2kUyKegpcKywxwKJWT3kC3dJ",
+      "asset_o7wtf2aRiyMC6fhdFidFgseN",
+      "asset_SueSSumANaxYrKt6wq9b2qw8",
+      "asset_kFhora7goskKNgPfA7qDK5Y8",
+      "asset_4ZC2VBien8dTrqgVFDjX92z6",
+      "asset_vjm1Xv1LC3ybFo7b3qTNf7Hm",
+      "asset_4qmZzJfupkdLCNa67cFtxrEV",
+      "asset_m8BDi99AmPWV1zenFjX4XL7s",
+      "asset_VKznCQZqFgUstzaVRJiuUsXp",
+      "asset_xhMjFGAUgnGWAsjRCHCCMVta",
+      "asset_x1mVSx8DvunfWLJX9K72WQQj",
+      "asset_zfziDpESMs8iycA7qD4USuPV",
+      "asset_NWqUdpiFRmKDejq9AQM6G5jH",
+      "asset_Q3W1DfGtsWpGVtHg1NE5S9d4",
+      "asset_VqoxpaMTyG6rEj3Af5PdCXfW",
+      "asset_jhj7gSt8WQPw2gEdLqkdhcRw",
+      "asset_YGpuiQrMAENgpKF4xT7Bq8tU",
+      "asset_DGsfhJYM2QucD4f6qdn9L3Jw",
+      "asset_fNVh1FagjUeMzLoLpYD7BkQz",
+      "asset_dYGFXJa3bXEabvMd4KzRSxtb",
+      "asset_orjtVqcfBdVSPN6uo3oMN2V4",
+      "asset_GssMt89KZDQXtLpvgfRv7ySa",
+      "asset_X4pTHQ33wNFAzGstswHBLQJj",
+      "asset_1GitevXBhQfDq5CAXWuXimmY",
+      "asset_oSjwULT5zSLA2jQcRnxVsZd3",
+      "asset_6jLtd1wQuPWtDXWqPLqp43zN",
+      "asset_wp63VSEKEAU29NDZ1MCnqXgT",
+      "asset_71jQcLi1EyNdwaz8a52qX19e",
+      "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "asset_xuEhj2itWz32v1ADvEZU1Ww4",
+      "asset_7c9KwzdefvfxYrf5qu947BVZ",
+      "asset_9PLKXo9nQ9uN2XQV7uKheeAd"
+    ],
+    "inferenceIds": [],
+    "modelIds": []
+  },
+  "options": {
+    "fileNameTemplate": "<description>-<id>-<num>",
+    "flat": false,
+    "preferOriginal": false
+  },
+  "count": 68,
+  "assets": [
+    {
+      "id": "asset_scHtBiTAghwZHv32ddjSMY5g",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/small_dark_brown_leather_pouch_featuring_visible_stitching-asset_scHtBiTAghwZHv32ddjSMY5g-01.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_XQXozgpxhD1VRopcDmJRoVAG"
+    },
+    {
+      "id": "asset_P8RB9MT2SjvJG3b6AnPUg39m",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/tightly_clenched_fist_wrapped_completely_frayed_dirty_cloth-asset_P8RB9MT2SjvJG3b6AnPUg39m-02.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_GAGj68ACZnfZaw5EWFesqXu9"
+    },
+    {
+      "id": "asset_yxhKTnXP6JGNqbctXPJy1Epa",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/round_glass_bottle_filled_red_liquid_secured_dark-asset_yxhKTnXP6JGNqbctXPJy1Epa-03.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_YeFjYKL5UTtjtwTBwaa5VXG7"
+    },
+    {
+      "id": "asset_36ey7YDXBLui8iQ7EnniL8rt",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/round_glass_flask_filled_red_liquid_features_heavy-asset_36ey7YDXBLui8iQ7EnniL8rt-04.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_YeFjYKL5UTtjtwTBwaa5VXG7"
+    },
+    {
+      "id": "asset_HxauoAz4uyBazLnnDxEYySCV",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/rounded_glass_bottle_containing_bright_red_liquid_features-asset_HxauoAz4uyBazLnnDxEYySCV-05.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_YeFjYKL5UTtjtwTBwaa5VXG7"
+    },
+    {
+      "id": "asset_8z4sugrUTBN8xtKf2mc7Sihu",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/tarnished_bronze_star_shaped_military_medal_hangs_dark-asset_8z4sugrUTBN8xtKf2mc7Sihu-06.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_n9Duvdc2ed3pJgVLa9oG51wb"
+    },
+    {
+      "id": "asset_Rf7ojDC3DUhYpAJAtjTLcwiw",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/weathered_bronze_star_medal_hangs_dark_textured_fabric-asset_Rf7ojDC3DUhYpAJAtjTLcwiw-07.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_n9Duvdc2ed3pJgVLa9oG51wb"
+    },
+    {
+      "id": "asset_AAkLqKVwyae5nQ7cvi5PCY5P",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/weathered_bronze_medal_shaped_like_five_pointed_star-asset_AAkLqKVwyae5nQ7cvi5PCY5P-08.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_n9Duvdc2ed3pJgVLa9oG51wb"
+    },
+    {
+      "id": "asset_n4j1N2caM65K8Ro26WRkLJ2z",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/detailed_dark_red_leather_mechanical_heart_features_visible-asset_n4j1N2caM65K8Ro26WRkLJ2z-09.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_RXE5uHrkp7pBResBAaKwwKiq"
+    },
+    {
+      "id": "asset_r4hDbrAsF1UfSytrpAv5iRQA",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/artificial_heart_made_brown_leather_features_visible_metal-asset_r4hDbrAsF1UfSytrpAv5iRQA-10.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_RXE5uHrkp7pBResBAaKwwKiq"
+    },
+    {
+      "id": "asset_uJ3VRSHk2unMtUMQeoxyRMxn",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/weathered_red_heart_sculpture_made_segmented_panels_features-asset_uJ3VRSHk2unMtUMQeoxyRMxn-11.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_RXE5uHrkp7pBResBAaKwwKiq"
+    },
+    {
+      "id": "asset_xRtG1Eon6aL87RWhZSiMhtq1",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/thick_weathered_bronze_coin_features_raised_embossed_image-asset_xRtG1Eon6aL87RWhZSiMhtq1-12.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_wdccEUBXP2jeAkaTt1enRopE"
+    },
+    {
+      "id": "asset_MZtAFPysdL2R3jJxomK9o5Fd",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/pair_weathered_metallic_combat_boots_stand_upright_against-asset_MZtAFPysdL2R3jJxomK9o5Fd-13.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_XY1z6LZF4ttYBQMSsWd18Qim"
+    },
+    {
+      "id": "asset_jrDMUGZJewhByydEpKbEZMKL",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/pair_tall_brown_leather_boots_features_layered_metal-asset_jrDMUGZJewhByydEpKbEZMKL-14.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_XY1z6LZF4ttYBQMSsWd18Qim"
+    },
+    {
+      "id": "asset_bkTrehZCXeeL4PmfWVrXkScb",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/two_tall_brown_leather_boots_feature_multiple_straps-asset_bkTrehZCXeeL4PmfWVrXkScb-15.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_jVSJRU2hkrnCYtuqNn5QiWFm"
+    },
+    {
+      "id": "asset_hqMaztLUxqGwLZTHFhusDbpB",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/two_tall_weathered_brown_leather_boots_feature_multiple-asset_hqMaztLUxqGwLZTHFhusDbpB-16.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_jVSJRU2hkrnCYtuqNn5QiWFm"
+    },
+    {
+      "id": "asset_v8GoP8z3bigaHTtVrmEhmmeC",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/pair_traditional_handmade_shoes_crafted_woven_brown_bark-asset_v8GoP8z3bigaHTtVrmEhmmeC-17.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_8dSWuJcL71fZabrc5PeX9Uwx"
+    },
+    {
+      "id": "asset_2PiS8TJUvwFm8RwEZeQe9pby",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/pair_medieval_chainmail_leggings_rests_diagonally_white_background-asset_2PiS8TJUvwFm8RwEZeQe9pby-18.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_SHSdKwoKK4Lk59JX2MywMZn8"
+    },
+    {
+      "id": "asset_JB6JTsvqx4taJCbj82FVom8r",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/pair_worn_brown_leather_pants_featuring_metal_buckles-asset_JB6JTsvqx4taJCbj82FVom8r-19.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_7Xi1cyG5M2bLTPe83mZtzFP5"
+    },
+    {
+      "id": "asset_HTjiwb6ugJBZgu5UtoLVjnZM",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/pair_heavily_worn_brown_trousers_ragged_edges_dark-asset_HTjiwb6ugJBZgu5UtoLVjnZM-20.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_TQmTMtWrw3KCtXJdV8V5qqN9"
+    },
+    {
+      "id": "asset_95xA8tFgKPg5pRjktBW2NNXE",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/thick_weathered_dark_brown_leather_belt_neatly_coiled-asset_95xA8tFgKPg5pRjktBW2NNXE-21.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_hCzhvE7UnoQZhdgk1FKYac38"
+    },
+    {
+      "id": "asset_RU7S2nnR4Mrx76LyCnFKRS6X",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/thick_distressed_brown_leather_belt_features_large_ornate-asset_RU7S2nnR4Mrx76LyCnFKRS6X-22.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_hCzhvE7UnoQZhdgk1FKYac38"
+    },
+    {
+      "id": "asset_3ACG8Vu6ptSwYTpPZFUMWPeM",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/thick_worn_brown_leather_belt_coiled_plain_white-asset_3ACG8Vu6ptSwYTpPZFUMWPeM-23.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_iZSQzYEYKscKBCDERxmg7mNy"
+    },
+    {
+      "id": "asset_6HD1EyAvz11T1ykaueH7wUF9",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/thick_brown_distressed_leather_belt_featuring_large_round-asset_6HD1EyAvz11T1ykaueH7wUF9-24.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_iZSQzYEYKscKBCDERxmg7mNy"
+    },
+    {
+      "id": "asset_Sb8c9BMzpkahAzaMzD3d8gpj",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/coiled_brown_leather_belt_visible_stitching_weathered_texture-asset_Sb8c9BMzpkahAzaMzD3d8gpj-25.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_KRZUftZNgymHRpkwr771mE5p"
+    },
+    {
+      "id": "asset_9ziSKadwXWop5uisAqh2rXRk",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/coiled_brown_leather_belt_featuring_weathered_metallic_buckle-asset_9ziSKadwXWop5uisAqh2rXRk-26.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_KRZUftZNgymHRpkwr771mE5p"
+    },
+    {
+      "id": "asset_iyJvcrQuZ2XUzWusdxjut3Mr",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/two_dark_brown_distressed_leather_gauntlets_feature_metallic-asset_iyJvcrQuZ2XUzWusdxjut3Mr-27.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_st1L6ZLXwYb76jrDBEUucgfZ"
+    },
+    {
+      "id": "asset_wR1m4WoXMwzpSqytwQpRfXFJ",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/two_dark_brown_weathered_leather_gauntlets_feature_metallic-asset_wR1m4WoXMwzpSqytwQpRfXFJ-28.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_st1L6ZLXwYb76jrDBEUucgfZ"
+    },
+    {
+      "id": "asset_3sz3j2mdLK2j16JQh2uL2LXs",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/pair_weathered_metallic_gauntlets_overlapping_plate_segments_covering-asset_3sz3j2mdLK2j16JQh2uL2LXs-29.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_dqMgejMDqVYjZMCASWMYPA39"
+    },
+    {
+      "id": "asset_eJhFEknovk91t25hig9e1H2j",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/two_old_metal_gauntlets_overlapping_plated_fingers_riveted-asset_eJhFEknovk91t25hig9e1H2j-30.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_dqMgejMDqVYjZMCASWMYPA39"
+    },
+    {
+      "id": "asset_hrdstpg5uNeidDpurvSdYTtU",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/two_dark_brown_distressed_leather_gloves_featuring_segmented-asset_hrdstpg5uNeidDpurvSdYTtU-31.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_sL2kMU2bFrRYSksty8B7bHzT"
+    },
+    {
+      "id": "asset_WPBEMHuAu3MERihbcRhw7eeJ",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/two_worn_brown_leather_gloves_featuring_decorative_metal-asset_WPBEMHuAu3MERihbcRhw7eeJ-32.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_sL2kMU2bFrRYSksty8B7bHzT"
+    },
+    {
+      "id": "asset_HCdcghmgPNJotsZpguzdAwxX",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/weathered_metal_chest_plate_features_layered_shoulder_guards-asset_HCdcghmgPNJotsZpguzdAwxX-33.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_8DGs8ASfwkuTnHw7wzyhbNgF"
+    },
+    {
+      "id": "asset_MTysgciDwEX7uN3VoDrsj79Y",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/weathered_metal_chest_plate_features_dark_iron_plates-asset_MTysgciDwEX7uN3VoDrsj79Y-34.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_8DGs8ASfwkuTnHw7wzyhbNgF"
+    },
+    {
+      "id": "asset_JdHb8kP9ZuMpXfuAZkCy5SsG",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/brown_leather_vest_featuring_multiple_vertical_rectangular_plates-asset_JdHb8kP9ZuMpXfuAZkCy5SsG-35.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_sxphGLWiFy2rs8D2BujfcceW"
+    },
+    {
+      "id": "asset_nCtmSQbh62c1jUZANgnwNHSv",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/brown_leather_vest_featuring_multiple_rectangular_plates_arranged-asset_nCtmSQbh62c1jUZANgnwNHSv-36.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_sxphGLWiFy2rs8D2BujfcceW"
+    },
+    {
+      "id": "asset_2kUyKegpcKywxwKJWT3kC3dJ",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/short_sleeved_chainmail_shirt_made_dark_interlinked_metallic-asset_2kUyKegpcKywxwKJWT3kC3dJ-37.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_k2k6kvEY753rqYTzSPJRTwW8"
+    },
+    {
+      "id": "asset_o7wtf2aRiyMC6fhdFidFgseN",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/brown_chainmail_tunic_short_sleeves_features_dark_leather-asset_o7wtf2aRiyMC6fhdFidFgseN-38.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_k2k6kvEY753rqYTzSPJRTwW8"
+    },
+    {
+      "id": "asset_SueSSumANaxYrKt6wq9b2qw8",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/weathered_brown_leather_jacket_high_collar_shoulder_pads-asset_SueSSumANaxYrKt6wq9b2qw8-39.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_yJ75i9K8t4b3EgcqqMRwC7Qz"
+    },
+    {
+      "id": "asset_kFhora7goskKNgPfA7qDK5Y8",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/weathered_brown_leather_jacket_featuring_prominent_shoulder_pads-asset_kFhora7goskKNgPfA7qDK5Y8-40.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_yJ75i9K8t4b3EgcqqMRwC7Qz"
+    },
+    {
+      "id": "asset_4ZC2VBien8dTrqgVFDjX92z6",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/weathered_medieval_great_helm_made_dark_rusted_metal-asset_4ZC2VBien8dTrqgVFDjX92z6-41.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_HXLx1XJmV7dQti1sw5TWpz5A"
+    },
+    {
+      "id": "asset_vjm1Xv1LC3ybFo7b3qTNf7Hm",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/weathered_medieval_great_helm_made_dark_rusted_metal-asset_vjm1Xv1LC3ybFo7b3qTNf7Hm-42.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_HXLx1XJmV7dQti1sw5TWpz5A"
+    },
+    {
+      "id": "asset_4qmZzJfupkdLCNa67cFtxrEV",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/old_metal_combat_helmet_features_vertical_nose_guard-asset_4qmZzJfupkdLCNa67cFtxrEV-43.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_a9Z6Jw8E7tNdZ5JPufYj437E"
+    },
+    {
+      "id": "asset_m8BDi99AmPWV1zenFjX4XL7s",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/aged_metal_combat_helmet_featuring_protective_nose_guard-asset_m8BDi99AmPWV1zenFjX4XL7s-44.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_a9Z6Jw8E7tNdZ5JPufYj437E"
+    },
+    {
+      "id": "asset_VKznCQZqFgUstzaVRJiuUsXp",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/brown_leather_helmet_features_stitched_seams_along_rounded-asset_VKznCQZqFgUstzaVRJiuUsXp-45.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_eapow6AgUVsecWTwNkGFqT1b"
+    },
+    {
+      "id": "asset_xhMjFGAUgnGWAsjRCHCCMVta",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/textured_brown_leather_helmet_featuring_reinforced_stitching_along-asset_xhMjFGAUgnGWAsjRCHCCMVta-46.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_eapow6AgUVsecWTwNkGFqT1b"
+    },
+    {
+      "id": "asset_x1mVSx8DvunfWLJX9K72WQQj",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/weathered_rectangular_metal_shield_displays_vertical_panels_reinforced-asset_x1mVSx8DvunfWLJX9K72WQQj-47.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_3YW8rM3SyDo5pi2eWAMRYZz8"
+    },
+    {
+      "id": "asset_zfziDpESMs8iycA7qD4USuPV",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/round_wooden_shield_featuring_red_paint_metal_edging-asset_zfziDpESMs8iycA7qD4USuPV-48.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_WTvQMYgZ7ehFSAcEm43SNaaU"
+    },
+    {
+      "id": "asset_NWqUdpiFRmKDejq9AQM6G5jH",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/circular_round_shield_made_dark_weathered_metal_features-asset_NWqUdpiFRmKDejq9AQM6G5jH-49.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_GqgU961Y59qwVhozw2pL2Fq3"
+    },
+    {
+      "id": "asset_Q3W1DfGtsWpGVtHg1NE5S9d4",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/weathered_battle_axe_featuring_heavily_textured_dark_metal-asset_Q3W1DfGtsWpGVtHg1NE5S9d4-50.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_QxWw5QrZ3P2z44k16EMeK8GX"
+    },
+    {
+      "id": "asset_VqoxpaMTyG6rEj3Af5PdCXfW",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/antique_battle_axe_features_worn_wooden_handle_wrapped-asset_VqoxpaMTyG6rEj3Af5PdCXfW-51.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_QxWw5QrZ3P2z44k16EMeK8GX"
+    },
+    {
+      "id": "asset_jhj7gSt8WQPw2gEdLqkdhcRw",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/heavy_metal_mace_features_textured_handle_wrapped_dark-asset_jhj7gSt8WQPw2gEdLqkdhcRw-52.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_qL1DM2542sMQ4faSkJHyecz8"
+    },
+    {
+      "id": "asset_YGpuiQrMAENgpKF4xT7Bq8tU",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/weathered_medieval_mace_features_heavy_spiked_metal_head-asset_YGpuiQrMAENgpKF4xT7Bq8tU-53.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_qL1DM2542sMQ4faSkJHyecz8"
+    },
+    {
+      "id": "asset_DGsfhJYM2QucD4f6qdn9L3Jw",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/weathered_dagger_pointed_double_edged_blade_features_dark-asset_DGsfhJYM2QucD4f6qdn9L3Jw-54.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_FgtQtkDUzpwWQRGDDjkiDiBR"
+    },
+    {
+      "id": "asset_fNVh1FagjUeMzLoLpYD7BkQz",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/medieval_dagger_featuring_textured_steel_blade_simple_crossguard-asset_fNVh1FagjUeMzLoLpYD7BkQz-55.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_FgtQtkDUzpwWQRGDDjkiDiBR"
+    },
+    {
+      "id": "asset_dYGFXJa3bXEabvMd4KzRSxtb",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/metal_dagger_complex_bronze_guard_wrapped_dark_handle-asset_dYGFXJa3bXEabvMd4KzRSxtb-56.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_puoL5w44nEnPwQB4EG4XTpmp"
+    },
+    {
+      "id": "asset_orjtVqcfBdVSPN6uo3oMN2V4",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/ornate_dagger_long_thin_steel_blade_wrapped_dark-asset_orjtVqcfBdVSPN6uo3oMN2V4-57.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_puoL5w44nEnPwQB4EG4XTpmp"
+    },
+    {
+      "id": "asset_GssMt89KZDQXtLpvgfRv7ySa",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/old_battle_axe_features_worn_wooden_handle_wrapped-asset_GssMt89KZDQXtLpvgfRv7ySa-58.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_CPRWV9tmcqofYo7XhwSiBUz4"
+    },
+    {
+      "id": "asset_X4pTHQ33wNFAzGstswHBLQJj",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/weathered_rustic_axe_features_curved_wooden_handle_wrapped-asset_X4pTHQ33wNFAzGstswHBLQJj-59.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_CPRWV9tmcqofYo7XhwSiBUz4"
+    },
+    {
+      "id": "asset_1GitevXBhQfDq5CAXWuXimmY",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/weathered_antique_dagger_rusted_double_edged_metal_blade-asset_1GitevXBhQfDq5CAXWuXimmY-60.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_e6K3ABR6ZyL9XcnqELzFdzVR"
+    },
+    {
+      "id": "asset_oSjwULT5zSLA2jQcRnxVsZd3",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/ancient_metallic_dagger_dark_weathered_finish_featuring_wrapped-asset_oSjwULT5zSLA2jQcRnxVsZd3-61.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_e6K3ABR6ZyL9XcnqELzFdzVR"
+    },
+    {
+      "id": "asset_6jLtd1wQuPWtDXWqPLqp43zN",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/antique_metallic_dagger_pointed_double_edged_blade_wrapped-asset_6jLtd1wQuPWtDXWqPLqp43zN-62.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_pacJUrqMmRiuq1eSFgULiPkp"
+    },
+    {
+      "id": "asset_wp63VSEKEAU29NDZ1MCnqXgT",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "path": "GPT_Image_2.5_Flare/Match_the_exact_art/weathered_dagger_featuring_dark_textured_metal_blade_simple-asset_wp63VSEKEAU29NDZ1MCnqXgT-63.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_pacJUrqMmRiuq1eSFgULiPkp"
+    },
+    {
+      "id": "asset_71jQcLi1EyNdwaz8a52qX19e",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_UCzuEQWmEU3mxWqo59Da8QL3",
+      "path": "GPT_Image_2.5_Sunburst/weathered_utility_knife_heavily_rusted_blade_featuring_chips-asset_71jQcLi1EyNdwaz8a52qX19e-01.png",
+      "generator": {
+        "name": "GPT Image 2.5 Sunburst"
+      },
+      "prompt": "asset_7U4jXEBvT5FsbEseAzqHyuhq"
+    },
+    {
+      "id": "asset_DgWYZv4Bp8uUGxjPnt34wNko",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_UCzuEQWmEU3mxWqo59Da8QL3",
+      "path": "GPT_Image_2.5_Sunburst/heavy_wooden_club_weapon_features_thick_textured_handle-asset_DgWYZv4Bp8uUGxjPnt34wNko-02.png",
+      "generator": {
+        "name": "GPT Image 2.5 Sunburst"
+      },
+      "prompt": "asset_7U4jXEBvT5FsbEseAzqHyuhq"
+    },
+    {
+      "id": "asset_xuEhj2itWz32v1ADvEZU1Ww4",
+      "tags": [],
+      "type": "image-prompt-editing",
+      "parentAsset": "asset_7c9KwzdefvfxYrf5qu947BVZ",
+      "path": "GPT_Image_2.5_Flare/weathered_medieval_dagger_featuring_sharp_scratched_steel_blade-asset_xuEhj2itWz32v1ADvEZU1Ww4-01.png",
+      "generator": {
+        "name": "GPT Image 2.5 Flare"
+      },
+      "prompt": "asset_PNVCNthJLLsZUmL79G3cDE3X"
+    },
+    {
+      "id": "asset_7c9KwzdefvfxYrf5qu947BVZ",
+      "tags": [],
+      "type": "upscale",
+      "parentAsset": "asset_9PLKXo9nQ9uN2XQV7uKheeAd",
+      "path": "Topaz_Image_Upscale/collection_grid_displays_various_medieval_combat_equipment_icons-asset_7c9KwzdefvfxYrf5qu947BVZ-01.png",
+      "generator": {
+        "name": "Topaz Image Upscale"
+      }
+    },
+    {
+      "id": "asset_9PLKXo9nQ9uN2XQV7uKheeAd",
+      "tags": [],
+      "type": "txt2img",
+      "parentAsset": "asset_mWa8M7qDUipmJzHYMhQpjVaN",
+      "path": "GPT_Image_2.5_Sunburst/multiple_inventory_categories_display_various_medieval_weapons_shields-asset_9PLKXo9nQ9uN2XQV7uKheeAd-01.png",
+      "generator": {
+        "name": "GPT Image 2.5 Sunburst"
+      },
+      "prompt": "asset_mWa8M7qDUipmJzHYMhQpjVaN"
+    }
+  ]
+}
