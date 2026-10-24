@@ -5,6 +5,7 @@ import { BackBar } from '@/components/BackBar';
 import { Bar } from '@/components/Bar';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { Kredits } from '@/components/Kredits';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
 import { deriveCharacter, type Opponent } from '@/game';
@@ -44,7 +45,7 @@ export default function ArenaScreen() {
 
   return (
     <Screen>
-      <BackBar right={<Txt variant="gold">{character.kredits} кр.</Txt>} />
+      <BackBar right={<Kredits value={character.kredits} />} />
       <View style={styles.header}>
         <Txt variant="title">Арена</Txt>
         <Txt variant="muted">Выбери соперника. Бой — до первого упавшего.</Txt>

@@ -3,6 +3,7 @@ import { Alert, StyleSheet, View } from 'react-native';
 import { Card } from '@/components/Card';
 import { Flash } from '@/components/Flash';
 import { ItemCard } from '@/components/ItemCard';
+import { Kredits } from '@/components/Kredits';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
 import { canEquip, getItem, isEquipped, sellPrice, SLOTS } from '@/game';
@@ -50,9 +51,7 @@ export default function BackpackScreen() {
             Вещей: {character.backpack.length} · надето: {equipped.length}
           </Txt>
         </View>
-        <Txt variant="gold" style={styles.kredits}>
-          {character.kredits} кр.
-        </Txt>
+        <Kredits value={character.kredits} size={20} />
       </View>
 
       <Flash text={flash} />

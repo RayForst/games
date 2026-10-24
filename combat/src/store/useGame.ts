@@ -11,7 +11,8 @@ import {
   describeStrike,
   generateArena,
   getItem,
-  healCost,
+  healAmount,
+  healPrice,
   isEquipped,
   isShiftHours,
   levelForExp,
@@ -59,7 +60,8 @@ export interface GameState {
 
   addStat: (stat: StatKey) => void;
   tick: () => void;
-  heal: () => Check;
+  /** Лечение у лекаря: доля максимального hp (зелья 0.3 / 0.6 / 1). */
+  heal: (fraction?: number) => Check;
 
   buyItem: (itemId: string) => Check;
   sellItem: (itemUid: string) => Check;
@@ -113,14 +115,15 @@ export const useGame = create<GameState>()(
         if (next !== c) set({ character: next });
       },
 
-      heal: () => {
+      heal: (fraction = 1) => {
         const c = get().character;
         if (!c) return { ok: false, reason: 'Нет персонажа' };
         const maxHp = deriveCharacter(c).maxHp;
         if (c.hp >= maxHp) return { ok: false, reason: 'Ты и так здоров' };
-        const cost = healCost(c);
+        const cost = healPrice(c, fraction);
         if (c.kredits < cost) return { ok: false, reason: `Нужно ${cost} кр.` };
-        set({ character: { ...c, hp: maxHp, kredits: c.kredits - cost, hpUpdatedAt: Date.now() } });
+        const hp = Math.min(maxHp, c.hp + healAmount(c, fraction));
+        set({ character: { ...c, hp, kredits: c.kredits - cost, hpUpdatedAt: Date.now() } });
         return { ok: true };
       },
 

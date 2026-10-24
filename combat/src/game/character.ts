@@ -107,9 +107,37 @@ function fmt(n: number): string {
   return n > 0 ? `+${n}` : `${n}`;
 }
 
-/** Стоимость лечения у лекаря. */
+/** Стоимость полного лечения у лекаря. */
 export function healCost(c: Character): number {
   return 5 + c.level * 5;
+}
+
+export interface HealOption {
+  id: 'small' | 'medium' | 'large';
+  name: string;
+  /** Доля максимального hp, которую восстанавливает. */
+  fraction: number;
+  /** Иконка из UI_ICONS. */
+  icon: 'potion-small' | 'potion-medium' | 'potion-large';
+  flavor: string;
+}
+
+/** Три зелья лекаря. Цена линейна доле hp, так что бедному новичку хватит и на малое. */
+export const HEAL_OPTIONS: HealOption[] = [
+  { id: 'small', name: 'Малое зелье', fraction: 0.3, icon: 'potion-small', flavor: 'Перестанет капать.' },
+  { id: 'medium', name: 'Среднее зелье', fraction: 0.6, icon: 'potion-medium', flavor: 'Встанешь на ноги.' },
+  { id: 'large', name: 'Большое зелье', fraction: 1, icon: 'potion-large', flavor: 'Как новенький.' },
+];
+
+/** Цена зелья: доля от полного лечения, не меньше 1 кредита. */
+export function healPrice(c: Character, fraction: number): number {
+  return Math.max(1, Math.ceil(healCost(c) * Math.min(1, Math.max(0, fraction))));
+}
+
+/** Сколько hp даст зелье с учётом потолка. */
+export function healAmount(c: Character, fraction: number): number {
+  const maxHp = deriveCharacter(c).maxHp;
+  return Math.min(maxHp - c.hp, Math.ceil(maxHp * Math.min(1, Math.max(0, fraction))));
 }
 
 /** Регенерация: полное восстановление за FULL_REGEN_MINUTES, считается по времени с последнего обновления. */

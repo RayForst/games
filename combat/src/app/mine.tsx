@@ -7,6 +7,7 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Chip } from '@/components/Chip';
 import { Flash } from '@/components/Flash';
+import { Kredits } from '@/components/Kredits';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
 import {
@@ -57,7 +58,7 @@ export default function MineScreen() {
 
   return (
     <Screen>
-      <BackBar right={<Txt variant="gold">{character.kredits} кр.</Txt>} />
+      <BackBar right={<Kredits value={character.kredits} />} />
       <View>
         <Txt variant="title">Шахта</Txt>
         <Txt variant="muted">{BUILDINGS_BY_ID.mine.description}</Txt>

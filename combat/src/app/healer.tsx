@@ -1,20 +1,21 @@
-import { Alert, StyleSheet, View } from 'react-native';
+import { Alert, Image, Pressable, StyleSheet, View } from 'react-native';
 
 import { BackBar } from '@/components/BackBar';
 import { Bar } from '@/components/Bar';
-import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Flash } from '@/components/Flash';
+import { Kredits } from '@/components/Kredits';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
-import { BUILDINGS_BY_ID, deriveCharacter, healCost, secondsToFullHp } from '@/game';
+import { BUILDINGS_BY_ID, deriveCharacter, HEAL_OPTIONS, healAmount, healPrice, secondsToFullHp } from '@/game';
 import { useFlash } from '@/hooks/useFlash';
 import { useNow } from '@/hooks/useNow';
 import { useGame } from '@/store/useGame';
 import { formatDuration } from '@/ui/format';
-import { colors } from '@/ui/theme';
+import { UI_ICONS } from '@/ui/icons.generated';
+import { colors, radius, spacing } from '@/ui/theme';
 
-/** Лекарь: мгновенное лечение за кредиты. Бесплатная альтернатива — подождать регенерацию. */
+/** Лекарь: три зелья на выбор — малое, среднее, большое. Бесплатная альтернатива — подождать регенерацию. */
 export default function HealerScreen() {
   const character = useGame((s) => s.character);
   const heal = useGame((s) => s.heal);
@@ -25,22 +26,20 @@ export default function HealerScreen() {
 
   const derived = deriveCharacter(character);
   const toFull = secondsToFullHp(character, now);
-  const cost = healCost(character);
   const healthy = toFull === 0;
-  const poor = character.kredits < cost;
 
-  const onHeal = () => {
-    const r = heal();
+  const drink = (fraction: number, flavor: string) => {
+    const r = heal(fraction);
     if (!r.ok) {
       Alert.alert('Лекарь', r.reason ?? 'Не получилось');
       return;
     }
-    show('Заштопал. Как новенький.');
+    show(flavor);
   };
 
   return (
     <Screen>
-      <BackBar right={<Txt variant="gold">{character.kredits} кр.</Txt>} />
+      <BackBar right={<Kredits value={character.kredits} />} />
       <View>
         <Txt variant="title">Лекарь</Txt>
         <Txt variant="muted">{BUILDINGS_BY_ID.healer.description}</Txt>
@@ -51,10 +50,39 @@ export default function HealerScreen() {
       <Card title="Здоровье">
         <Bar value={character.hp} max={derived.maxHp} />
         <Txt variant="small">{healthy ? 'Ты здоров, лечить нечего.' : `Само заживёт через ${formatDuration(toFull)}.`}</Txt>
-        <Button title={`Вылечиться · ${cost} кр.`} onPress={onHeal} disabled={healthy || poor} />
-        {!healthy && poor ? (
-          <Txt variant="small" color={colors.red} style={styles.note}>
-            Не хватает кредитов. Подожди или сходи в шахту.
+      </Card>
+
+      <Card title="Зелья">
+        {HEAL_OPTIONS.map((o) => {
+          const price = healPrice(character, o.fraction);
+          const amount = healAmount(character, o.fraction);
+          const poor = character.kredits < price;
+          const disabled = healthy || poor;
+          return (
+            <Pressable
+              key={o.id}
+              onPress={() => drink(o.fraction, o.flavor)}
+              disabled={disabled}
+              accessibilityRole="button"
+              accessibilityLabel={`${o.name} · ${price} кр.`}
+              accessibilityState={{ disabled }}
+              style={({ pressed }) => [styles.potion, disabled && styles.potionDisabled, pressed && !disabled && styles.pressed]}>
+              <Image source={UI_ICONS[o.icon]} style={styles.potionIcon} resizeMode="contain" />
+              <View style={styles.flex}>
+                <Txt bold>{o.name}</Txt>
+                <Txt variant="small">
+                  {healthy ? o.flavor : `+${amount} hp · ${Math.round(o.fraction * 100)}% здоровья`}
+                </Txt>
+              </View>
+              <Txt variant="gold" bold>
+                {price} кр.
+              </Txt>
+            </Pressable>
+          );
+        })}
+        {!healthy && character.kredits < healPrice(character, HEAL_OPTIONS[0].fraction) ? (
+          <Txt variant="small" color={colors.red}>
+            Не хватает даже на малое. Подожди или сходи в шахту.
           </Txt>
         ) : null}
       </Card>
@@ -63,5 +91,18 @@ export default function HealerScreen() {
 }
 
 const styles = StyleSheet.create({
-  note: { marginTop: 2 },
+  flex: { flex: 1 },
+  potion: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.sm,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.bgElevated,
+  },
+  potionDisabled: { opacity: 0.5 },
+  pressed: { opacity: 0.75 },
+  potionIcon: { width: 48, height: 48 },
 });

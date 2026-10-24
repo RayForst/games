@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
 import { Button } from './Button';
+import { ItemIcon } from './ItemIcon';
 import { Txt } from './Txt';
 import { colors, radius, spacing } from '@/ui/theme';
 import { bonusText, requirementsText, SLOT_LABELS, type ItemDef } from '@/game';
@@ -27,6 +28,7 @@ export function ItemCard({ item, price, priceLabel, badge, warning, actions = []
   return (
     <View style={styles.card}>
       <View style={styles.head}>
+        <ItemIcon id={item.id} slot={item.slot} size={56} />
         <View style={styles.titleCol}>
           <Txt bold>{item.name}</Txt>
           <Txt variant="small">{SLOT_LABELS[item.slot]}</Txt>
@@ -77,7 +79,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     gap: spacing.xs,
   },
-  head: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
+  head: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   titleCol: { flex: 1 },
   priceCol: { alignItems: 'flex-end' },
   badge: {

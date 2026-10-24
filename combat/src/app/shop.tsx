@@ -5,6 +5,7 @@ import { BackBar } from '@/components/BackBar';
 import { Chip } from '@/components/Chip';
 import { Flash } from '@/components/Flash';
 import { ItemCard } from '@/components/ItemCard';
+import { Kredits } from '@/components/Kredits';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
 import { canEquip, ITEMS, SLOT_LABELS, SLOTS, type Slot } from '@/game';
@@ -35,9 +36,7 @@ export default function ShopScreen() {
           <Txt variant="title">Магазин</Txt>
           <Txt variant="muted">Продать вещи можно в рюкзаке за полцены.</Txt>
         </View>
-        <Txt variant="gold" style={styles.kredits}>
-          {character.kredits} кр.
-        </Txt>
+        <Kredits value={character.kredits} size={20} />
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>

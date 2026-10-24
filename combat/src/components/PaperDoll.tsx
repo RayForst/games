@@ -1,11 +1,9 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { ItemIcon } from './ItemIcon';
 import { Txt } from './Txt';
 import { colors, radius, spacing } from '@/ui/theme';
 import { itemOf, SLOT_LABELS, type Character, type ItemDef, type Slot } from '@/game';
-
-type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 interface Props {
   character: Character;
@@ -18,18 +16,6 @@ interface Props {
 /** Слева — что на теле сверху вниз, справа — что в руках и на поясе/ногах. */
 const LEFT: Slot[] = ['helmet', 'armor', 'gloves', 'pants'];
 const RIGHT: Slot[] = ['weapon', 'shield', 'belt', 'boots'];
-
-/** Временные иконки слотов; когда появятся картинки предметов — подставлять по `item.id`. */
-const SLOT_ICONS: Record<Slot, IconName> = {
-  weapon: 'sword',
-  shield: 'shield-half-full',
-  helmet: 'racing-helmet',
-  armor: 'tshirt-crew',
-  gloves: 'hand-back-right',
-  belt: 'seatbelt',
-  pants: 'walk',
-  boots: 'shoe-formal',
-};
 
 /** «Кукла» персонажа: аватар в центре, слоты экипировки по краям. */
 export function PaperDoll({ character, onSlotPress, children }: Props) {
@@ -44,7 +30,7 @@ export function PaperDoll({ character, onSlotPress, children }: Props) {
             onPress={() => onSlotPress?.(slot, item)}
             accessibilityLabel={`${SLOT_LABELS[slot]}: ${item ? item.name : 'пусто'}`}
             style={({ pressed }) => [styles.slot, item && styles.filled, pressed && styles.pressed]}>
-            <MaterialCommunityIcons name={SLOT_ICONS[slot]} size={28} color={item ? colors.gold : colors.textDim} />
+            <ItemIcon id={item?.id} slot={slot} size={44} bare style={!item && styles.dim} />
             <Txt variant="small" numberOfLines={1} color={item ? colors.text : colors.textDim} style={styles.label}>
               {item ? item.name : SLOT_LABELS[slot]}
             </Txt>
@@ -84,5 +70,6 @@ const styles = StyleSheet.create({
   },
   filled: { borderColor: colors.goldDim, backgroundColor: colors.cardAlt },
   pressed: { opacity: 0.7 },
+  dim: { opacity: 0.45 },
   label: { fontSize: 10, lineHeight: 13, maxWidth: TILE - 8, textAlign: 'center' },
 });

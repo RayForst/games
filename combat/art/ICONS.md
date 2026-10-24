@@ -50,6 +50,19 @@ busy background, scene, frame, border, pixel art, flat vector, cartoon, anime, g
 Размер: в Scenario генерировать **1024×1024** (квадрат 1:1), PNG, фон убрать через Remove Background.
 В игре иконки показываются 56–72 pt, так что при подключении уменьшу до 512 и 256.
 
+## Статус: 31/31 предметов и 8 UI-иконок готовы
+
+Пайплайн в репозитории:
+
+- Мастера (PNG 1024–1254, прозрачный фон) лежат в `combat/art/icons-src/` и `combat/art/icons-src/ui/`.
+  В бандл они не попадают.
+- `npm run icons` (скрипт `scripts/icons.mjs`, sharp) жмёт их в WebP с альфой: предметы 512 px в `assets/items/`,
+  UI 256 px в `assets/ui/`, и генерирует реестр `src/ui/icons.generated.ts` (`ITEM_ICONS` по id, `UI_ICONS`).
+  Скрипт сверяет файлы с каталогом `src/game/items.ts` и пишет, чего не хватает.
+- Новый предмет: добавить в `items.ts`, положить `art/icons-src/<id>.png`, запустить `npm run icons`.
+- Компоненты: `ItemIcon` (предмет на тёмной плитке, пустой слот → `slot-empty`, пустое оружие → `fists`),
+  `Kredits` (сумма с монетой). Зелья `potion-small/medium/large` — три варианта лечения у лекаря.
+
 ## Как передать готовые файлы
 
 Ключ предмета = имя файла из таблиц ниже (`knife.png`, `chainmail.png`). Три способа, любой подходит:

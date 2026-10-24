@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { applyRegen, canEquip, deriveCharacter, newCharacter, secondsToFullHp } from './character';
+import { applyRegen, canEquip, deriveCharacter, HEAL_OPTIONS, healAmount, healCost, healPrice, newCharacter, secondsToFullHp } from './character';
 import { FULL_REGEN_MINUTES } from './formulas';
 import { getItem } from './items';
 import { chooseEnemyMove } from './ai';
@@ -90,5 +90,24 @@ describe('баланс зала на нулевом уровне', () => {
     }
     expect(weakItems / runs).toBeLessThan(1);
     expect(strongItems / runs).toBeGreaterThan(weakItems / runs);
+  });
+});
+
+describe('зелья лекаря', () => {
+  it('цена линейна доле, большое равно полному лечению, минимум 1 кр.', () => {
+    const c = newCharacter('Вася');
+    expect(healPrice(c, 1)).toBe(healCost(c));
+    expect(healPrice(c, 0.3)).toBeLessThan(healPrice(c, 0.6));
+    expect(healPrice(c, 0)).toBe(1);
+    expect(HEAL_OPTIONS.map((o) => o.fraction)).toEqual([0.3, 0.6, 1]);
+  });
+
+  it('зелье не лечит выше максимума', () => {
+    const c = newCharacter('Вася');
+    const max = deriveCharacter(c).maxHp;
+    const hurt = { ...c, hp: max - 2 };
+    expect(healAmount(hurt, 1)).toBe(2);
+    expect(healAmount({ ...c, hp: 0 }, 1)).toBe(max);
+    expect(healAmount({ ...c, hp: 0 }, 0.3)).toBe(Math.ceil(max * 0.3));
   });
 });
