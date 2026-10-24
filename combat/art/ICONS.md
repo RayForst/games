@@ -50,6 +50,19 @@ busy background, scene, frame, border, pixel art, flat vector, cartoon, anime, g
 Размер: в Scenario генерировать **1024×1024** (квадрат 1:1), PNG, фон убрать через Remove Background.
 В игре иконки показываются 56–72 pt, так что при подключении уменьшу до 512 и 256.
 
+## Как передать готовые файлы
+
+Ключ предмета = имя файла из таблиц ниже (`knife.png`, `chainmail.png`). Три способа, любой подходит:
+
+1. **Названы по ключу** (лучший): положить в `combat/assets/items/`, закоммитить и запушить в `main`.
+   Я подключу их в игру.
+2. **Как есть, без переименования**: положить с любыми именами в `combat/art/incoming/` и запушить.
+   Я посмотрю каждую картинку, разложу по ключам и удалю папку.
+3. **Zip в чат**: тоже работает, но имена внутри всё равно лучше по ключу.
+
+Форматы: PNG с прозрачностью, 1024×1024. Лишние варианты одного предмета можно не удалять,
+назови их `knife-2.png`, выберем лучший вместе.
+
 ## Один промпт для GPT Image (Scenario, модель GPT Image 2.5)
 
 У GPT-моделей нет negative prompt и настроек стиля: всё одним текстом, запреты внутри, референсы прикрепляются
@@ -76,74 +89,74 @@ no cartoon or flat vector look.
 
 ### Оружие (weapon)
 
-| id | Название | Промпт (English) |
+| Ключ = имя файла | Название | Промпт (English) |
 | --- | --- | --- |
-| `knife` | Нож | rusty kitchen knife with worn wooden handle, chipped blade |
-| `club` | Дубина | heavy wooden club with knots and a few bent nails, cracked bark |
-| `dagger` | Кинжал | slim steel dagger with dark leather-wrapped grip, sharp polished blade |
-| `short-sword` | Короткий меч | short straight sword, plain iron crossguard, scuffed blade |
-| `hatchet` | Топорик | one-handed hatchet, chipped iron head on a worn wooden haft |
-| `rapier` | Рапира | elegant rapier with swept brass hilt, thin bright blade |
-| `sword` | Меч | long arming sword with brass pommel, polished steel blade, leather grip |
-| `mace` | Булава | iron flanged mace with heavy head on a wrapped handle |
-| `battle-axe` | Боевой топор | large two-handed battle axe with wide curved blade, reinforced haft |
+| `knife.png` | Нож | rusty kitchen knife with worn wooden handle, chipped blade |
+| `club.png` | Дубина | heavy wooden club with knots and a few bent nails, cracked bark |
+| `dagger.png` | Кинжал | slim steel dagger with dark leather-wrapped grip, sharp polished blade |
+| `short-sword.png` | Короткий меч | short straight sword, plain iron crossguard, scuffed blade |
+| `hatchet.png` | Топорик | one-handed hatchet, chipped iron head on a worn wooden haft |
+| `rapier.png` | Рапира | elegant rapier with swept brass hilt, thin bright blade |
+| `sword.png` | Меч | long arming sword with brass pommel, polished steel blade, leather grip |
+| `mace.png` | Булава | iron flanged mace with heavy head on a wrapped handle |
+| `battle-axe.png` | Боевой топор | large two-handed battle axe with wide curved blade, reinforced haft |
 
 ### Щиты (shield)
 
-| id | Название | Промпт |
+| Ключ = имя файла | Название | Промпт |
 | --- | --- | --- |
-| `buckler` | Баклер | small round iron buckler with central boss, dents and scratches |
-| `round-shield` | Круглый щит | round wooden shield with iron rim and boss, faded red paint |
-| `tower-shield` | Башенный щит | tall rectangular tower shield, riveted iron plates, heavy and battered |
+| `buckler.png` | Баклер | small round iron buckler with central boss, dents and scratches |
+| `round-shield.png` | Круглый щит | round wooden shield with iron rim and boss, faded red paint |
+| `tower-shield.png` | Башенный щит | tall rectangular tower shield, riveted iron plates, heavy and battered |
 
 ### Шлемы (helmet)
 
-| id | Название | Промпт |
+| Ключ = имя файла | Название | Промпт |
 | --- | --- | --- |
-| `cap` | Кожаная шапка | simple brown leather skullcap with stitching |
-| `iron-helm` | Железный шлем | plain iron helmet with nasal guard, dull dented metal |
-| `great-helm` | Рыцарский шлем | knight great helm with narrow visor slit, polished steel with brass trim |
+| `cap.png` | Кожаная шапка | simple brown leather skullcap with stitching |
+| `iron-helm.png` | Железный шлем | plain iron helmet with nasal guard, dull dented metal |
+| `great-helm.png` | Рыцарский шлем | knight great helm with narrow visor slit, polished steel with brass trim |
 
 ### Броня (armor)
 
-| id | Название | Промпт |
+| Ключ = имя файла | Название | Промпт |
 | --- | --- | --- |
-| `jacket` | Кожаная куртка | worn brown leather jacket with buckles, scuffed |
-| `chainmail` | Кольчуга | chainmail shirt of dark iron rings, laid flat |
-| `brigandine` | Бригантина | brigandine vest, dark fabric with riveted brass studs over hidden plates |
-| `plate` | Латы | full steel plate cuirass with brass edging, polished with small dents |
+| `jacket.png` | Кожаная куртка | worn brown leather jacket with buckles, scuffed |
+| `chainmail.png` | Кольчуга | chainmail shirt of dark iron rings, laid flat |
+| `brigandine.png` | Бригантина | brigandine vest, dark fabric with riveted brass studs over hidden plates |
+| `plate.png` | Латы | full steel plate cuirass with brass edging, polished with small dents |
 
 ### Перчатки (gloves)
 
-| id | Название | Промпт |
+| Ключ = имя файла | Название | Промпт |
 | --- | --- | --- |
-| `leather-gloves` | Кожаные перчатки | pair of worn brown leather gloves |
-| `studded-gloves` | Перчатки с шипами | pair of black leather gloves with iron spikes on the knuckles |
-| `iron-gloves` | Железные перчатки | pair of iron gauntlets with articulated plates |
+| `leather-gloves.png` | Кожаные перчатки | pair of worn brown leather gloves |
+| `studded-gloves.png` | Перчатки с шипами | pair of black leather gloves with iron spikes on the knuckles |
+| `iron-gloves.png` | Железные перчатки | pair of iron gauntlets with articulated plates |
 
 ### Пояса (belt)
 
-| id | Название | Промпт |
+| Ключ = имя файла | Название | Промпт |
 | --- | --- | --- |
-| `leather-belt` | Кожаный пояс | simple brown leather belt with iron buckle, coiled |
-| `studded-belt` | Пояс с бляхами | wide leather belt covered with round brass plates, coiled |
-| `warrior-belt` | Пояс воина | heavy warrior belt with large ornate brass buckle and iron rings, coiled |
+| `leather-belt.png` | Кожаный пояс | simple brown leather belt with iron buckle, coiled |
+| `studded-belt.png` | Пояс с бляхами | wide leather belt covered with round brass plates, coiled |
+| `warrior-belt.png` | Пояс воина | heavy warrior belt with large ornate brass buckle and iron rings, coiled |
 
 ### Штаны (pants)
 
-| id | Название | Промпт |
+| Ключ = имя файла | Название | Промпт |
 | --- | --- | --- |
-| `cloth-pants` | Холщовые штаны | plain beige canvas trousers, patched and frayed, folded |
-| `leather-pants` | Кожаные штаны | dark brown leather trousers with straps, folded |
-| `chain-pants` | Кольчужные штаны | chainmail leggings of dark iron rings, folded |
+| `cloth-pants.png` | Холщовые штаны | plain beige canvas trousers, patched and frayed, folded |
+| `leather-pants.png` | Кожаные штаны | dark brown leather trousers with straps, folded |
+| `chain-pants.png` | Кольчужные штаны | chainmail leggings of dark iron rings, folded |
 
 ### Сапоги (boots)
 
-| id | Название | Промпт |
+| Ключ = имя файла | Название | Промпт |
 | --- | --- | --- |
-| `bast-shoes` | Лапти | pair of woven bast shoes, pale braided bark fiber |
-| `leather-boots` | Сапоги | pair of tall brown leather boots, worn soles |
-| `iron-boots` | Латные сапоги | pair of steel plate boots with brass rivets |
+| `bast-shoes.png` | Лапти | pair of woven bast shoes, pale braided bark fiber |
+| `leather-boots.png` | Сапоги | pair of tall brown leather boots, worn soles |
+| `iron-boots.png` | Латные сапоги | pair of steel plate boots with brass rivets |
 
 ## Иконки интерфейса (после предметов)
 
