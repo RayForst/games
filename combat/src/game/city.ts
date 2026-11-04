@@ -1,6 +1,6 @@
 // Карта города: заведения и их точки на картинке assets/map/city.webp.
 
-export type BuildingId = 'mine' | 'smithy' | 'shop' | 'arena' | 'healer' | 'tavern';
+export type BuildingId = 'mine' | 'smithy' | 'shop' | 'arena' | 'healer' | 'tavern' | 'castle';
 
 export interface Building {
   id: BuildingId;
@@ -71,6 +71,15 @@ export const BUILDINGS: Building[] = [
     open: true,
     action: 'Войти',
     description: 'Пивная «У виселицы». Хозяйка раздаёт работу, завсегдатаи — слухи. Платят за сделанное, не за обещания.',
+  },
+  {
+    id: 'castle',
+    name: 'Замок',
+    x: 0.915,
+    y: 0.12,
+    open: true,
+    action: 'Войти',
+    description: 'Замок князя на том берегу. Раз в день — турнир: четыре боя подряд, без передышки. Выстоишь — чемпион.',
   },
 ];
 

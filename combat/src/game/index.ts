@@ -10,3 +10,4 @@ export * from './city';
 export * from './mine';
 export * from './perks';
 export * from './quests';
+export * from './tournament';

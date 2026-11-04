@@ -6,8 +6,10 @@ import {
   activeInjury,
   applyQuestEvent,
   applyRegen,
+  canEnterTournament,
   canEquip,
   canUpgrade,
+  createTournament,
   cureCost,
   dayKey,
   generateBoard,
@@ -36,6 +38,7 @@ import {
   POINTS_PER_LEVEL,
   questDone,
   questReward,
+  ratingDelta,
   repairCost,
   resolveTurn,
   rewardFor,
@@ -43,6 +46,8 @@ import {
   injuryText,
   sellPrice,
   toFighter,
+  TOURNAMENT_ROUNDS,
+  tournamentPrize,
   upgradeCost,
   UPGRADE_MAX,
   wearEquipment,
@@ -58,6 +63,7 @@ import {
   type Slot,
   type StatKey,
   type Stats,
+  type Tournament,
 } from '@/game';
 
 export interface MineResult extends Check {
@@ -78,6 +84,10 @@ export interface GameState {
   mining: Mining | null;
   /** Доска заданий пивной на сегодня. */
   quests: QuestBoard | null;
+  /** Турнир в замке (сегодняшний). */
+  tournament: Tournament | null;
+  /** Откуда был последний бой — туда возвращается экран боя. */
+  lastFightContext: 'arena' | 'tournament';
   hydrated: boolean;
 
   setHydrated: () => void;
@@ -115,6 +125,10 @@ export interface GameState {
   ensureQuests: () => QuestBoard | null;
   track: (event: QuestEvent, amount?: number) => void;
   claimQuest: (questId: string) => MineResult;
+
+  /** Замок: начать турнир и выйти на очередной бой. */
+  startTournament: () => Check;
+  startTournamentFight: () => Check;
 }
 
 export const useGame = create<GameState>()(
@@ -125,16 +139,18 @@ export const useGame = create<GameState>()(
       arena: [],
       mining: null,
       quests: null,
+      tournament: null,
+      lastFightContext: 'arena',
       hydrated: false,
 
       setHydrated: () => set({ hydrated: true }),
 
       createCharacter: (name, stats, freePoints) => {
         const character = newCharacter(name, stats, freePoints);
-        set({ character, fight: null, mining: null, quests: null, arena: generateArena(character.level, rng) });
+        set({ character, fight: null, mining: null, quests: null, tournament: null, arena: generateArena(character.level, rng) });
       },
 
-      resetGame: () => set({ character: null, fight: null, mining: null, quests: null, arena: [] }),
+      resetGame: () => set({ character: null, fight: null, mining: null, quests: null, tournament: null, arena: [] }),
 
       ensureQuests: () => {
         const { character, quests } = get();
@@ -316,6 +332,7 @@ export const useGame = create<GameState>()(
         if (fresh.hp < 1) return { ok: false, reason: 'Нет сил драться. Подожди или сходи к лекарю.' };
 
         const fight: FightState = {
+          context: 'arena',
           opponent,
           playerHp: fresh.hp,
           enemyHp: opponent.derived.maxHp,
@@ -330,7 +347,7 @@ export const useGame = create<GameState>()(
           reward: null,
           startedAt: Date.now(),
         };
-        set({ character: fresh, fight });
+        set({ character: fresh, fight, lastFightContext: 'arena' });
         return { ok: true };
       },
 
@@ -391,6 +408,41 @@ export const useGame = create<GameState>()(
           const worn = wearEquipment(character);
           character = worn.character;
           for (const item of worn.broke) log.push(makeLogLine(f.turn, `${item.name}: сломалось. Нужен кузнец.`, 'system'));
+          // Рейтинг: за каждый бой, турнирные вдвое.
+          const inTournament = f.context === 'tournament';
+          const delta = ratingDelta(result.status, c.level, f.opponent.level, inTournament);
+          character = { ...character, rating: Math.max(0, character.rating + delta) };
+          reward = { ...reward, rating: delta };
+          // Турнир: победа ведёт к следующему бою, финал даёт приз, поражение выбивает.
+          const t = state.tournament;
+          if (inTournament && t && t.status === 'active') {
+            if (result.status === 'won') {
+              const stage = t.stage + 1;
+              if (stage >= TOURNAMENT_ROUNDS) {
+                const prize = tournamentPrize(c.level);
+                const exp2 = character.exp + prize.exp;
+                const lvl2 = levelForExp(exp2);
+                const gained2 = lvl2 - character.level;
+                character = {
+                  ...character,
+                  exp: exp2,
+                  level: lvl2,
+                  freePoints: character.freePoints + gained2 * POINTS_PER_LEVEL,
+                  kredits: character.kredits + prize.kredits,
+                  titles: character.titles.includes(prize.title) ? character.titles : [...character.titles, prize.title],
+                };
+                reward = { ...reward, exp: reward.exp + prize.exp, kredits: reward.kredits + prize.kredits, title: prize.title };
+                log.push(makeLogLine(f.turn, `Турнир выигран! Князь жалует ${prize.kredits} кр. и титул «${prize.title}».`, 'system'));
+                set({ tournament: { ...t, stage, status: 'won' } });
+              } else {
+                log.push(makeLogLine(f.turn, `Бой ${stage} из ${TOURNAMENT_ROUNDS} за тобой. Следующий ждёт.`, 'system'));
+                set({ tournament: { ...t, stage } });
+              }
+            } else {
+              log.push(makeLogLine(f.turn, 'Турнир окончен. Приходи завтра.', 'system'));
+              set({ tournament: { ...t, status: 'lost' } });
+            }
+          }
           // Задания пивной.
           get().track('fightPlay');
           if (result.status === 'won') get().track('fightWin');
@@ -426,6 +478,46 @@ export const useGame = create<GameState>()(
       endFight: () => {
         const c = get().character;
         set({ fight: null, arena: c ? generateArena(c.level, rng) : [] });
+      },
+
+      startTournament: () => {
+        const state = get();
+        const c = state.character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        if (state.fight?.status === 'active') return { ok: false, reason: 'Сначала закончи бой' };
+        const check = canEnterTournament(c, !!state.mining);
+        if (!check.ok) return check;
+        const tournament = createTournament(c.level, rng);
+        set({ tournament, character: { ...c, lastTournamentDay: tournament.day } });
+        return get().startTournamentFight();
+      },
+
+      startTournamentFight: () => {
+        const state = get();
+        const c = state.character;
+        const t = state.tournament;
+        if (!c || !t) return { ok: false, reason: 'Турнира нет' };
+        if (t.status !== 'active') return { ok: false, reason: 'Турнир окончен' };
+        if (state.fight?.status === 'active') return { ok: false, reason: 'Бой уже идёт' };
+        const opponent = t.opponents[t.stage];
+        if (!opponent) return { ok: false, reason: 'Соперников больше нет' };
+        const fresh = applyRegen(c);
+        if (fresh.hp < 1) return { ok: false, reason: 'Нет сил. На турнире не лечат.' };
+        const fight: FightState = {
+          context: 'tournament',
+          opponent,
+          playerHp: fresh.hp,
+          enemyHp: opponent.derived.maxHp,
+          turn: 1,
+          status: 'active',
+          log: [makeLogLine(0, `Турнир, бой ${t.stage + 1} из ${TOURNAMENT_ROUNDS}: ${fresh.name} против ${opponent.name}.`, 'system')],
+          playerMoves: [],
+          lastEnemyMove: null,
+          reward: null,
+          startedAt: Date.now(),
+        };
+        set({ character: fresh, fight, lastFightContext: 'tournament' });
+        return { ok: true };
       },
 
       startMining: (hours) => {
@@ -512,7 +604,15 @@ export const useGame = create<GameState>()(
       name: 'combat-save-v1',
       version: 2,
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: (s) => ({ character: s.character, fight: s.fight, arena: s.arena, mining: s.mining, quests: s.quests }),
+      partialize: (s) => ({
+        character: s.character,
+        fight: s.fight,
+        arena: s.arena,
+        mining: s.mining,
+        quests: s.quests,
+        tournament: s.tournament,
+        lastFightContext: s.lastFightContext,
+      }),
       // Старые сейвы дописываем недостающими полями (прочность, заточка, будущие фичи).
       migrate: (persisted) => {
         const state = persisted as Partial<GameState>;

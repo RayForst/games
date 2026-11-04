@@ -13,13 +13,14 @@ import { useGame } from '@/store/useGame';
 import { formatDuration, plural } from '@/ui/format';
 import { colors, radius, spacing } from '@/ui/theme';
 
-const ROUTES: Partial<Record<BuildingId, '/arena' | '/shop' | '/healer' | '/mine' | '/smithy' | '/tavern'>> = {
+const ROUTES: Partial<Record<BuildingId, '/arena' | '/shop' | '/healer' | '/mine' | '/smithy' | '/tavern' | '/castle'>> = {
   arena: '/arena',
   shop: '/shop',
   healer: '/healer',
   mine: '/mine',
   smithy: '/smithy',
   tavern: '/tavern',
+  castle: '/castle',
 };
 
 // На коротких экранах (iPhone SE) панель внизу иначе наезжает на нижние заведения — подсказку убираем.
@@ -33,6 +34,7 @@ export default function CityScreen() {
   const arena = useGame((s) => s.arena);
   const mining = useGame((s) => s.mining);
   const quests = useGame((s) => s.quests);
+  const tournament = useGame((s) => s.tournament);
   const now = useNow();
   const insets = useSafeAreaInsets();
   const [selected, setSelected] = useState<BuildingId>(CITY_START);
@@ -56,7 +58,15 @@ export default function CityScreen() {
     mine: mining ? (mineIsDone(mining, now) ? 'смена окончена' : `ещё ${formatDuration(mineSecondsLeft(mining, now))}`) : 'свободна',
     smithy: wornItems(character).length > 0 ? `${wornItems(character).length} ${plural(wornItems(character).length, ['вещь изношена', 'вещи изношены', 'вещей изношено'])}` : 'всё цело',
     tavern: questStatus(),
+    castle: castleStatus(),
   };
+
+  function castleStatus(): string {
+    const t = tournament && tournament.day === dayKey(now) ? tournament : null;
+    if (!t) return character?.lastTournamentDay === dayKey(now) ? 'турнир завтра' : 'турнир сегодня';
+    if (t.status === 'active') return `бой ${t.stage + 1} из 4`;
+    return t.status === 'won' ? 'ты чемпион' : 'выбыл, завтра';
+  }
 
   function questStatus(): string {
     if (!quests || quests.day !== dayKey(now)) return 'новые задания';

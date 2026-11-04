@@ -16,6 +16,7 @@ import {
   injurySecondsLeft,
   injuryText,
   PERKS_BY_ID,
+  rankFor,
   type PerkId,
   healCost,
   secondsToFullHp,
@@ -84,6 +85,10 @@ export default function CharacterScreen() {
           </Txt>
           <Txt variant="muted">
             {character.level} уровень · {character.kredits} кр.
+          </Txt>
+          <Txt variant="small" color={colors.gold}>
+            {rankFor(character.rating)} · рейтинг {character.rating}
+            {character.titles.length > 0 ? ` · ${character.titles[character.titles.length - 1]}` : ''}
           </Txt>
         </View>
         <View style={styles.record}>

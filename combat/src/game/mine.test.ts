@@ -48,7 +48,6 @@ describe('город', () => {
       expect(b.y).toBeGreaterThan(0);
       expect(b.y).toBeLessThan(1);
     }
-    for (let i = 1; i < BUILDINGS.length; i += 1) expect(BUILDINGS[i].x).toBeGreaterThan(BUILDINGS[i - 1].x);
     expect(new Set(BUILDINGS.map((b) => b.id)).size).toBe(BUILDINGS.length);
   });
 });

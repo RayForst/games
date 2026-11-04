@@ -32,6 +32,9 @@ export function newCharacter(name: string, stats: Stats = baseStats(), freePoint
     perks: [],
     perkPicks: 0,
     perkChoices: null,
+    rating: 0,
+    titles: [],
+    lastTournamentDay: null,
   };
 }
 
@@ -143,6 +146,9 @@ export function normalizeCharacter(raw: Character): Character {
     perks: raw.perks ?? [],
     perkPicks: raw.perkPicks ?? 0,
     perkChoices: raw.perkChoices ?? null,
+    rating: raw.rating ?? 0,
+    titles: raw.titles ?? [],
+    lastTournamentDay: raw.lastTournamentDay ?? null,
   };
 }
 

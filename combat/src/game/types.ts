@@ -180,6 +180,12 @@ export interface Character {
   perkPicks: number;
   /** Текущее предложение из трёх умений или null. */
   perkChoices: string[] | null;
+  /** Рейтинг за бои, звание считается от него. */
+  rating: number;
+  /** Заработанные титулы. */
+  titles: string[];
+  /** День последнего выхода на турнир (YYYY-MM-DD) или null. */
+  lastTournamentDay: string | null;
 }
 
 export interface DerivedStats {
@@ -241,6 +247,10 @@ export interface Reward {
   exp: number;
   kredits: number;
   levelsGained: number;
+  /** Изменение рейтинга. */
+  rating?: number;
+  /** Титул, если бой принёс его (финал турнира). */
+  title?: string;
 }
 
 export interface LogLine {
@@ -252,6 +262,8 @@ export interface LogLine {
 }
 
 export interface FightState {
+  /** Откуда бой: арена или турнир в замке. */
+  context?: 'arena' | 'tournament';
   opponent: Opponent;
   playerHp: number;
   enemyHp: number;

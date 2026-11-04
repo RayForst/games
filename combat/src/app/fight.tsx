@@ -10,7 +10,7 @@ import { FightLog } from '@/components/FightLog';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
 import { ZonePicker } from '@/components/ZonePicker';
-import { BLOCK_LABELS, deriveCharacter, ZONE_LABELS, type Block, type Zone } from '@/game';
+import { BLOCK_LABELS, deriveCharacter, TOURNAMENT_ROUNDS, ZONE_LABELS, type Block, type Zone } from '@/game';
 import { useGame } from '@/store/useGame';
 import { colors, spacing } from '@/ui/theme';
 
@@ -19,6 +19,8 @@ export default function FightScreen() {
   const fight = useGame((s) => s.fight);
   const playTurn = useGame((s) => s.playTurn);
   const endFight = useGame((s) => s.endFight);
+  const tournament = useGame((s) => s.tournament);
+  const startTournamentFight = useGame((s) => s.startTournamentFight);
 
   const [attack, setAttack] = useState<Zone | null>(null);
   const [block, setBlock] = useState<Block | null>(null);
@@ -31,11 +33,14 @@ export default function FightScreen() {
     Haptics.notificationAsync(type).catch(() => {});
   }, [status]);
 
-  // Боя нет (закончили или открыли экран напрямую) — уходим в зал. Единственный путь навигации отсюда.
-  // dismissTo закрывает модалку и возвращает к уже открытым табам, а не создаёт их вторую копию.
+  // Откуда пришли, туда и вернёмся: арена или замок. Стор помнит это и после того, как бой закрыт.
+  const lastContext = useGame((s) => s.lastFightContext);
+
+  // Боя нет (закончили или открыли экран напрямую) — уходим назад. Единственный путь навигации отсюда.
+  // dismissTo закрывает модалку и возвращает к уже открытым экранам, а не создаёт их вторую копию.
   useEffect(() => {
-    if (!fight) router.dismissTo('/arena');
-  }, [fight]);
+    if (!fight) router.dismissTo(lastContext === 'tournament' ? '/castle' : '/arena');
+  }, [fight, lastContext]);
 
   if (!character || !fight) return null;
 
@@ -50,6 +55,12 @@ export default function FightScreen() {
   };
 
   const leave = () => endFight();
+  const inTournament = fight.context === 'tournament';
+  const tournamentGoesOn = inTournament && tournament?.status === 'active' && fight.status === 'won';
+  const nextFight = () => {
+    const r = startTournamentFight();
+    if (!r.ok) endFight();
+  };
 
   return (
     <Screen>
@@ -57,6 +68,7 @@ export default function FightScreen() {
       <View style={styles.vsRow}>
         <View style={styles.vsLine} />
         <Txt variant="small" style={styles.vs}>
+          {inTournament ? `ТУРНИР ${Math.min((tournament?.stage ?? 0) + (fight.status === 'won' ? 0 : 1), TOURNAMENT_ROUNDS)}/${TOURNAMENT_ROUNDS} · ` : ''}
           {fight.status === 'active' ? `РАУНД ${fight.turn}` : 'БОЙ ОКОНЧЕН'}
         </Txt>
         <View style={styles.vsLine} />
@@ -79,7 +91,7 @@ export default function FightScreen() {
           <Button title="Удар!" onPress={strike} disabled={!ready} variant="danger" style={styles.strike} />
         </>
       ) : (
-        <ResultCard status={fight.status} reward={fight.reward} onLeave={leave} />
+        <ResultCard status={fight.status} reward={fight.reward} onLeave={leave} onNext={tournamentGoesOn ? nextFight : undefined} leaveTitle={inTournament ? 'В замок' : 'Вернуться в зал'} />
       )}
 
       <Card title="Ход боя">
@@ -93,10 +105,14 @@ function ResultCard({
   status,
   reward,
   onLeave,
+  onNext,
+  leaveTitle,
 }: {
   status: 'won' | 'lost' | 'draw';
-  reward: { exp: number; kredits: number; levelsGained: number } | null;
+  reward: { exp: number; kredits: number; levelsGained: number; rating?: number; title?: string } | null;
   onLeave: () => void;
+  onNext?: () => void;
+  leaveTitle: string;
 }) {
   const title = status === 'won' ? 'Победа!' : status === 'lost' ? 'Поражение' : 'Ничья';
   const color = status === 'won' ? colors.green : status === 'lost' ? colors.red : colors.gold;
@@ -108,6 +124,12 @@ function ResultCard({
       {reward ? (
         <Txt center>
           +{reward.exp} опыта · +{reward.kredits} кр.
+          {reward.rating !== undefined ? ` · рейтинг ${reward.rating >= 0 ? '+' : ''}${reward.rating}` : ''}
+        </Txt>
+      ) : null}
+      {reward?.title ? (
+        <Txt center variant="gold">
+          Титул: «{reward.title}»
         </Txt>
       ) : null}
       {reward && reward.levelsGained > 0 ? (
@@ -115,7 +137,8 @@ function ResultCard({
           Уровень повышен! Раскидай {reward.levelsGained * 3} очка на экране персонажа.
         </Txt>
       ) : null}
-      <Button title="Вернуться в зал" onPress={onLeave} />
+      {onNext ? <Button title="Следующий бой" onPress={onNext} variant="danger" /> : null}
+      <Button title={leaveTitle} onPress={onLeave} variant={onNext ? 'secondary' : 'primary'} />
     </Card>
   );
 }
