@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "types": ["node"],
+    "paths": {
+      "@/*": ["./../combat/src/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "../combat/src/game/**/*.ts", "../combat/src/net/protocol.ts", "../combat/src/net/backend.ts", "../combat/src/net/serverBackend.ts"],
+  "exclude": ["node_modules", "../combat/src/game/**/*.test.ts"]
+}
