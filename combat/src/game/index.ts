@@ -11,3 +11,4 @@ export * from './mine';
 export * from './perks';
 export * from './quests';
 export * from './tournament';
+export * from './achievements';

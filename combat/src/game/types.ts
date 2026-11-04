@@ -186,6 +186,24 @@ export interface Character {
   titles: string[];
   /** День последнего выхода на турнир (YYYY-MM-DD) или null. */
   lastTournamentDay: string | null;
+  /** Счётчики за всю игру. */
+  ledger: Ledger;
+  /** Забранные достижения. */
+  achievements: string[];
+}
+
+export interface Ledger {
+  fightsTotal: number;
+  damageDealt: number;
+  damageTaken: number;
+  crits: number;
+  streak: number;
+  bestStreak: number;
+  mineEarned: number;
+  kreditsEarned: number;
+  kreditsSpent: number;
+  itemsBought: number;
+  tournamentsWon: number;
 }
 
 export interface DerivedStats {

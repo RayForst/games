@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import {
+  ACHIEVEMENTS_BY_ID,
   activeInjury,
   applyQuestEvent,
   applyRegen,
@@ -24,6 +25,7 @@ import {
   healPrice,
   isEquipped,
   isShiftHours,
+  ledgerAfterFight,
   levelForExp,
   makeLogLine,
   maxDurability,
@@ -134,6 +136,9 @@ export interface GameState {
   /** Замок: начать турнир и выйти на очередной бой. */
   startTournament: () => Check;
   startTournamentFight: () => Check;
+
+  /** Забрать награду за выполненное достижение. */
+  claimAchievement: (id: string) => MineResult;
 }
 
 export const useGame = create<GameState>()(
@@ -165,6 +170,7 @@ export const useGame = create<GameState>()(
           wins: c.wins + (status === 'won' ? 1 : 0),
           losses: c.losses + (status === 'lost' ? 1 : 0),
           draws: c.draws + (status === 'draw' ? 1 : 0),
+          ledger: { ...ledgerAfterFight(c.ledger, status === 'won'), kreditsEarned: c.ledger.kreditsEarned + base.kredits },
         };
         if (levelsGained > 0) character.hp = deriveCharacter(character).maxHp;
         if (levelsGained > 0) log.push(makeLogLine(turn, `Уровень повышен! Теперь ${newLevel} уровень.`, 'system'));
@@ -204,6 +210,11 @@ export const useGame = create<GameState>()(
                 freePoints: character.freePoints + gained2 * POINTS_PER_LEVEL,
                 kredits: character.kredits + prize.kredits,
                 titles: character.titles.includes(prize.title) ? character.titles : [...character.titles, prize.title],
+                ledger: {
+                  ...character.ledger,
+                  tournamentsWon: character.ledger.tournamentsWon + 1,
+                  kreditsEarned: character.ledger.kreditsEarned + prize.kredits,
+                },
               };
               reward = { ...reward, exp: reward.exp + prize.exp, kredits: reward.kredits + prize.kredits, title: prize.title };
               log.push(makeLogLine(turn, `Турнир выигран! Князь жалует ${prize.kredits} кр. и титул «${prize.title}».`, 'system'));
@@ -287,6 +298,7 @@ export const useGame = create<GameState>()(
           exp,
           level: newLevel,
           freePoints: c.freePoints + levelsGained * POINTS_PER_LEVEL,
+          ledger: { ...c.ledger, kreditsEarned: c.ledger.kreditsEarned + reward.kredits },
         };
         set({
           character,
@@ -365,6 +377,7 @@ export const useGame = create<GameState>()(
             ...c,
             kredits: c.kredits - item.price,
             backpack: [...c.backpack, newInventoryItem(uid(), itemId)],
+            ledger: { ...c.ledger, itemsBought: c.ledger.itemsBought + 1, kreditsSpent: c.ledger.kreditsSpent + item.price },
           },
         });
         get().track('buyItem');
@@ -482,11 +495,23 @@ export const useGame = create<GameState>()(
           lastEnemyMove: enemyMove,
         };
 
+        // Счётчики урона и критов копятся по раундам.
+        const crit = ps.outcome === 'crit' || ps.outcome === 'crit-through-block' ? 1 : 0;
+        const counted: Character = {
+          ...c,
+          ledger: {
+            ...c.ledger,
+            damageDealt: c.ledger.damageDealt + ps.damage,
+            damageTaken: c.ledger.damageTaken + es.damage,
+            crits: c.ledger.crits + crit,
+          },
+        };
+
         if (result.status === 'active') {
-          set({ fight: next });
+          set({ character: counted, fight: next });
           return;
         }
-        const settled = settle(c, { ...next, log: [...log, makeLogLine(f.turn, describeFinish(result.status, c.name, f.opponent.name), 'system')] }, result.status);
+        const settled = settle(counted, { ...next, log: [...log, makeLogLine(f.turn, describeFinish(result.status, c.name, f.opponent.name), 'system')] }, result.status);
         set({ character: settled.character, fight: { ...next, log: settled.log, reward: settled.reward } });
       },
 
@@ -546,6 +571,24 @@ export const useGame = create<GameState>()(
         return { ok: true };
       },
 
+      claimAchievement: (id) => {
+        const c = get().character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        const a = ACHIEVEMENTS_BY_ID[id];
+        if (!a) return { ok: false, reason: 'Такого достижения нет' };
+        if (c.achievements.includes(id)) return { ok: false, reason: 'Уже забрал' };
+        if (!a.check(c)) return { ok: false, reason: 'Ещё не выполнено' };
+        set({
+          character: {
+            ...c,
+            kredits: c.kredits + a.reward,
+            achievements: [...c.achievements, id],
+            ledger: { ...c.ledger, kreditsEarned: c.ledger.kreditsEarned + a.reward },
+          },
+        });
+        return { ok: true, kredits: a.reward };
+      },
+
       startMining: (hours) => {
         const state = get();
         if (!state.character) return { ok: false, reason: 'Нет персонажа' };
@@ -560,7 +603,14 @@ export const useGame = create<GameState>()(
         const { mining, character } = get();
         if (!mining || !character) return { ok: false, reason: 'Ты не в шахте' };
         const earned = mineEarnings(mining, mineRatePerHour(deriveCharacter(character)), Date.now());
-        set({ mining: null, character: { ...character, kredits: character.kredits + earned } });
+        set({
+          mining: null,
+          character: {
+            ...character,
+            kredits: character.kredits + earned,
+            ledger: { ...character.ledger, mineEarned: character.ledger.mineEarned + earned, kreditsEarned: character.ledger.kreditsEarned + earned },
+          },
+        });
         get().track('mineHours', Math.floor(mineElapsedMs(mining, Date.now()) / 3_600_000));
         return { ok: true, kredits: earned };
       },

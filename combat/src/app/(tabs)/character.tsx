@@ -15,6 +15,7 @@ import {
   expForLevel,
   injurySecondsLeft,
   injuryText,
+  claimableAchievements,
   PERKS_BY_ID,
   rankFor,
   type PerkId,
@@ -56,6 +57,7 @@ export default function CharacterScreen() {
   const curExp = expForLevel(character.level);
   const free = character.freePoints;
   const injury = activeInjury(character, now);
+  const claimable = claimableAchievements(character).length;
 
   const onHeal = () => {
     const r = heal();
@@ -170,6 +172,13 @@ export default function CharacterScreen() {
         <Txt variant="small" center>
           Умения: {character.perks.map((id) => PERKS_BY_ID[id as PerkId]?.name ?? id).join(' · ')}
         </Txt>
+      ) : null}
+      {claimable > 0 ? (
+        <Pressable onPress={openStats} accessibilityRole="button" accessibilityLabel="Достижения">
+          <Txt variant="small" center color={colors.gold}>
+            Достижения ждут награды: {claimable}. Открой цифры, чтобы забрать.
+          </Txt>
+        </Pressable>
       ) : null}
 
       <Pressable
