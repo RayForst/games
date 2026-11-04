@@ -186,10 +186,13 @@ function hash(s: string): number {
   return h;
 }
 
-/** Цена скупки на день: база × 0.7…1.3, одинаковая весь день. */
-export function marketPrice(resource: ResourceId, day: string): number {
+/** Надбавка рынка по городу: в Броде платят больше, туда дальше везти. */
+export const MARKET_MULT: Record<'city' | 'brod', number> = { city: 1, brod: 1.4 };
+
+/** Цена скупки на день: база × 0.7…1.3 × надбавка города, одинаковая весь день. */
+export function marketPrice(resource: ResourceId, day: string, town: 'city' | 'brod' = 'city'): number {
   const mult = 0.7 + (hash(`${day}:${resource}`) % 61) / 100;
-  return Math.max(1, Math.round(RESOURCES_BY_ID[resource].basePrice * mult));
+  return Math.max(1, Math.round(RESOURCES_BY_ID[resource].basePrice * mult * MARKET_MULT[town]));
 }
 
 // ─── Засада ─────────────────────────────────────────────────────────────────

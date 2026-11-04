@@ -29,7 +29,7 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: colors.textDim,
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
       }}>
-      <Tabs.Screen name="city" options={{ title: placeTitle, tabBarIcon: icon(traveling ? 'walk' : location === 'city' ? 'map' : 'leaf') }} />
+      <Tabs.Screen name="city" options={{ title: placeTitle, tabBarIcon: icon(traveling ? 'walk' : location === 'city' ? 'map' : location === 'brod' ? 'business' : 'leaf') }} />
       <Tabs.Screen name="character" options={{ title: 'Персонаж', tabBarIcon: icon('person') }} />
       <Tabs.Screen name="backpack" options={{ title: 'Рюкзак', tabBarIcon: icon('bag-handle') }} />
     </Tabs>

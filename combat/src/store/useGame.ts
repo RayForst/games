@@ -44,6 +44,9 @@ import {
   healPrice,
   isEquipped,
   isShiftHours,
+  isTown,
+  jobRatePerHour,
+  CARAVAN_AMBUSH,
   ledgerAfterFight,
   levelForExp,
   makeLogLine,
@@ -51,7 +54,6 @@ import {
   maxDurability,
   mineEarnings,
   mineElapsedMs,
-  mineRatePerHour,
   newCharacter,
   newInventoryItem,
   normalizeCharacter,
@@ -97,6 +99,7 @@ import {
   type Travel,
   type Gathering,
   type LocationId,
+  type JobId,
   type ActivityId,
   type ResourceId,
   type Opponent as OpponentType,
@@ -130,8 +133,8 @@ export interface GameState {
   travel: Travel | null;
   /** Сбор в лесу. */
   gathering: Gathering | null;
-  /** Улов, за который идёт бой с засадой. */
-  pendingHaul: { resource: ResourceId; amount: number } | null;
+  /** Улов (или плата за караван), за который идёт бой с засадой. */
+  pendingHaul: { resource: ResourceId | 'kredits'; amount: number } | null;
   /** Что случилось по дороге — показать по прибытии. */
   roadNews: string | null;
   hydrated: boolean;
@@ -161,7 +164,8 @@ export interface GameState {
   surrender: () => void;
   endFight: () => void;
 
-  startMining: (hours: number) => Check;
+  /** Шахта в Городе или караван в Броде. */
+  startMining: (hours: number, job?: JobId) => Check;
   collectMining: () => MineResult;
 
   /** Кузница. */
@@ -213,10 +217,15 @@ export const useGame = create<GameState>()(
         const log = [...f.log];
         const turn = f.turn;
         const base = rewardFor(status, c.level, f.opponent.level, rng);
+        // Арена Брода платит больше.
+        if (f.venue === 'brod') {
+          base.kredits = Math.round(base.kredits * 1.3);
+          base.exp = Math.round(base.exp * 1.2);
+        }
         // «Грамотей» даёт больше опыта.
         base.exp = Math.round(base.exp * deriveCharacter(c).expMult);
         const exp = c.exp + base.exp;
-        const newLevel = levelForExp(exp);
+        const newLevel = Math.max(c.level, levelForExp(exp));
         const levelsGained = newLevel - c.level;
         let reward: Reward = { ...base, levelsGained };
         let character: Character = {
@@ -261,7 +270,7 @@ export const useGame = create<GameState>()(
             if (stage >= TOURNAMENT_ROUNDS) {
               const prize = tournamentPrize(c.level);
               const exp2 = character.exp + prize.exp;
-              const lvl2 = levelForExp(exp2);
+              const lvl2 = Math.max(character.level, levelForExp(exp2));
               const gained2 = lvl2 - character.level;
               character = {
                 ...character,
@@ -292,17 +301,23 @@ export const useGame = create<GameState>()(
         const haul = get().pendingHaul;
         if (f.context === 'forest' && haul) {
           const amount = haulAfterAmbush(haul.amount, status === 'won');
-          character = { ...character, resources: { ...character.resources, [haul.resource]: character.resources[haul.resource] + amount } };
-          get().track('gather', amount);
-          log.push(
-            makeLogLine(
-              turn,
-              status === 'won'
-                ? `Отбился. ${RESOURCES_BY_ID[haul.resource].name.toLowerCase()}: ${amount} шт., с добавкой.`
-                : `Половину улова пришлось бросить. ${RESOURCES_BY_ID[haul.resource].name}: ${amount} шт.`,
-              'system',
-            ),
-          );
+          const res = haul.resource;
+          if (res === 'kredits') {
+            character = { ...character, kredits: character.kredits + amount, ledger: { ...character.ledger, kreditsEarned: character.ledger.kreditsEarned + amount } };
+            log.push(makeLogLine(turn, status === 'won' ? `Караван дошёл. Купцы доплатили за храбрость: +${amount} кр.` : `Половину товара растащили. Купцы заплатили ${amount} кр. и то со скрипом.`, 'system'));
+          } else {
+            character = { ...character, resources: { ...character.resources, [res]: character.resources[res] + amount } };
+            get().track('gather', amount);
+            log.push(
+              makeLogLine(
+                turn,
+                status === 'won'
+                  ? `Отбился. ${RESOURCES_BY_ID[res].name.toLowerCase()}: ${amount} шт., с добавкой.`
+                  : `Половину улова пришлось бросить. ${RESOURCES_BY_ID[res].name}: ${amount} шт.`,
+                'system',
+              ),
+            );
+          }
           set({ pendingHaul: null });
         }
         // Именной соперник: счёт и реплика после боя.
@@ -343,8 +358,9 @@ export const useGame = create<GameState>()(
       return { character, reward, log };
       };
 
-      /** Зал: именной соперник первым, остальные случайные. */
-      const newArena = (c: Character): Opponent[] => generateArena(c.level, rng, rivalOpponent(pickRival(c, rng), c.level, rng));
+      /** Зал: в Городе именной соперник первым, в Броде все на уровень выше и без знакомых лиц. */
+      const newArena = (c: Character): Opponent[] =>
+        c.location === 'brod' ? generateArena(c.level + 1, rng) : generateArena(c.level, rng, rivalOpponent(pickRival(c, rng), c.level, rng));
 
       return {
       character: null,
@@ -395,7 +411,7 @@ export const useGame = create<GameState>()(
         if (!questDone(q)) return { ok: false, reason: 'Ещё не выполнено' };
         const reward = questReward(q, c.level);
         const exp = c.exp + reward.exp;
-        const newLevel = levelForExp(exp);
+        const newLevel = Math.max(c.level, levelForExp(exp));
         const levelsGained = newLevel - c.level;
         const character: Character = {
           ...c,
@@ -454,7 +470,7 @@ export const useGame = create<GameState>()(
             if (event.kredits) next = { ...next, kredits: Math.max(0, next.kredits + event.kredits) };
             if (event.resource) next = { ...next, resources: { ...next.resources, [event.resource.id]: next.resources[event.resource.id] + event.resource.amount } };
           }
-          set({ travel: null, roadNews: event?.text ?? null });
+          set({ travel: null, roadNews: event?.text ?? null, arena: generateArena(next.level + (t.to === 'brod' ? 1 : 0), rng) });
         }
         if (next !== c) set({ character: next });
       },
@@ -567,7 +583,7 @@ export const useGame = create<GameState>()(
         if (!c) return { ok: false, reason: 'Нет персонажа' };
         if (state.fight?.status === 'active') return { ok: false, reason: 'Бой уже идёт' };
         if (state.mining) return { ok: false, reason: 'Ты в шахте. Сначала забери заработок.' };
-        if (c.location !== 'city' || state.travel) return { ok: false, reason: 'Арена в городе. Сначала вернись.' };
+        if (!isTown(c.location) || state.travel) return { ok: false, reason: 'Арены есть в городах. Сначала дойди.' };
         const opponent = state.arena.find((o) => o.id === opponentId);
         if (!opponent) return { ok: false, reason: 'Соперник ушёл' };
         const fresh = applyRegen(c);
@@ -575,6 +591,7 @@ export const useGame = create<GameState>()(
 
         const fight: FightState = {
           context: 'arena',
+          venue: c.location === 'brod' ? 'brod' : 'city',
           opponent,
           playerHp: fresh.hp,
           enemyHp: opponent.derived.maxHp,
@@ -794,11 +811,11 @@ export const useGame = create<GameState>()(
       sellResource: (resource, amount) => {
         const c = get().character;
         if (!c) return { ok: false, reason: 'Нет персонажа' };
-        if (c.location !== 'city') return { ok: false, reason: 'Скупка в городской лавке' };
+        if (!isTown(c.location)) return { ok: false, reason: 'Скупка в городах' };
         const have = c.resources[resource] ?? 0;
         const qty = Math.min(have, amount ?? have);
         if (qty <= 0) return { ok: false, reason: 'Нечего продавать' };
-        const price = marketPrice(resource, dayKey());
+        const price = marketPrice(resource, dayKey(), c.location);
         const total = qty * price;
         set({
           character: {
@@ -830,30 +847,58 @@ export const useGame = create<GameState>()(
         return { ok: true, kredits: a.reward };
       },
 
-      startMining: (hours) => {
+      startMining: (hours, job = 'mine') => {
         const state = get();
         if (!state.character) return { ok: false, reason: 'Нет персонажа' };
         if (state.fight?.status === 'active') return { ok: false, reason: 'Сначала закончи бой' };
-        if (state.mining) return { ok: false, reason: 'Ты уже в шахте' };
-        if (state.character.location !== 'city' || state.travel) return { ok: false, reason: 'Шахта в городе. Сначала вернись.' };
+        if (state.mining) return { ok: false, reason: state.mining.job === 'caravan' ? 'Ты уже с караваном' : 'Ты уже в шахте' };
+        if (state.travel) return { ok: false, reason: 'Ты в пути' };
+        if (job === 'mine' && state.character.location !== 'city') return { ok: false, reason: 'Шахта в Городе. Сначала вернись.' };
+        if (job === 'caravan' && state.character.location !== 'brod') return { ok: false, reason: 'Караваны собирают в Броде.' };
         if (!isShiftHours(hours)) return { ok: false, reason: 'Такой смены нет' };
-        set({ mining: { startedAt: Date.now(), hours } });
+        set({ mining: { startedAt: Date.now(), hours, job } });
         return { ok: true };
       },
 
       collectMining: () => {
-        const { mining, character } = get();
-        if (!mining || !character) return { ok: false, reason: 'Ты не в шахте' };
-        const earned = mineEarnings(mining, mineRatePerHour(deriveCharacter(character)), Date.now());
+        const { mining, character, fight } = get();
+        if (!mining || !character) return { ok: false, reason: 'Ты не на работе' };
+        if (fight?.status === 'active') return { ok: false, reason: 'Сначала закончи бой' };
+        const job: JobId = mining.job ?? 'mine';
+        const earned = mineEarnings(mining, jobRatePerHour(job, deriveCharacter(character)), Date.now());
+        // Караван: на обратной дороге бывает засада, плата на кону.
+        if (job === 'caravan' && earned > 0 && rng() < CARAVAN_AMBUSH) {
+          const opponent: OpponentType = wildOpponent('pass', character.level, rng);
+          const fresh = applyRegen(character);
+          const fightState: FightState = {
+            context: 'forest',
+            opponent,
+            playerHp: Math.max(1, fresh.hp),
+            enemyHp: opponent.derived.maxHp,
+            turn: 1,
+            status: 'active',
+            log: [makeLogLine(0, `Засада на тракте! ${opponent.name} хочет караван. На кону ${earned} кр. платы.`, 'system')],
+            playerMoves: [],
+            lastEnemyMove: null,
+            reward: null,
+            startedAt: Date.now(),
+          };
+          set({ mining: null, pendingHaul: { resource: 'kredits', amount: earned }, fight: fightState, character: fresh, lastFightContext: 'forest' });
+          return { ok: true, kredits: earned };
+        }
         set({
           mining: null,
           character: {
             ...character,
             kredits: character.kredits + earned,
-            ledger: { ...character.ledger, mineEarned: character.ledger.mineEarned + earned, kreditsEarned: character.ledger.kreditsEarned + earned },
+            ledger: {
+              ...character.ledger,
+              mineEarned: character.ledger.mineEarned + (job === 'mine' ? earned : 0),
+              kreditsEarned: character.ledger.kreditsEarned + earned,
+            },
           },
         });
-        get().track('mineHours', Math.floor(mineElapsedMs(mining, Date.now()) / 3_600_000));
+        if (job === 'mine') get().track('mineHours', Math.floor(mineElapsedMs(mining, Date.now()) / 3_600_000));
         return { ok: true, kredits: earned };
       },
 

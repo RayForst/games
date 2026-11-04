@@ -2,7 +2,14 @@ import type { Character } from './types';
 
 // Карта мира: локации и дороги между ними. Переход занимает реальное время, как шахта.
 
-export type LocationId = 'city' | 'forest' | 'swamp' | 'ruins' | 'pass';
+export type LocationId = 'city' | 'forest' | 'swamp' | 'ruins' | 'pass' | 'brod';
+
+/** Города: арена, лавка/рынок, работа. */
+export type TownId = 'city' | 'brod';
+
+export function isTown(id: LocationId): id is TownId {
+  return id === 'city' || id === 'brod';
+}
 
 export interface Location {
   id: LocationId;
@@ -11,7 +18,7 @@ export interface Location {
   x: number;
   y: number;
   /** Иконка из GI (gi.generated). */
-  icon: 'city' | 'forest' | 'swamp' | 'ruins' | 'pass';
+  icon: 'city' | 'forest' | 'swamp' | 'ruins' | 'pass' | 'town';
   /** С какого уровня персонажа дорога туда открыта. */
   minLevel: number;
   description: string;
@@ -23,6 +30,7 @@ export const LOCATIONS: Location[] = [
   { id: 'swamp', name: 'Болото', x: 0.8, y: 0.28, icon: 'swamp', minLevel: 2, description: 'Гнилые топи. Болотник, за который лекарь платит, и то, что вылезает из жижи.' },
   { id: 'pass', name: 'Перевал', x: 0.22, y: 0.84, icon: 'pass', minLevel: 3, description: 'Дорога в соседнее княжество. Руда в скалах, барсы на скалах, разбойники под скалами.' },
   { id: 'ruins', name: 'Руины', x: 0.78, y: 0.82, icon: 'ruins', minLevel: 4, description: 'Старая крепость. Реликвии под камнями и те, кто их уже ищет.' },
+  { id: 'brod', name: 'Брод', x: 0.08, y: 0.6, icon: 'town', minLevel: 3, description: 'Вольный город за перевалом. Своя арена, рынок, где платят больше, и караваны, которым нужна охрана.' },
 ];
 
 export const LOCATIONS_BY_ID = Object.fromEntries(LOCATIONS.map((l) => [l.id, l])) as Record<LocationId, Location>;
@@ -40,6 +48,7 @@ export const ROUTES: Route[] = [
   { from: 'city', to: 'ruins', minutes: 5 },
   { from: 'city', to: 'pass', minutes: 4 },
   { from: 'forest', to: 'pass', minutes: 3 },
+  { from: 'pass', to: 'brod', minutes: 4 },
 ];
 
 /** Открыта ли локация персонажу такого уровня. */

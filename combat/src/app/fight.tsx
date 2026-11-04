@@ -109,7 +109,7 @@ export default function FightScreen() {
           <Button title="Сдаться" onPress={giveUp} variant="ghost" small style={styles.surrender} />
         </>
       ) : (
-        <ResultCard status={fight.status} reward={fight.reward} onLeave={leave} onNext={tournamentGoesOn ? nextFight : undefined} leaveTitle={inTournament ? 'В замок' : fight.context === 'forest' ? 'В лес' : 'Вернуться в зал'} />
+        <ResultCard status={fight.status} reward={fight.reward} onLeave={leave} onNext={tournamentGoesOn ? nextFight : undefined} leaveTitle={inTournament ? 'В замок' : fight.context === 'forest' ? 'Вернуться' : 'Вернуться в зал'} />
       )}
 
       <Card title="Ход боя">

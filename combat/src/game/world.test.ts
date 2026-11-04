@@ -4,6 +4,7 @@ import { newCharacter } from './character';
 import { canTravel, locationOpen, LOCATIONS, neighbours, routeBetween, travelDone, travelProgress, travelSecondsLeft } from './world';
 import { ACTIVITIES, gatherRatePerHour, gatherYield, haulAfterAmbush, marketPrice, normalizeResources, oreForUpgrade, relicPriceAtCastle, rollRoadEvent, WILDS, wildOpponent, woodForRepair } from './wilds';
 import { baseStats, deriveStats } from './formulas';
+import { jobRatePerHour, mineRatePerHour } from './mine';
 
 const busyFree = { mining: false, gathering: false, traveling: false, fighting: false };
 
@@ -12,6 +13,8 @@ describe('карта мира', () => {
     expect(routeBetween('city', 'forest')?.minutes).toBe(2);
     expect(routeBetween('forest', 'city')?.minutes).toBe(2);
     expect(routeBetween('forest', 'ruins')).toBeNull();
+    expect(routeBetween('pass', 'brod')?.minutes).toBe(4);
+    expect(neighbours('brod')).toEqual(['pass']);
     expect(neighbours('city')).toContain('forest');
     for (const l of LOCATIONS) {
       expect(l.x).toBeGreaterThan(0);
@@ -65,6 +68,8 @@ describe('лес', () => {
       expect(p).toBeLessThanOrEqual(6);
     }
     expect(normalizeResources(undefined).wood).toBe(0);
+    expect(marketPrice('pelts', '2026-11-04', 'brod')).toBeGreaterThan(marketPrice('pelts', '2026-11-04', 'city'));
+    expect(jobRatePerHour('caravan', d)).toBeGreaterThan(mineRatePerHour(d));
   });
 
   it('зверь без вещей, засада меняет улов, враги руин сильнее', () => {

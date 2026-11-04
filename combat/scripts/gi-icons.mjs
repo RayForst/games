@@ -36,6 +36,8 @@ const WANT = {
   hunt: ['GiDeerTrack', 'GiBowArrow', 'GiWolfHead'],
   // мир
   city: ['GiVillage'],
+  town: ['GiHutsVillage', 'GiTownhall', 'GiCastle', 'GiVillage'],
+  caravan: ['GiCarriage', 'GiCaravan', 'GiHorseHead', 'GiCartwheel'],
   forest: ['GiPineTree'],
   swamp: ['GiSwamp'],
   ruins: ['GiCastleRuins'],

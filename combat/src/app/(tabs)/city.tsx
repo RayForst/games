@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
 import { CityMap } from '@/components/CityMap';
+import { BrodHub } from '@/components/BrodHub';
 import { GiIcon } from '@/components/GiIcon';
 import { TravelHub } from '@/components/TravelHub';
 import { WildsHub } from '@/components/WildsHub';
@@ -37,6 +38,7 @@ export default function PlaceScreen() {
   const traveling = useGame((s) => !!s.travel);
   if (traveling) return <TravelHub />;
   if (isWild(location)) return <WildsHub wild={location} />;
+  if (location === 'brod') return <BrodHub />;
   return <CityScreen />;
 }
 

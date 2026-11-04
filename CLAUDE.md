@@ -70,6 +70,9 @@
   ресурсы и рынок `marketPrice`, крафт (`POTION_HERBS`, `woodForRepair`), дорожные события `rollRoadEvent`.
   Стор: `gathering`, `pendingHaul`, `roadNews`; компонент `WildsHub` общий для всех; бой с контекстом `'forest'`
   (так называется и для других диких земель) возвращает в таб места. Локации открываются по `minLevel` в `world.ts`.
+- Брод (`location === 'brod'`): `BrodHub`; арена с `venue: 'brod'` (уровень +1, награда ×1.3/×1.2 в `settle`), рынок
+  `marketPrice(..., 'brod')`, караван — вторая работа `Mining.job = 'caravan'` (`jobRatePerHour`, засада `CARAVAN_AMBUSH`
+  с `pendingHaul.resource = 'kredits'`). Экран `caravan.tsx` и `mine.tsx` через общий `JobPanel`.
 - Иконки-заглушки: `scripts/gi-icons.mjs` → `src/ui/gi.generated.ts` (Game Icons, CC BY 3.0, через react-icons),
   компонент `GiIcon`, карта предмет→иконка `src/ui/giMap.ts`. Сайты с ассетами (opengameart, kenney, game-icons.net)
   из облака недоступны, npm доступен — брать оттуда.

@@ -191,7 +191,7 @@ export interface Character {
   /** Забранные достижения. */
   achievements: string[];
   /** Где персонаж сейчас на карте мира. */
-  location: 'city' | 'forest' | 'swamp' | 'ruins' | 'pass';
+  location: 'city' | 'forest' | 'swamp' | 'ruins' | 'pass' | 'brod';
   /** Ресурсы из диких земель. */
   resources: Record<'herbs' | 'wood' | 'pelts' | 'bogwort' | 'relics' | 'ore', number>;
   /** Счёт против именных соперников: id → победы/поражения игрока. */
@@ -292,6 +292,8 @@ export interface LogLine {
 export interface FightState {
   /** Откуда бой: арена, турнир в замке или засада в лесу. */
   context?: 'arena' | 'tournament' | 'forest';
+  /** Чья арена: городская или Брода (там соперники сильнее, награда больше). */
+  venue?: 'city' | 'brod';
   opponent: Opponent;
   playerHp: number;
   enemyHp: number;

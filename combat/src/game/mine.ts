@@ -6,9 +6,23 @@ import type { DerivedStats } from './types';
 export const MINE_SHIFT_HOURS = [1, 4, 8] as const;
 export type ShiftHours = (typeof MINE_SHIFT_HOURS)[number];
 
+/** Работа по времени: шахта в Городе, караван в Броде. */
+export type JobId = 'mine' | 'caravan';
+
 export interface Mining {
   startedAt: number;
   hours: number;
+  /** Какая работа; старые сейвы без поля — шахта. */
+  job?: JobId;
+}
+
+/** Караван платит больше шахты, но на обратном пути бывает засада. */
+export const CARAVAN_MULT = 2.5;
+export const CARAVAN_AMBUSH = 0.35;
+
+export function jobRatePerHour(job: JobId, derived: DerivedStats): number {
+  const base = mineRatePerHour(derived);
+  return job === 'caravan' ? Math.round(base * CARAVAN_MULT) : base;
 }
 
 const HOUR_MS = 3_600_000;

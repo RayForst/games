@@ -45,10 +45,12 @@ export default function ArenaScreen() {
 
   return (
     <Screen>
-      <BackBar right={<Kredits value={character.kredits} />} />
+      <BackBar title={character.location === 'brod' ? 'Брод' : 'Город'} right={<Kredits value={character.kredits} />} />
       <View style={styles.header}>
-        <Txt variant="title">Арена</Txt>
-        <Txt variant="muted">Выбери соперника. Бой — до первого упавшего.</Txt>
+        <Txt variant="title">{character.location === 'brod' ? 'Арена Брода' : 'Арена'}</Txt>
+        <Txt variant="muted">
+          {character.location === 'brod' ? 'Чужой город, чужие правила: соперники сильнее, плата выше.' : 'Выбери соперника. Бой — до первого упавшего.'}
+        </Txt>
       </View>
 
       <Card>
