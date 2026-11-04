@@ -1,5 +1,7 @@
 # games
 
+[![CI](https://github.com/RayForst/games/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/RayForst/games/actions/workflows/ci.yml)
+
 Мобильные игры на Expo / React Native.
 
 | Папка | Игра | Статус |
