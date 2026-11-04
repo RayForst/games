@@ -9,6 +9,7 @@ import { Hint } from '@/components/Hint';
 import { Kredits } from '@/components/Kredits';
 import { Portrait } from '@/components/Portrait';
 import { Screen } from '@/components/Screen';
+import { SideBadge } from '@/components/SideBadge';
 import { Txt } from '@/components/Txt';
 import { deriveCharacter, rivalRecord, type Opponent } from '@/game';
 import { useGame } from '@/store/useGame';
@@ -90,9 +91,12 @@ export default function ArenaScreen() {
                 </Txt>
               </View>
               <View style={styles.levelCol}>
-                <Txt bold color={stronger ? colors.red : weaker ? colors.green : colors.text}>
-                  {o.level} ур.
-                </Txt>
+                <View style={styles.levelRow}>
+                  <SideBadge side={o.side} />
+                  <Txt bold color={stronger ? colors.red : weaker ? colors.green : colors.text}>
+                    {o.level} ур.
+                  </Txt>
+                </View>
                 {o.rivalId ? (
                   <Txt variant="small" color={colors.gold}>
                     счёт {rivalRecord(character, o.rivalId).wins}:{rivalRecord(character, o.rivalId).losses}
@@ -135,4 +139,5 @@ const styles = StyleSheet.create({
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.md },
   flavor: { fontStyle: 'italic' },
   levelCol: { alignItems: 'flex-end' },
+  levelRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
 });

@@ -1,5 +1,6 @@
 import type { Character, Opponent } from './types';
 import { generateOpponent, type ArchetypeName } from './opponents';
+import type { RaceId, SideId } from './races';
 
 // Именные соперники: постоянные лица арены со своим характером, репликами и счётом против игрока.
 
@@ -7,6 +8,9 @@ export interface RivalDef {
   id: string;
   name: string;
   archetype: ArchetypeName;
+  /** Сторона и раса — по характеру: Толян и Мясник вольные, Солдат и Нюра княжьи. */
+  side: SideId;
+  race: RaceId;
   /** Уровень относительно игрока. */
   levelOffset: number;
   /** Насколько одет (0..1), см. generateOpponent. */
@@ -25,6 +29,8 @@ export const RIVALS: RivalDef[] = [
     id: 'tolyan',
     name: 'Гопник Толян',
     archetype: 'воин',
+    side: 'free',
+    race: 'steppe',
     levelOffset: 0,
     gearScale: 0.3,
     flavor: 'Первый, кого бьют новички. И первый, кто бьёт их.',
@@ -57,6 +63,8 @@ export const RIVALS: RivalDef[] = [
     id: 'bart',
     name: 'Хромой Барт',
     archetype: 'ловкач',
+    side: 'crown',
+    race: 'karl',
     levelOffset: 0,
     gearScale: 0.6,
     flavor: 'Хромает на левую. Бьёт правой.',
@@ -86,6 +94,8 @@ export const RIVALS: RivalDef[] = [
     id: 'nyura',
     name: 'Вдова Нюра',
     archetype: 'ловкач',
+    side: 'crown',
+    race: 'halfblood',
     levelOffset: 0,
     gearScale: 0.5,
     flavor: 'Похоронила троих. Все трое дрались лучше тебя.',
@@ -118,6 +128,8 @@ export const RIVALS: RivalDef[] = [
     id: 'butcher',
     name: 'Мясник',
     archetype: 'танк',
+    side: 'free',
+    race: 'orc',
     levelOffset: 1,
     gearScale: 0.8,
     flavor: 'Разделывает туши. Ему всё равно, чьи.',
@@ -141,6 +153,8 @@ export const RIVALS: RivalDef[] = [
     id: 'shadow',
     name: 'Тень',
     archetype: 'критовик',
+    side: 'free',
+    race: 'bog',
     levelOffset: 1,
     gearScale: 0.7,
     flavor: 'Никто не видел лица. Многие видели нож.',
@@ -164,6 +178,8 @@ export const RIVALS: RivalDef[] = [
     id: 'soldier',
     name: 'Старый Солдат',
     archetype: 'универсал',
+    side: 'crown',
+    race: 'human',
     levelOffset: 1,
     gearScale: 1,
     flavor: 'Прошёл две войны. Третью ведёт здесь.',
@@ -225,7 +241,7 @@ export function pickRival(c: Character, rng: () => number): RivalDef {
 /** Собрать соперника из определения: архетип, уровень и одежда — как у обычного бота, имя и характер — свои. */
 export function rivalOpponent(def: RivalDef, playerLevel: number, rng: () => number): Opponent {
   const level = Math.max(0, playerLevel + def.levelOffset);
-  const base = generateOpponent(level, rng, new Set(), def.gearScale, def.archetype);
+  const base = generateOpponent(level, rng, new Set(), def.gearScale, def.archetype, { side: def.side, race: def.race });
   return { ...base, name: def.name, flavor: def.flavor, rivalId: def.id };
 }
 

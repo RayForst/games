@@ -20,3 +20,5 @@ export * from './roles';
 export * from './chat';
 export * from './guild';
 export * from './tutorial';
+export * from './races';
+export * from './war';

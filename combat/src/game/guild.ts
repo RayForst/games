@@ -1,6 +1,8 @@
 import type { Check } from './character';
 import { generateOpponent } from './opponents';
 import type { Character, FightStatus, Opponent } from './types';
+import { DEFAULT_SIDE, SIDES_BY_ID, type SideId } from './races';
+import { RIVALS_BY_ID } from './rivals';
 
 // Гильдии. Сервера нет, поэтому гильдия игрока живёт в его сейве, а соседи по таблице — гильдии
 // местных (NPC): у них есть состав, казна и рейтинг, они растут по дням, с ними можно устраивать стычки.
@@ -62,6 +64,8 @@ export interface Guild {
   npc?: boolean;
   /** День последнего дневного пересчёта (взносы, дрейф рейтинга). */
   lastDay: string | null;
+  /** Сторона гильдии: берут только своих. У старых гильдий без поля — сторона основателя при загрузке. */
+  side: SideId;
 }
 
 export const GUILD_FOUND_COST = 250;
@@ -123,7 +127,12 @@ export function recruitCost(level: number): number {
 /** Именного соперника можно звать после двух побед над ним: иначе он тебя не уважает. */
 export const RECRUIT_WINS = 2;
 
-export function canRecruitRival(c: Character, rivalId: string): Check {
+export function canRecruitRival(c: Character, rivalId: string, guild?: Guild | null): Check {
+  const def = RIVALS_BY_ID[rivalId];
+  if (def && guild) {
+    const s = sideCheck(def.side, guild);
+    if (!s.ok) return { ok: false, reason: `${def.name} — ${SIDES_BY_ID[def.side].folk}, за чужой стол не сядет` };
+  }
   const rec = c.rivals[rivalId] ?? { wins: 0, losses: 0 };
   if (rec.wins < RECRUIT_WINS) return { ok: false, reason: `Нужно ${RECRUIT_WINS} победы над ним, есть ${rec.wins}` };
   return { ok: true };
@@ -136,7 +145,15 @@ export function canFoundGuild(c: Character): Check {
 }
 
 /** В гильдию местных берут по рейтингу и уровню: чем старше гильдия, тем строже. */
+/** Чужую сторону за стол не пускают. Сервер стороны персонажа пока не знает — тогда не проверяем. */
+export function sideCheck(side: SideId | undefined | null, g: Guild): Check {
+  if (side && g.side && g.side !== side) return { ok: false, reason: `Чужая сторона: тут ${SIDES_BY_ID[side].folk} не ко двору` };
+  return { ok: true };
+}
+
 export function joinCheck(c: Character, g: Guild): Check {
+  const s = sideCheck(c.side, g);
+  if (!s.ok) return s;
   const needRating = g.level * 20;
   if (c.level < g.level) return { ok: false, reason: `Берут с ${g.level} уровня` };
   if (c.rating < needRating) return { ok: false, reason: `Нужен рейтинг ${needRating}, у тебя ${c.rating}` };
@@ -155,7 +172,7 @@ export interface FoundArgs {
   tag: string;
   emblem: GuildEmblem;
   motto?: string;
-  founder: { id: string; name: string; level: number };
+  founder: { id: string; name: string; level: number; side?: SideId };
   now?: number;
 }
 
@@ -173,6 +190,7 @@ export function newGuild({ id, name, tag, emblem, motto = '', founder, now = Dat
     createdAt: now,
     log: [],
     lastDay: null,
+    side: founder.side ?? DEFAULT_SIDE,
   };
   return addGuildEvent(g, `${founder.name} основал гильдию.`, now);
 }
@@ -237,7 +255,7 @@ export function skirmishOpponent(g: Guild, playerLevel: number, rng: () => numbe
   const sorted = [...g.members].sort((a, b) => Math.abs(a.level - playerLevel) - Math.abs(b.level - playerLevel));
   const closest = sorted.filter((m) => Math.abs(m.level - playerLevel) === Math.abs(sorted[0].level - playerLevel));
   const m = pick(rng, closest);
-  const base = generateOpponent(m.level, rng, new Set(), 0.7);
+  const base = generateOpponent(m.level, rng, new Set(), 0.7, undefined, { side: g.side ?? DEFAULT_SIDE });
   return { ...base, id: `guild:${g.id}:${m.id}`, name: m.name, flavor: `[${g.tag}] ${RANK_LABELS[m.rank]} гильдии «${g.name}».` };
 }
 
@@ -252,6 +270,7 @@ export const NPC_GUILDS: Guild[] = [
     id: 'dogs',
     name: 'Чёрные Псы',
     tag: 'ПСЫ',
+    side: 'free',
     emblem: 'wolf',
     motto: 'Кто не с нами — тот корм.',
     level: 2,
@@ -271,6 +290,7 @@ export const NPC_GUILDS: Guild[] = [
     id: 'guildhall',
     name: 'Цех',
     tag: 'ЦЕХ',
+    side: 'crown',
     emblem: 'boar',
     motto: 'Молот, тесак, расчёт.',
     level: 3,
@@ -290,6 +310,7 @@ export const NPC_GUILDS: Guild[] = [
     id: 'quiet',
     name: 'Тихие',
     tag: 'ТИХ',
+    side: 'free',
     emblem: 'dagger',
     motto: '…',
     level: 1,
@@ -305,6 +326,7 @@ export const NPC_GUILDS: Guild[] = [
     id: 'ferrymen',
     name: 'Перевозчики',
     tag: 'ПЛОТ',
+    side: 'free',
     emblem: 'raven',
     motto: 'Река всё спишет.',
     level: 2,
@@ -324,6 +346,7 @@ export const NPC_GUILDS: Guild[] = [
     id: 'greyfriars',
     name: 'Серые Братья',
     tag: 'СБР',
+    side: 'crown',
     emblem: 'flame',
     motto: 'Не убий. Но покалечь.',
     level: 1,
@@ -340,11 +363,18 @@ export const NPC_GUILDS: Guild[] = [
   },
 ];
 
+const NPC_SIDE: Record<string, SideId> = Object.fromEntries(NPC_GUILDS.map((g) => [g.id, g.side]));
+
+/** Сторона старой гильдии из сейва: у местных — по таблице, у гильдии игрока — его собственная (или Корона). */
+export function normalizeGuild(g: Guild, playerSide: SideId = DEFAULT_SIDE): Guild {
+  return { ...g, log: g.log ?? [], lastDay: g.lastDay ?? null, side: g.side ?? NPC_SIDE[g.id] ?? playerSide };
+}
+
 export function normalizeGuilds(raw: Guild[] | null | undefined): Guild[] {
   if (!Array.isArray(raw) || raw.length === 0) return NPC_GUILDS.map((g) => ({ ...g, members: [...g.members], log: [...g.log] }));
   // Новые гильдии местных дописываем старым сейвам.
   const ids = new Set(raw.map((g) => g.id));
-  return [...raw.map((g) => ({ ...g, log: g.log ?? [], lastDay: g.lastDay ?? null })), ...NPC_GUILDS.filter((g) => !ids.has(g.id))];
+  return [...raw.map((g) => normalizeGuild(g)), ...NPC_GUILDS.filter((g) => !ids.has(g.id))];
 }
 
 /** Таблица: все гильдии по славе. */
