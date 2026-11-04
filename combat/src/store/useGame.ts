@@ -229,6 +229,24 @@ import {
   type DailyState,
   type WeeklyBoard,
   type WeeklyEvent,
+  // сюжет и склонность
+  addStoryFlag,
+  applyStoryEvent,
+  chooseStoryOption,
+  claimStoryReward,
+  clampAlignment,
+  newStory,
+  normalizeStory,
+  npcAuthor,
+  NPC_VOICES_BY_ID,
+  shopPrice,
+  startChains,
+  STORY_BY_ID,
+  type StoryEffect,
+  type StoryEvent,
+  type StoryId,
+  type StoryReward,
+  type StoryState,
 } from '@/game';
 
 export interface MineResult extends Check {
@@ -302,6 +320,8 @@ export interface GameState {
   war: War | null;
   /** Ежедневки: награда за вход и недельные цели. Сундуки лежат в персонаже (`character.chests`). */
   daily: DailyState;
+  /** Сюжетные линии и флаги (story.ts). Склонность лежит в `character.alignment`. */
+  story: StoryState;
   hydrated: boolean;
 
   setHydrated: () => void;
@@ -345,8 +365,14 @@ export interface GameState {
 
   /** Пивная: доска на сегодня (пересоздаётся на новый день), прогресс и награда. */
   ensureQuests: () => QuestBoard | null;
-  track: (event: QuestEvent, amount?: number) => void;
+  /** Событие для доски пивной и сюжета; `detail` — id именного, сторона, локация или арена (story.ts). */
+  track: (event: QuestEvent, amount?: number, detail?: string) => void;
   claimQuest: (questId: string) => MineResult;
+
+  /** Сюжет: открыть доступные линии и перепроверить шаги по состоянию; выбор на развилке; награда за линию. */
+  ensureStory: () => void;
+  chooseStory: (id: StoryId, option: 0 | 1) => Check;
+  claimStory: (id: StoryId) => MineResult;
 
   /** Замок: начать турнир и выйти на очередной бой. */
   startTournament: () => Check;
@@ -455,6 +481,74 @@ export const useGame = create<GameState>()(
         log.push(makeLogLine(turn, r.text, 'system'));
       };
 
+      // --- Сюжет и склонность ---
+      /** Доска пивной и недельные цели: событие без сюжета. */
+      const trackBoard = (event: QuestEvent, amount = 1) => {
+        get().trackWeekly(event, amount);
+        const board = get().ensureQuests();
+        if (!board) return;
+        const next = applyQuestEvent(board, event, amount);
+        if (next !== board) set({ quests: next });
+      };
+
+      /** Реплика сюжета в пивную: голосом местного через несколько секунд или словом от имени мира. */
+      const storySay = (who: string | undefined, text: string) => {
+        const voice = who ? NPC_VOICES_BY_ID[who] : undefined;
+        const now = Date.now();
+        if (!voice) {
+          set({ chat: appendMessage(get().chat, { id: uid(), channel: 'tavern', at: now, author: WORLD_AUTHOR, text, kind: 'system' }) });
+          return;
+        }
+        const chat = get().chat;
+        set({ chat: { ...chat, pending: [...chat.pending, { at: now + 3_000 + Math.floor(rng() * 6_000), channel: 'tavern', author: npcAuthor(voice), text }] } });
+      };
+
+      /** Награда шага, выбора или линии ложится на персонажа; флаг — в сюжет. */
+      const applyStoryReward = (c: Character, story: StoryState, r: StoryReward | undefined): { character: Character; story: StoryState } => {
+        if (!r) return { character: c, story };
+        let next = c;
+        if (r.kredits) next = { ...next, kredits: Math.max(0, next.kredits + r.kredits), ledger: { ...next.ledger, kreditsEarned: next.ledger.kreditsEarned + Math.max(0, r.kredits) } };
+        if (r.exp) next = withExp(next, r.exp);
+        if (r.item && getItem(r.item)) next = { ...next, backpack: [...next.backpack, newInventoryItem(uid(), r.item)] };
+        if (r.title && !next.titles.includes(r.title)) next = { ...next, titles: [...next.titles, r.title] };
+        if (r.alignment) next = { ...next, alignment: clampAlignment((next.alignment ?? 0) + r.alignment) };
+        return { character: next, story: addStoryFlag(story, r.flag) };
+      };
+
+      const applyStoryEffect = (c: Character, story: StoryState, ef: StoryEffect): { character: Character; story: StoryState } => {
+        let next = c;
+        if (ef.take?.resource) {
+          const { id, amount } = ef.take.resource;
+          next = { ...next, resources: { ...next.resources, [id]: Math.max(0, next.resources[id] - amount) } };
+        }
+        if (ef.take?.kredits) next = { ...next, kredits: Math.max(0, next.kredits - ef.take.kredits), ledger: { ...next.ledger, kreditsSpent: next.ledger.kreditsSpent + ef.take.kredits } };
+        const applied = applyStoryReward(next, story, ef.reward);
+        if (ef.say) storySay(ef.say.who, ef.say.text);
+        if (ef.finished) storySay(undefined, `${c.name} довёл до конца «${STORY_BY_ID[ef.chainId].title}». Награда ждёт в пивной.`);
+        return applied;
+      };
+
+      /**
+       * Сюжет: событие (или просто перепроверка состояния) на персонаже `c`. Возвращает персонажа с наградами
+       * шагов — внутри `settle()` он ещё не записан в стор, поэтому стор здесь не трогаем, только `story` и чат.
+       */
+      const storyApply = (c: Character, e?: StoryEvent): Character => {
+        let story = startChains(get().story, c);
+        const r = applyStoryEvent(story, { character: c, inGuild: !!get().guild }, e);
+        story = r.state;
+        let next = c;
+        for (const ef of r.effects) ({ character: next, story } = applyStoryEffect(next, story, ef));
+        story = startChains(story, next);
+        if (story !== get().story) set({ story });
+        return next;
+      };
+
+      /** Доска и сюжет для вызовов внутри `settle()`: персонаж ещё локальный. */
+      const trackOn = (c: Character, event: QuestEvent, amount = 1, detail?: string): Character => {
+        trackBoard(event, amount);
+        return storyApply(c, { event, amount, detail });
+      };
+
       const settle = (c: Character, f: FightState, status: FightStatus): { character: Character; reward: Reward; log: LogLine[] } => {
         const log = [...f.log];
         const turn = f.turn;
@@ -512,7 +606,7 @@ export const useGame = create<GameState>()(
           character = {
             ...character,
             perkPicks: character.perkPicks + picks,
-            perkChoices: character.perkChoices ?? offerPerks(character.perks as PerkId[], rng),
+            perkChoices: character.perkChoices ?? offerPerks(character.perks as PerkId[], rng, 3, character.alignment),
           };
           log.push(makeLogLine(turn, 'Новое умение! Выбери его на экране персонажа.', 'system'));
         }
@@ -585,9 +679,10 @@ export const useGame = create<GameState>()(
           if (res === 'kredits') {
             character = { ...character, kredits: character.kredits + amount, ledger: { ...character.ledger, kreditsEarned: character.ledger.kreditsEarned + amount } };
             log.push(makeLogLine(turn, status === 'won' ? `Караван дошёл. Купцы доплатили за храбрость: +${amount} кр.` : `Половину товара растащили. Купцы заплатили ${amount} кр. и то со скрипом.`, 'system'));
+            character = trackOn(character, 'caravan');
           } else {
             character = { ...character, resources: { ...character.resources, [res]: character.resources[res] + amount } };
-            get().track('gather', amount);
+            character = trackOn(character, 'gather', amount);
             log.push(
               makeLogLine(
                 turn,
@@ -608,7 +703,8 @@ export const useGame = create<GameState>()(
             ...character,
             rivals: { ...character.rivals, [rival.id]: { wins: rec.wins + (status === 'won' ? 1 : 0), losses: rec.losses + (status === 'lost' ? 1 : 0) } },
           };
-          log.push(makeLogLine(turn, rivalLine(rival, status === 'won', rng), 'system'));
+          log.push(makeLogLine(turn, rivalLine(rival, status === 'won', rng, character.alignment), 'system'));
+          if (status === 'won') character = trackOn(character, 'rivalWin', 1, rival.id);
         }
         // Трофей: с побеждённого иногда удаётся снять вещь.
         if (status === 'won') {
@@ -626,10 +722,11 @@ export const useGame = create<GameState>()(
             log.push(makeLogLine(turn, `${CHESTS[chest].name}: нашёлся при ${f.opponent.name}. Открыть можно в календаре.`, 'system'));
           }
         }
-        // Задания пивной.
-        get().track('fightPlay');
-        if (status === 'won') get().track('fightWin');
-        if (status === 'won' && f.opponent.level > c.level) get().track('fightWinStronger');
+        // Задания пивной, недельные цели и сюжет: арена в detail у победы, сторона соперника — отдельным событием.
+        character = trackOn(character, 'fightPlay');
+        if (status === 'won') character = trackOn(character, 'fightWin', 1, f.venue ?? 'city');
+        if (status === 'won' && f.opponent.level > c.level) character = trackOn(character, 'fightWinStronger');
+        if (status === 'won' && f.opponent.side && f.opponent.side !== c.side) character = trackOn(character, 'sideWin', 1, f.opponent.side);
         if (f.context === 'guild') get().trackWeekly('skirmish');
         // Травма: проигрыш и ничья могут оставить след. Тяжёлая вытесняет лёгкую.
         // В чуму травмы чаще: второй бросок, если первый прошёл мимо.
@@ -703,7 +800,7 @@ export const useGame = create<GameState>()(
           level,
           freePoints: c.freePoints + gained * POINTS_PER_LEVEL,
           perkPicks: c.perkPicks + picks,
-          perkChoices: picks > 0 ? (c.perkChoices ?? offerPerks(c.perks as PerkId[], rng)) : c.perkChoices,
+          perkChoices: picks > 0 ? (c.perkChoices ?? offerPerks(c.perks as PerkId[], rng, 3, c.alignment)) : c.perkChoices,
         };
       };
 
@@ -741,6 +838,7 @@ export const useGame = create<GameState>()(
       tutorial: newTutorial(),
       war: null,
       daily: newDaily(),
+      story: newStory(),
       hydrated: false,
 
       setHydrated: () => set({ hydrated: true }),
@@ -767,8 +865,10 @@ export const useGame = create<GameState>()(
           skirmishes: null,
           tutorial: newTutorial(),
           daily: newDaily(),
+          story: newStory(),
         });
         get().sendChat('tavern', 'Здарова всем. Я тут новенький.');
+        get().ensureStory();
       },
 
       defectTo: (side, race) => {
@@ -800,7 +900,7 @@ export const useGame = create<GameState>()(
       },
 
       resetGame: () =>
-        set({ character: null, fight: null, mining: null, quests: null, tournament: null, travel: null, gathering: null, pendingHaul: null, arena: [], chat: emptyChat(), chatSeenAt: 0, guild: null, npcGuilds: normalizeGuilds(undefined), skirmish: null, skirmishes: null, tutorial: newTutorial(), daily: newDaily() }),
+        set({ character: null, fight: null, mining: null, quests: null, tournament: null, travel: null, gathering: null, pendingHaul: null, arena: [], chat: emptyChat(), chatSeenAt: 0, guild: null, npcGuilds: normalizeGuilds(undefined), skirmish: null, skirmishes: null, tutorial: newTutorial(), daily: newDaily(), story: newStory() }),
 
       ensureQuests: () => {
         const { character, quests } = get();
@@ -811,12 +911,12 @@ export const useGame = create<GameState>()(
         return board;
       },
 
-      track: (event, amount = 1) => {
-        get().trackWeekly(event, amount);
-        const board = get().ensureQuests();
-        if (!board) return;
-        const next = applyQuestEvent(board, event, amount);
-        if (next !== board) set({ quests: next });
+      track: (event, amount = 1, detail) => {
+        trackBoard(event, amount);
+        const c = get().character;
+        if (!c) return;
+        const next = storyApply(c, { event, amount, detail });
+        if (next !== c) set({ character: next });
       },
 
       claimQuest: (questId) => {
@@ -865,7 +965,7 @@ export const useGame = create<GameState>()(
         if (!c.perkChoices?.includes(id)) return { ok: false, reason: 'Такого выбора нет' };
         const perks = [...c.perks, id];
         const perkPicks = Math.max(0, c.perkPicks - 1);
-        const next: Character = { ...c, perks, perkPicks, perkChoices: perkPicks > 0 ? offerPerks(perks as PerkId[], rng) : null };
+        const next: Character = { ...c, perks, perkPicks, perkChoices: perkPicks > 0 ? offerPerks(perks as PerkId[], rng, 3, c.alignment) : null };
         // «Железное брюхо» поднимает максимум — текущее hp растёт вместе с ним.
         const gained = deriveCharacter(next).maxHp - deriveCharacter(c).maxHp;
         if (gained > 0) next.hp = Math.min(deriveCharacter(next).maxHp, next.hp + gained);
@@ -881,12 +981,15 @@ export const useGame = create<GameState>()(
         if (next.injury && !activeInjury(next)) next = { ...next, injury: null };
         // Дорога пройдена — персонаж на месте.
         const t = get().travel;
+        let arrived: LocationId | null = null;
         if (t && travelDone(t, Date.now())) {
           next = { ...next, location: t.to };
+          arrived = t.to;
           const event = rollRoadEvent(next.level, rng);
           if (event) {
             if (event.kredits) next = { ...next, kredits: Math.max(0, next.kredits + event.kredits) };
             if (event.resource) next = { ...next, resources: { ...next.resources, [event.resource.id]: next.resources[event.resource.id] + event.resource.amount } };
+            if (event.alignment) next = { ...next, alignment: clampAlignment((next.alignment ?? 0) + event.alignment) };
           }
           // Ночь воров: по дороге могут срезать кошель.
           let news = event?.text ?? null;
@@ -898,6 +1001,7 @@ export const useGame = create<GameState>()(
           set({ travel: null, roadNews: news, arena: generateArena(next.level + (t.to === 'brod' ? 1 : 0), rng) });
         }
         if (next !== c) set({ character: next });
+        if (arrived) get().track('arrive', 1, arrived);
         // Чат: созревшие ответы и болтовня завсегдатаев без повода.
         const now = Date.now();
         let chat = deliverPending(get().chat, now, uid);
@@ -956,13 +1060,15 @@ export const useGame = create<GameState>()(
         const c = get().character;
         if (!c) return { ok: false, reason: 'Нет персонажа' };
         const item = getItem(itemId);
-        if (c.kredits < item.price) return { ok: false, reason: 'Не хватает кредитов' };
+        // Цена лавки зависит от склонности: ломбардщик с гнилыми — свой (story.ts).
+        const price = shopPrice(c, item);
+        if (c.kredits < price) return { ok: false, reason: 'Не хватает кредитов' };
         set({
           character: {
             ...c,
-            kredits: c.kredits - item.price,
+            kredits: c.kredits - price,
             backpack: [...c.backpack, newInventoryItem(uid(), itemId)],
-            ledger: { ...c.ledger, itemsBought: c.ledger.itemsBought + 1, kreditsSpent: c.ledger.kreditsSpent + item.price },
+            ledger: { ...c.ledger, itemsBought: c.ledger.itemsBought + 1, kreditsSpent: c.ledger.kreditsSpent + price },
           },
         });
         get().track('buyItem');
@@ -1352,6 +1458,7 @@ export const useGame = create<GameState>()(
           },
         });
         if (job === 'mine') get().track('mineHours', Math.floor(mineElapsedMs(mining, Date.now()) / 3_600_000));
+        if (job === 'caravan') get().track('caravan');
         return { ok: true, kredits: earned };
       },
 
@@ -1398,6 +1505,39 @@ export const useGame = create<GameState>()(
         set({ character: { ...c, kredits: c.kredits - total, backpack } });
         get().track('repair');
         return { ok: true, kredits: total };
+      },
+
+      // --- Сюжет и склонность ---
+      ensureStory: () => {
+        const c = get().character;
+        if (!c) return;
+        const next = storyApply(c);
+        if (next !== c) set({ character: next });
+      },
+
+      chooseStory: (id, option) => {
+        const c = get().character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        const r = chooseStoryOption(get().story, id, option);
+        if (!r.ok) return { ok: false, reason: r.reason };
+        let story = r.state;
+        let next = c;
+        if (r.effect) ({ character: next, story } = applyStoryEffect(next, story, r.effect));
+        set({ story, character: next });
+        // Следующий шаг может быть уже выполнен (уровень, ресурсы) — закрываем сразу.
+        get().ensureStory();
+        return { ok: true };
+      },
+
+      claimStory: (id) => {
+        const c = get().character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        const r = claimStoryReward(get().story, id);
+        if (!r.ok) return { ok: false, reason: r.reason };
+        const applied = applyStoryReward(c, r.state, r.reward);
+        set({ story: applied.story, character: applied.character });
+        if (r.reward?.title) worldSays('tavern', `${c.name} теперь «${r.reward.title}». Гришка записал, Марфа налила.`);
+        return { ok: true, kredits: r.reward?.kredits ?? 0 };
       },
 
       // --- Чат ---------------------------------------------------------------------------------
@@ -1477,6 +1617,7 @@ export const useGame = create<GameState>()(
           guild: g,
           character: { ...c, kredits: c.kredits - GUILD_FOUND_COST, ledger: { ...c.ledger, kreditsSpent: c.ledger.kreditsSpent + GUILD_FOUND_COST } },
         });
+        get().track('guildJoin');
         worldSays('tavern', `В городе новая гильдия: «${g.name}» [${g.tag}]. Основал ${c.name}.`);
         worldSays('guild', `Гильдия «${g.name}» основана. Это ваш стол: чужие не слышат.`);
         return { ok: true };
@@ -1493,6 +1634,7 @@ export const useGame = create<GameState>()(
         const r = addMember(target, { id: 'player', name: c.name, level: c.level, player: true });
         if (!r.ok) return { ok: false, reason: r.reason };
         set({ guild: r.guild, npcGuilds: npcGuilds.filter((g) => g.id !== guildId) });
+        get().track('guildJoin');
         worldSays('guild', `${c.name} принят в «${target.name}». Глава — ${target.members.find((m) => m.rank === 'leader')?.name ?? 'неизвестно кто'}.`);
         return { ok: true };
       },
@@ -1992,6 +2134,7 @@ export const useGame = create<GameState>()(
         tutorial: s.tutorial,
         war: s.war,
         daily: s.daily,
+        story: s.story,
       }),
       // Старые сейвы дописываем недостающими полями (прочность, заточка, будущие фичи).
       migrate: (persisted) => {
@@ -2010,6 +2153,7 @@ export const useGame = create<GameState>()(
         state.settings = { sound: state.settings?.sound ?? true };
         state.tutorial = normalizeTutorial(state.tutorial, state.character?.ledger.fightsTotal ?? 0);
         state.daily = normalizeDaily(state.daily);
+        state.story = normalizeStory(state.story);
         state.setHydrated();
       },
     },

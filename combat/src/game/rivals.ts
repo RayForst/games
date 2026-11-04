@@ -1,6 +1,7 @@
 import type { Character, Opponent } from './types';
 import { generateOpponent, type ArchetypeName } from './opponents';
 import type { RaceId, SideId } from './races';
+import { alignmentTone } from './story';
 
 // Именные соперники: постоянные лица арены со своим характером, репликами и счётом против игрока.
 
@@ -22,6 +23,8 @@ export interface RivalDef {
   gloats: string[];
   /** Когда соперник проиграл. */
   excuses: string[];
+  /** Реплики для светлого («Честный» и выше) и тёмного («Гнилой» и ниже) игрока — вперемешку с общими. */
+  byAlignment?: Partial<Record<'light' | 'dark', { gloats?: string[]; excuses?: string[] }>>;
 }
 
 export const RIVALS: RivalDef[] = [
@@ -58,6 +61,16 @@ export const RIVALS: RivalDef[] = [
       'Толян: «Солнце в глаза. В подвале. Да».',
       'Толян сплёвывает кровью и говорит, что так и было задумано.',
     ],
+    byAlignment: {
+      light: {
+        gloats: ['Толян: «Святоша. Лежит святоша. Молись, пока я карманы смотрю».'],
+        excuses: ['Толян: «Честный бьёт как нечестный. Где справедливость, а?»'],
+      },
+      dark: {
+        gloats: ['Толян: «Гнилой. Свой, значит. Своих тоже бью, чё».'],
+        excuses: ['Толян: «Э, ты ж наш, гнилой. Чё ты как чужой-то?»'],
+      },
+    },
   },
   {
     id: 'bart',
@@ -89,6 +102,10 @@ export const RIVALS: RivalDef[] = [
       'Барт кивает коротко: «Запомню, как ты бил».',
       'Барт: «На перевале бы я тебя достал. Тут пол ровный, скучно».',
     ],
+    byAlignment: {
+      light: { excuses: ['Барт: «Честный и быстрый. Редкая порода, обычно одно из двух».'] },
+      dark: { gloats: ['Барт: «Гнилой падает так же, как честный. Только пахнет иначе».'] },
+    },
   },
   {
     id: 'nyura',
@@ -123,6 +140,16 @@ export const RIVALS: RivalDef[] = [
       'Нюра улыбается. Это хуже, чем если бы не улыбалась.',
       'Нюра: «Свечку оставлю. Пригодится. Кому-нибудь».',
     ],
+    byAlignment: {
+      light: {
+        gloats: ['Нюра: «Святоша, милок. Третий тоже молился. Не помогло».'],
+        excuses: ['Нюра: «Честный. Такие долго не живут, но живут хорошо».'],
+      },
+      dark: {
+        gloats: ['Нюра: «Гнилой. Второй был гнилой, я его и не оплакивала».'],
+        excuses: ['Нюра: «Чёрный выстоял. Чёрных я не хороню — некому свечки ставить».'],
+      },
+    },
   },
   {
     id: 'butcher',
@@ -148,6 +175,10 @@ export const RIVALS: RivalDef[] = [
       'Мясник снимает фартук, складывает, уносит. Молча.',
       'Мясник: «Цех смотрел. Цех запомнил».',
     ],
+    byAlignment: {
+      light: { gloats: ['Мясник: «Святоша. Мясо постное».'] },
+      dark: { excuses: ['Мясник: «Гнилой. Свой. Цех смотрит на своих иначе».'] },
+    },
   },
   {
     id: 'shadow',
@@ -173,6 +204,10 @@ export const RIVALS: RivalDef[] = [
       'Никто не видел, как Тень упала. Никто не видел, как встала.',
       'Тень: «Ты меня увидел. Плохо. Для тебя».',
     ],
+    byAlignment: {
+      light: { gloats: ['Тень: «Честные смотрят в глаза. Нож ниже».'] },
+      dark: { excuses: ['Тень: «Чёрный. Ты бы и сам так ударил. Запомню тебя иначе».'] },
+    },
   },
   {
     id: 'soldier',
@@ -207,6 +242,13 @@ export const RIVALS: RivalDef[] = [
       'Солдат: «Третью войну, видно, я проиграю. Не сегодня, но проиграю».',
       'Солдат: «Дважды побьёшь — устав напишу. Для нас с тобой».',
     ],
+    byAlignment: {
+      light: { excuses: ['Солдат: «Честный и бьёт честно. На войне таких первыми хоронили. Здесь — первыми ставят».'] },
+      dark: {
+        gloats: ['Солдат: «Гнилой. На войне за такое — в штрафную роту. Здесь — к лекарю».'],
+        excuses: ['Солдат: «Чёрный выиграл. Устав для тебя будет из одного пункта».'],
+      },
+    },
   },
 ];
 
@@ -249,6 +291,10 @@ export function rivalTaunt(def: RivalDef, rng: () => number): string {
   return pick(rng, def.taunts);
 }
 
-export function rivalLine(def: RivalDef, playerWon: boolean, rng: () => number): string {
+/** Реплика после боя. Светлому и тёмному игроку через раз достаётся своя, если у соперника она есть. */
+export function rivalLine(def: RivalDef, playerWon: boolean, rng: () => number, alignment = 0): string {
+  const tone = alignmentTone(alignment);
+  const special = tone ? (playerWon ? def.byAlignment?.[tone]?.excuses : def.byAlignment?.[tone]?.gloats) : undefined;
+  if (special && special.length > 0 && rng() < 0.5) return pick(rng, special);
   return pick(rng, playerWon ? def.excuses : def.gloats);
 }

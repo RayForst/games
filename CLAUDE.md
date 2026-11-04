@@ -132,6 +132,12 @@
   `character.chests`, действия `claimDaily`/`ensureWeekly`/`trackWeekly`/`claimWeekly`/`openChest` в блоке
   `// --- Ежедневки, сундуки, события ---`; `track()` зовёт `trackWeekly`. Экран `daily.tsx`, входы из пивной и экрана персонажа.
   Новое событие — запись в `EVENTS` и слот в `CALENDAR`; новый множитель — поле `EventMults` и чтение в нужной формуле стора.
+- Сюжет и склонность: `story.ts` (линии `STORY_CHAINS`, движок `applyStoryEvent`/`chooseStoryOption`/`claimStoryReward`,
+  склонность `alignmentName`/`alignmentTone`/`alignmentPriceMult`/`shopPrice`), стор `story`, блок `// --- Сюжет и склонность ---`
+  (`storyApply` на локальном персонаже внутри `settle()`, действия `ensureStory`/`chooseStory`/`claimStory`), `track(event, amount, detail)`
+  с деталью (id именного, сторона, локация, арена). Экран `story.tsx` («Дела» из пивной). Поле `character.alignment`; реплики
+  именных `byAlignment` в `rivals.ts`, умения склонности в `perks.ts` (`perkAllowed`), сдвиг у дорожных событий `RoadEvent.alignment`.
+  Новая линия — запись в `STORY_CHAINS`; новое условие — ветка в `stepMet`; новое событие — `QuestEvent` и вызов `track()`.
 - Завершение боя — один хелпер `settle()` внутри стора (награда, уровень, умения, износ, рейтинг, турнир, трофей,
   задания, травма). Любая новая «после боя» логика добавляется туда.
 - Сейвы: `persist.version` и `normalizeCharacter()` дописывают новые поля старым сохранениям — обновлять при каждом
