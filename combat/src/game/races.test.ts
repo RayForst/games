@@ -4,7 +4,7 @@ import { defect, deriveCharacter, newCharacter, normalizeCharacter, rollInjury }
 import { baseStats, deriveStats } from './formulas';
 import { generateArena, generateOpponent } from './opponents';
 import { RIVALS, rivalOpponent } from './rivals';
-import { DEFECT_COST, defectCost, isValidOrigin, RACES, RACES_BY_ID, raceStats, racesOf, SIDES, switchRaceStats } from './races';
+import { CAPITALS_BY_ID, DEFECT_COST, defectCost, homeOf, isValidOrigin, RACES, RACES_BY_ID, raceStats, racesOf, SIDES, SIDES_BY_ID, switchRaceStats } from './races';
 import type { Character } from './types';
 
 const seq = (vals: number[]) => {
@@ -25,6 +25,17 @@ describe('стороны и расы', () => {
     expect(isValidOrigin('free', 'orc')).toBe(true);
   });
 
+  it('у каждой расы своя столица, у стороны — главная на карте', () => {
+    expect(new Set(RACES.map((r) => r.capital)).size).toBe(6);
+    for (const r of RACES) expect(CAPITALS_BY_ID[r.capital].name.length).toBeGreaterThan(0);
+    expect(SIDES_BY_ID.crown.capital).toBe('city');
+    expect(SIDES_BY_ID.free.capital).toBe('brod');
+    expect(CAPITALS_BY_ID[SIDES_BY_ID.crown.capital].onMap).toBe(true);
+    expect(CAPITALS_BY_ID[SIDES_BY_ID.free.capital].onMap).toBe(true);
+    expect(homeOf('human')).toBe('city');
+    expect(homeOf('karl')).toBe('rudnya');
+  });
+
   it('+1 к характеристике расы при создании', () => {
     const stats = raceStats(baseStats(), 'karl');
     expect(stats.endurance).toBe(4);
@@ -34,6 +45,8 @@ describe('стороны и расы', () => {
     expect(c.race).toBe('orc');
     expect(c.stats.strength).toBe(4);
     expect(c.defections).toBe(0);
+    expect(c.home).toBe('kamenka');
+    expect(c.location).toBe('city');
   });
 
   it('расовые черты ложатся на производные характеристики', () => {
@@ -69,6 +82,7 @@ describe('стороны и расы', () => {
     expect(d.stats.strength).toBe(3);
     expect(d.stats.endurance).toBe(4);
     expect(d.defections).toBe(1);
+    expect(d.home).toBe('topi');
     // Та же характеристика у обеих рас — очки не трогаем.
     expect(switchRaceStats(c.stats, 'human', 'orc')).toEqual(c.stats);
     // Чужая раса для стороны — без изменений.
@@ -82,10 +96,12 @@ describe('стороны и расы', () => {
     delete legacy.side;
     delete legacy.race;
     delete legacy.defections;
+    delete legacy.home;
     const fixed = normalizeCharacter(legacy as Character);
     expect(fixed.side).toBe('crown');
     expect(fixed.race).toBe('human');
     expect(fixed.defections).toBe(0);
+    expect(fixed.home).toBe('city');
     expect(fixed.stats.strength).toBe(4);
     // Повторная нормализация +1 не дублирует.
     expect(normalizeCharacter(fixed).stats.strength).toBe(4);

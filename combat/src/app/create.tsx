@@ -8,6 +8,7 @@ import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
 import {
   baseStats,
+  CAPITALS_BY_ID,
   CREATION_FREE_POINTS,
   deriveStats,
   racesOf,
@@ -144,7 +145,7 @@ export default function CreateScreen() {
                   </View>
                   <Txt variant="small">{r.description}</Txt>
                   <Txt variant="small" color={colors.textMuted}>
-                    {r.trait.description}. На улице зовут «{r.nickname}».
+                    {r.trait.description}. На улице зовут «{r.nickname}». Родной город — {CAPITALS_BY_ID[r.capital].name}.
                   </Txt>
                 </View>
               </Pressable>

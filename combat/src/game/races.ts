@@ -8,6 +8,34 @@ import type { DerivedStats, StatKey, Stats } from './types';
 export type SideId = 'crown' | 'free';
 export type RaceId = 'human' | 'karl' | 'halfblood' | 'steppe' | 'orc' | 'bog';
 
+/**
+ * Столицы рас. Город и Брод уже на карте мира (`LocationId`); остальные — задел: ids держим здесь, а не в `world.ts`,
+ * потому что `LOCATIONS_BY_ID` и дороги типизированы по `LocationId` и требуют запись на каждый id.
+ * Локации построит сессия «Столицы рас, склеп и рейды».
+ */
+export type CapitalId = 'city' | 'brod' | 'rudnya' | 'zastava' | 'kosh' | 'kamenka' | 'topi';
+
+export interface CapitalDef {
+  id: CapitalId;
+  name: string;
+  /** Чем славится, 1–2 строки. */
+  description: string;
+  /** Уже есть на карте мира. */
+  onMap: boolean;
+}
+
+export const CAPITALS: CapitalDef[] = [
+  { id: 'city', name: 'Город', description: 'Столица Короны: замок князя за рекой, клуб с красными флагами, шахта, где серебро кончилось.', onMap: true },
+  { id: 'brod', name: 'Брод', description: 'Столица Вольницы за перевалом: без князя и без клуба, зато арена за деньги, жирный рынок и караваны.', onMap: true },
+  { id: 'rudnya', name: 'Рудня', description: 'Рудокопский посад в горах над старыми серебряными штольнями. Кузницы дымят круглые сутки, пиво варят из ячменя и злобы.', onMap: false },
+  { id: 'zastava', name: 'Застава', description: 'Пограничная крепость на тракте, где полукровок больше, чем людей. Стража своя, законы князя читают по настроению.', onMap: false },
+  { id: 'kosh', name: 'Кош', description: 'Степной стан за перевалом: глинобитные стены, табуны, торг конями и всем, что на конях увезли.', onMap: false },
+  { id: 'kamenka', name: 'Каменка', description: 'Орочье селение в скалах: дома в пещерах, костры на уступах, за хлеб нанимаются в караванную охрану.', onMap: false },
+  { id: 'topi', name: 'Топи', description: 'Свайный город на островах среди болота. Тропы знают только свои, чужие приходят с плотами и не все уходят.', onMap: false },
+];
+
+export const CAPITALS_BY_ID = Object.fromEntries(CAPITALS.map((c) => [c.id, c])) as Record<CapitalId, CapitalDef>;
+
 export interface SideDef {
   id: SideId;
   name: string;
@@ -16,8 +44,8 @@ export interface SideDef {
   accusative: string;
   /** Кто это по-местному: «княжьи», «вольные». */
   folk: string;
-  /** Столица стороны на карте мира. */
-  capital: 'city' | 'brod';
+  /** Главная столица стороны (есть на карте мира). */
+  capital: CapitalId;
   description: string;
   /** Что говорят про другую сторону. */
   motto: string;
@@ -32,6 +60,8 @@ export interface RaceDef {
   genitive: string;
   /** Как зовут на улице. */
   nickname: string;
+  /** Столица расы — родной город персонажа (`Character.home`). */
+  capital: CapitalId;
   /** +1 к этой характеристике при создании. */
   stat: StatKey;
   trait: { name: string; description: string };
@@ -73,6 +103,7 @@ export const RACES: RaceDef[] = [
     name: 'Люди',
     genitive: 'людей',
     nickname: 'посадские',
+    capital: 'city',
     stat: 'strength',
     trait: { name: 'Выучка', description: '+10 % опыта за бой' },
     description: 'Посадский люд: ремесленники, бывшие стражники, сыновья мельников. Ничем не выделяются, кроме того, что их больше.',
@@ -84,6 +115,7 @@ export const RACES: RaceDef[] = [
     name: 'Карлы',
     genitive: 'карлов',
     nickname: 'рудокопы',
+    capital: 'rudnya',
     stat: 'endurance',
     trait: { name: 'Рудная жила', description: '+4 кр. в час в шахте' },
     description: 'Низкорослые и широкие, из тех, что рубили серебро, пока оно не кончилось. Угрюмые, упрямые, долго не падают.',
@@ -95,6 +127,7 @@ export const RACES: RaceDef[] = [
     name: 'Полукровки',
     genitive: 'полукровок',
     nickname: 'подкидыши',
+    capital: 'zastava',
     stat: 'dexterity',
     trait: { name: 'Дурная кровь', description: 'Здоровье восстанавливается на четверть быстрее' },
     description: 'Чья-то кровь с тракта пополам с городской. В замке их терпят, на паперти боятся. Заживают быстро — приходилось.',
@@ -106,6 +139,7 @@ export const RACES: RaceDef[] = [
     name: 'Степняки',
     genitive: 'степняков',
     nickname: 'конокрады',
+    capital: 'kosh',
     stat: 'intuition',
     trait: { name: 'Степной ветер', description: '+3 % уворота' },
     description: 'Пришли из-за перевала с табунами, остались без табунов. Узкоглазые, жилистые, бьют раньше, чем ты замахнулся.',
@@ -117,6 +151,7 @@ export const RACES: RaceDef[] = [
     name: 'Орки',
     genitive: 'орков',
     nickname: 'клыкастые',
+    capital: 'kamenka',
     stat: 'strength',
     trait: { name: 'Толстая шкура', description: '+1 брони корпуса и пояса' },
     description: 'Горный народ с серой кожей и подпиленными зубами. Не сказки: сказки не нанимаются в караванную охрану за хлеб.',
@@ -131,6 +166,7 @@ export const RACES: RaceDef[] = [
     name: 'Болотники',
     genitive: 'болотников',
     nickname: 'топляки',
+    capital: 'topi',
     stat: 'endurance',
     trait: { name: 'Болотная кровь', description: 'Травмы проходят вдвое быстрее' },
     description: 'Бледные, молчаливые, пахнут тиной. Живут там, куда стража не ходит. Что их не убило, то уже пробовало.',
@@ -182,6 +218,11 @@ export function switchRaceStats(stats: Stats, from: RaceId, to: RaceId): Stats {
 export function applyRace(d: DerivedStats, race: RaceId | undefined | null): DerivedStats {
   if (race) RACES_BY_ID[race]?.apply(d);
   return d;
+}
+
+/** Родной город расы. */
+export function homeOf(race: RaceId): CapitalId {
+  return RACES_BY_ID[race].capital;
 }
 
 /** Случайная раса стороны — для ботов. */

@@ -5,7 +5,7 @@ import { CREATION_FREE_POINTS, FULL_REGEN_MINUTES, baseStats, deriveStats } from
 import { emptyLedger, normalizeLedger } from './achievements';
 import { emptyResources, normalizeResources } from './wilds';
 import type { PerkId } from './perks';
-import { DEFAULT_ORIGIN, isValidOrigin, raceStats, switchRaceStats, type Origin, type RaceId, type SideId } from './races';
+import { DEFAULT_ORIGIN, homeOf, isValidOrigin, raceStats, switchRaceStats, type Origin, type RaceId, type SideId } from './races';
 
 export function emptyEquipment(): Record<Slot, string | null> {
   return Object.fromEntries(SLOTS.map((s) => [s, null])) as Record<Slot, string | null>;
@@ -50,13 +50,14 @@ export function newCharacter(name: string, stats: Stats = baseStats(), freePoint
     side: origin.side,
     race: origin.race,
     defections: 0,
+    home: homeOf(origin.race),
   };
 }
 
 /** Перебежчик: новая сторона и раса, расовый +1 переезжает, счётчик переходов растёт. */
 export function defect(c: Character, side: SideId, race: RaceId): Character {
   if (!isValidOrigin(side, race)) return c;
-  return { ...c, side, race, stats: switchRaceStats(c.stats, c.race, race), defections: c.defections + 1 };
+  return { ...c, side, race, home: homeOf(race), stats: switchRaceStats(c.stats, c.race, race), defections: c.defections + 1 };
 }
 
 /** Id предметов (каталожные), которые сейчас надеты. */
@@ -189,6 +190,7 @@ export function normalizeCharacter(raw: Character): Character {
     side,
     race,
     defections: typeof raw.defections === 'number' ? raw.defections : 0,
+    home: raw.home ?? homeOf(race),
   };
 }
 
