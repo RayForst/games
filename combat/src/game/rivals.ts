@@ -90,6 +90,8 @@ export const RIVALS: RivalDef[] = [
 ];
 
 export const RIVALS_BY_ID = Object.fromEntries(RIVALS.map((r) => [r.id, r])) as Record<string, RivalDef>;
+/** Имя → id: по общему списку имён ботов приходят те же «Мясник» и «Тень», портрет у них должен быть тот же. */
+export const RIVAL_ID_BY_NAME: Record<string, string> = Object.fromEntries(RIVALS.map((r) => [r.name, r.id]));
 
 export interface RivalRecord {
   wins: number;

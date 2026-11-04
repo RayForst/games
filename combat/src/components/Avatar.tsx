@@ -1,29 +1,33 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useEffect, useState } from 'react';
 import { Animated, Easing, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 
+import { Portrait } from './Portrait';
 import { colors, radius } from '@/ui/theme';
 
 interface Props {
-  /** Доля здоровья 0..1 — раненый силуэт темнеет и краснеет. */
+  /** Сид портрета — имя персонажа. */
+  seed: string;
+  /** Доля здоровья 0..1 — раненый бледнеет и уходит в тень. */
   hpRatio: number;
+  /** Активная травма — повязка через лоб. */
+  injured?: boolean;
 }
 
 /**
- * Заглушка аватара: пьедестал под лучом света и силуэт бойца.
- * Сюда потом встанет сгенерированный портрет (см. план по графике в CLAUDE.md).
+ * Аватар персонажа: пьедестал под лучом света и процедурный портрет (голова и плечи).
+ * Портрет собирается из черт по имени (`ui/portrait.ts`), картинок нет.
  */
-export function Avatar({ hpRatio }: Props) {
+export function Avatar({ seed, hpRatio, injured }: Props) {
   // Медленное «дыхание», чтобы персонаж выглядел живым, а не иконкой.
   const [breath] = useState(() => new Animated.Value(0));
-  // Фигура растёт вместе с рамкой: на большом экране кукла высокая, силуэт не должен теряться внизу.
+  // Портрет растёт вместе с рамкой: на большом экране кукла высокая, бюст не должен теряться внизу.
   const [box, setBox] = useState({ width: 0, height: 0 });
   const onLayout = (e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
     setBox({ width, height });
   };
-  // Силуэт узкий (примерно 0.4 ширины от высоты), поэтому по ширине можно брать с запасом.
-  const size = Math.round(Math.min(Math.max(box.height * 0.8, 140), box.width * 1.7, 380));
+  // Бюст чуть выше, чем шире (110/100); упираемся в то, что меньше.
+  const size = Math.round(Math.min(Math.max(box.height * 0.82, 120), box.width * 0.96, 340));
 
   useEffect(() => {
     const loop = Animated.loop(
@@ -36,18 +40,18 @@ export function Avatar({ hpRatio }: Props) {
     return () => loop.stop();
   }, [breath]);
 
-  const scale = breath.interpolate({ inputRange: [0, 1], outputRange: [1, 1.03] });
-  const wounded = hpRatio < 0.35;
-  const tint = wounded ? colors.redDim : colors.textDim;
+  const scale = breath.interpolate({ inputRange: [0, 1], outputRange: [1, 1.015] });
 
   return (
     <View style={styles.frame} onLayout={onLayout}>
       <View style={styles.lightOuter} />
       <View style={styles.lightInner} />
-      <View style={[styles.floor, { width: size * 0.38, height: size * 0.06 }]} />
-      <Animated.View style={[styles.figure, { transform: [{ scale }] }]}>
-        <MaterialCommunityIcons name="human-male" size={size} color={tint} />
-      </Animated.View>
+      <View style={[styles.floor, { width: size * 0.7, height: size * 0.08 }]} />
+      {box.width > 0 ? (
+        <Animated.View style={[styles.figure, { transform: [{ scale }] }]}>
+          <Portrait seed={seed} size={size} hpRatio={hpRatio} injured={injured} />
+        </Animated.View>
+      ) : null}
     </View>
   );
 }
@@ -62,7 +66,6 @@ const styles = StyleSheet.create({
     borderColor: colors.borderStrong,
     backgroundColor: colors.bgElevated,
     overflow: 'hidden',
-    paddingBottom: 18,
   },
   // «Луч света» сверху — два мягких круга за фигурой, без градиентов.
   lightOuter: {
@@ -83,13 +86,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardAlt,
     opacity: 0.6,
   },
-  // Тень под ногами — фигура стоит, а не висит.
+  // Тень у основания — бюст стоит, а не висит.
   floor: {
     position: 'absolute',
-    bottom: 16,
+    bottom: 6,
     borderRadius: radius.pill,
     backgroundColor: colors.black,
     opacity: 0.45,
   },
-  figure: { alignItems: 'center', justifyContent: 'flex-end' },
+  figure: { alignItems: 'center', justifyContent: 'flex-end', marginBottom: -2 },
 });

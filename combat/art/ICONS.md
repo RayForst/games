@@ -63,6 +63,12 @@ busy background, scene, frame, border, pixel art, flat vector, cartoon, anime, g
 - Компоненты: `ItemIcon` (предмет на тёмной плитке, пустой слот → `slot-empty`, пустое оружие → `fists`),
   `Kredits` (сумма с монетой). Зелья `potion-small/medium/large` — три варианта лечения у лекаря.
 
+## Портреты бойцов
+
+Пока 3D-рендеров нет, портреты процедурные: `src/ui/portrait.ts` собирает черты по имени бойца, `components/Portrait.tsx`
+рисует голову и плечи на SVG в палитре темы. Именные соперники зафиксированы в `RIVAL_PORTRAITS`. Когда появятся рендеры
+из Blender, их подключаем в `Portrait` по тому же `seed`/`rivalId`, экраны менять не придётся.
+
 ## Как передать готовые файлы
 
 Ключ предмета = имя файла из таблиц ниже (`knife.png`, `chainmail.png`). Три способа, любой подходит:
