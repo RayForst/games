@@ -13,7 +13,7 @@ import { can, CHANNELS, CHANNELS_BY_ID, isMuted, MESSAGE_MAX, ROLE_TAGS, visible
 import { useFlash } from '@/hooks/useFlash';
 import { useGame } from '@/store/useGame';
 import { playSfx } from '@/ui/sfx';
-import { colors, radius, spacing } from '@/ui/theme';
+import { colors, radius, sideColors, spacing } from '@/ui/theme';
 
 function hhmm(at: number): string {
   const d = new Date(at);
@@ -145,6 +145,11 @@ function Message({ m, moderator, muted, onDelete, onMute }: { m: ChatMessage; mo
       <View style={styles.msgHead}>
         <Pressable onPress={moderator && !mine ? onMute : undefined} accessibilityRole={moderator && !mine ? 'button' : undefined} accessibilityLabel={moderator && !mine ? `Заткнуть: ${m.author.name}` : undefined}>
           <Txt variant="small" bold color={m.kind === 'staff' ? colors.red : mine ? colors.gold : colors.text}>
+            {m.author.side ? (
+              <Txt variant="small" bold color={sideColors[m.author.side]}>
+                {'● '}
+              </Txt>
+            ) : null}
             {tag ? `[${tag}] ` : ''}
             {m.author.tag ? `[${m.author.tag}] ` : ''}
             {m.author.name}

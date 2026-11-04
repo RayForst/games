@@ -6,9 +6,22 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
-import { baseStats, CREATION_FREE_POINTS, deriveStats, STAT_KEYS, STAT_LABELS, type Stats } from '@/game';
+import {
+  baseStats,
+  CREATION_FREE_POINTS,
+  deriveStats,
+  racesOf,
+  raceStats,
+  RACES_BY_ID,
+  SIDES,
+  STAT_KEYS,
+  STAT_LABELS,
+  type RaceId,
+  type SideId,
+  type Stats,
+} from '@/game';
 import { useGame } from '@/store/useGame';
-import { colors, radius, spacing } from '@/ui/theme';
+import { colors, radius, sideColors, spacing } from '@/ui/theme';
 
 interface Preset {
   id: string;
@@ -44,21 +57,30 @@ const PRESETS: Preset[] = [
   },
 ];
 
+/**
+ * Создание персонажа одним скроллом: сторона → раса → имя и стиль боя.
+ * Раса даёт +1 к характеристике — он сразу виден в предпросмотре.
+ */
 export default function CreateScreen() {
   const createCharacter = useGame((s) => s.createCharacter);
   const [name, setName] = useState('');
+  const [side, setSide] = useState<SideId>('crown');
+  const [raceBySide, setRaceBySide] = useState<Record<SideId, RaceId>>({ crown: 'human', free: 'steppe' });
   const [presetId, setPresetId] = useState(PRESETS[0].id);
 
+  const race = raceBySide[side];
+  const raceDef = RACES_BY_ID[race];
   const preset = PRESETS.find((p) => p.id === presetId) ?? PRESETS[0];
   const build = useMemo(() => preset.apply(baseStats()), [preset]);
-  const derived = useMemo(() => deriveStats(build.stats, 0, []), [build]);
+  const stats = useMemo(() => raceStats(build.stats, race), [build, race]);
+  const derived = useMemo(() => deriveStats(stats, 0, [], [], race), [stats, race]);
 
   const trimmed = name.trim();
   const valid = trimmed.length >= 2 && trimmed.length <= 16;
 
   const submit = () => {
     if (!valid) return;
-    createCharacter(trimmed, build.stats, build.freePoints);
+    createCharacter(trimmed, build.stats, build.freePoints, { side, race });
     router.replace('/(tabs)/city');
   };
 
@@ -73,6 +95,62 @@ export default function CreateScreen() {
             Первое правило: бей первым.
           </Txt>
         </View>
+
+        <Card title="Сторона">
+          <View style={styles.sides}>
+            {SIDES.map((s) => {
+              const active = s.id === side;
+              const color = sideColors[s.id];
+              return (
+                <Pressable
+                  key={s.id}
+                  onPress={() => setSide(s.id)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  style={[styles.sideCard, active && { borderColor: color, backgroundColor: colors.bgElevated }]}>
+                  <Txt variant="heading" color={active ? color : colors.text}>
+                    {s.name}
+                  </Txt>
+                  <Txt variant="small">{s.description}</Txt>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Txt variant="small" color={colors.textDim}>
+            Чужую сторону бьют за рейтинг и очки в войне сторон. Гильдии берут только своих. Перебежать можно у князя.
+          </Txt>
+        </Card>
+
+        <Card title="Раса">
+          {racesOf(side).map((r) => {
+            const active = r.id === race;
+            const color = sideColors[side];
+            return (
+              <Pressable
+                key={r.id}
+                onPress={() => setRaceBySide({ ...raceBySide, [side]: r.id })}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                style={[styles.preset, active && { borderColor: color, backgroundColor: colors.bgElevated }]}>
+                <View style={[styles.radio, { borderColor: color }]}>{active ? <View style={[styles.radioDot, { backgroundColor: color }]} /> : null}</View>
+                <View style={styles.flex}>
+                  <View style={styles.raceHead}>
+                    <Txt bold color={active ? color : colors.text}>
+                      {r.name}
+                    </Txt>
+                    <Txt variant="small" color={colors.gold}>
+                      +1 {STAT_LABELS[r.stat].toLowerCase()} · {r.trait.name}
+                    </Txt>
+                  </View>
+                  <Txt variant="small">{r.description}</Txt>
+                  <Txt variant="small" color={colors.textMuted}>
+                    {r.trait.description}. На улице зовут «{r.nickname}».
+                  </Txt>
+                </View>
+              </Pressable>
+            );
+          })}
+        </Card>
 
         <Card title="Имя бойца">
           <TextInput
@@ -112,14 +190,17 @@ export default function CreateScreen() {
             {STAT_KEYS.map((k) => (
               <View key={k} style={styles.statBox}>
                 <Txt variant="small">{STAT_LABELS[k]}</Txt>
-                <Txt bold style={styles.statValue}>
-                  {build.stats[k]}
+                <Txt bold style={styles.statValue} color={k === raceDef.stat ? sideColors[side] : colors.text}>
+                  {stats[k]}
                 </Txt>
               </View>
             ))}
           </View>
           <Txt variant="muted">
             Здоровье {derived.maxHp} · урон {derived.dmgMin}–{derived.dmgMax} · крит {derived.crit}% · уворот {derived.dodge}%
+          </Txt>
+          <Txt variant="small">
+            {raceDef.name} · {SIDES.find((s) => s.id === side)?.name}: {raceDef.trait.description.toLowerCase()}.
           </Txt>
         </Card>
 
@@ -142,6 +223,16 @@ const styles = StyleSheet.create({
     borderColor: colors.borderStrong,
     backgroundColor: colors.bg,
   },
+  sides: { flexDirection: 'row', gap: spacing.sm },
+  sideCard: {
+    flex: 1,
+    gap: spacing.xs,
+    padding: spacing.sm,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  raceHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
   preset: {
     flexDirection: 'row',
     gap: spacing.md,

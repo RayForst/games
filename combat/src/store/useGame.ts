@@ -159,6 +159,28 @@ import {
   type GuildEmblem,
   type GuildRank,
   expForLevel,
+  normalizeGuild,
+  // стороны и расы
+  defect,
+  defectCost,
+  isValidOrigin,
+  raceStats,
+  RACES_BY_ID,
+  SIDES_BY_ID,
+  type Origin,
+  type RaceId,
+  type SideId,
+  // война сторон
+  newWar,
+  normalizeWar,
+  rollWarDay,
+  simulateWar,
+  warAfterFight,
+  warKreditsMult,
+  warRatingBonus,
+  WAR_PLAYER_POINTS,
+  WAR_RATING_BONUS,
+  type War,
 } from '@/game';
 
 export interface MineResult extends Check {
@@ -210,10 +232,15 @@ export interface GameState {
   skirmishes: { day: string; count: number } | null;
   /** Настройки игрока. */
   settings: { sound: boolean };
+  /** Война сторон: дневной счёт Короны и Вольницы. */
+  war: War | null;
   hydrated: boolean;
 
   setHydrated: () => void;
-  createCharacter: (name: string, stats: Stats, freePoints: number) => void;
+  /** Новый персонаж: `stats` без расового +1, его добавит стор. */
+  createCharacter: (name: string, stats: Stats, freePoints: number, origin?: Origin) => void;
+  /** Перебежчик: сменить сторону и расу у князя. Первый раз бесплатно, дальше за кредиты. */
+  defectTo: (side: SideId, race: RaceId) => MineResult;
   resetGame: () => void;
 
   addStat: (stat: StatKey) => void;
@@ -338,8 +365,11 @@ export const useGame = create<GameState>()(
           base.kredits = Math.round(base.kredits * 1.3);
           base.exp = Math.round(base.exp * 1.2);
         }
-        // «Грамотей» даёт больше опыта.
+        // «Грамотей» и расовая «Выучка» дают больше опыта.
         base.exp = Math.round(base.exp * deriveCharacter(c).expMult);
+        // Война сторон: вчерашний победитель сегодня получает надбавку к кредитам.
+        const warMult = warKreditsMult(get().war, c.side);
+        if (warMult > 1) base.kredits = Math.round(base.kredits * warMult);
         // Гильдия со 2-го уровня добавляет опыта, с 3-го — кредитов.
         const guildNow = get().guild;
         if (guildNow) {
@@ -382,9 +412,24 @@ export const useGame = create<GameState>()(
         for (const item of worn.broke) log.push(makeLogLine(turn, `${item.name}: сломалось. Нужен кузнец.`, 'system'));
         // Рейтинг: за каждый бой, турнирные вдвое.
         const inTournament = f.context === 'tournament';
-        const delta = ratingDelta(status, c.level, f.opponent.level, inTournament);
+        const warRating = warRatingBonus(c.side, f.opponent.side, status);
+        const delta = ratingDelta(status, c.level, f.opponent.level, inTournament) + warRating;
         character = { ...character, rating: Math.max(0, character.rating + delta) };
         reward = { ...reward, rating: delta };
+        // Война сторон: бой с чужой стороной двигает дневной счёт.
+        if (f.opponent.side && f.opponent.side !== c.side && status !== 'draw') {
+          const war = get().war;
+          if (war) set({ war: warAfterFight(war, c.side, f.opponent.side, status) });
+          log.push(
+            makeLogLine(
+              turn,
+              status === 'won'
+                ? `${SIDES_BY_ID[f.opponent.side].name} бита: +${WAR_PLAYER_POINTS} очка ${SIDES_BY_ID[c.side].dative} в войне сторон, +${WAR_RATING_BONUS} рейтинга.`
+                : `${SIDES_BY_ID[f.opponent.side].name} записала себе +${WAR_PLAYER_POINTS} очка в войне сторон.`,
+              'system',
+            ),
+          );
+        }
         // Турнир: победа ведёт к следующему бою, финал даёт приз, поражение выбивает.
         const t = get().tournament;
         if (inTournament && t && t.status === 'active') {
@@ -468,7 +513,7 @@ export const useGame = create<GameState>()(
         if (status === 'won') get().track('fightWin');
         if (status === 'won' && f.opponent.level > c.level) get().track('fightWinStronger');
         // Травма: проигрыш и ничья могут оставить след. Тяжёлая вытесняет лёгкую.
-        const rolled = rollInjury(status, rng);
+        const rolled = rollInjury(status, rng, Date.now(), deriveCharacter(c).injuryMult);
         if (rolled) {
           const current = activeInjury(character);
           const injury = heavier(current, rolled);
@@ -523,7 +568,7 @@ export const useGame = create<GameState>()(
       };
 
       /** Автор-игрок для чата: имя с тегом гильдии и служебной ролью. */
-      const me = (c: Character): ChatAuthor => ({ id: 'player', name: c.name, tag: get().guild?.tag ?? null, role: get().account.role });
+      const me = (c: Character): ChatAuthor => ({ id: 'player', name: c.name, tag: get().guild?.tag ?? null, role: get().account.role, side: c.side });
 
       /** Прибавить опыт с ростом уровня (уровень не падает), очками и окном умений. */
       const withExp = (c: Character, amount: number): Character => {
@@ -572,14 +617,17 @@ export const useGame = create<GameState>()(
       skirmish: null,
       skirmishes: null,
       settings: { sound: true },
+      war: null,
       hydrated: false,
 
       setHydrated: () => set({ hydrated: true }),
 
-      createCharacter: (name, stats, freePoints) => {
-        const character = newCharacter(name, stats, freePoints);
+      createCharacter: (name, stats, freePoints, origin) => {
+        const o: Origin = origin && isValidOrigin(origin.side, origin.race) ? origin : { side: 'crown', race: 'human' };
+        const character = newCharacter(name, raceStats(stats, o.race), freePoints, Date.now(), o);
         set({
           character,
+          war: get().war ?? newWar(dayKey()),
           fight: null,
           mining: null,
           quests: null,
@@ -596,6 +644,34 @@ export const useGame = create<GameState>()(
           skirmishes: null,
         });
         get().sendChat('tavern', 'Здарова всем. Я тут новенький.');
+      },
+
+      defectTo: (side, race) => {
+        const c = get().character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        if (get().fight?.status === 'active') return { ok: false, reason: 'Не во время боя' };
+        if (!isValidOrigin(side, race)) return { ok: false, reason: 'Такой расы на этой стороне нет' };
+        if (c.side === side && c.race === race) return { ok: false, reason: 'Ты и так оттуда' };
+        const g = get().guild;
+        if (g && g.side !== side) return { ok: false, reason: 'Сначала выйди из гильдии: она за другую сторону' };
+        const cost = defectCost(c.defections);
+        if (c.kredits < cost) return { ok: false, reason: `Князь берёт за это ${cost} кр.` };
+        const switched = defect(c, side, race);
+        const next: Character = {
+          ...switched,
+          kredits: switched.kredits - cost,
+          ledger: { ...switched.ledger, kreditsSpent: switched.ledger.kreditsSpent + cost },
+        };
+        next.hp = Math.min(next.hp, deriveCharacter(next).maxHp);
+        set({ character: next, arena: newArena(next) });
+        const raceName = RACES_BY_ID[race].genitive;
+        worldSays(
+          'tavern',
+          c.side !== side
+            ? `${c.name} перебежал: теперь за ${SIDES_BY_ID[side].accusative}, из ${raceName}. ${cost > 0 ? `Князь взял ${cost} кр.` : 'Князь простил. В первый раз.'}`
+            : `${c.name} теперь из ${raceName}. Бумаги у князя, деньги — тоже.`,
+        );
+        return { ok: true, kredits: cost };
       },
 
       resetGame: () =>
@@ -696,8 +772,13 @@ export const useGame = create<GameState>()(
           chat = { ...chat, pending: [...chat.pending, ambientLine(rng, now)], nextAmbientAt: nextAmbientAt(rng, now) };
         }
         if (chat !== get().chat) set({ chat });
-        // Гильдии: дневные взносы и дрейф таблицы.
+        // Война сторон: новый день — вчерашний лидер получает бонус; бои местных досчитываются по времени.
         const day = dayKey(now);
+        {
+          const war = simulateWar(rollWarDay(get().war, day, now), now, rng);
+          if (war !== get().war) set({ war });
+        }
+        // Гильдии: дневные взносы и дрейф таблицы.
         const g = get().guild;
         if (g && g.lastDay !== day) set({ guild: dailyGuildUpdate(g, day, rng, now) });
         if (get().npcGuilds.some((x) => x.lastDay !== day)) set({ npcGuilds: get().npcGuilds.map((x) => dailyGuildUpdate(x, day, rng, now)) });
@@ -1248,7 +1329,7 @@ export const useGame = create<GameState>()(
         if (!n.ok) return n;
         const t = validateGuildTag(tag, npcGuilds.map((g) => g.tag));
         if (!t.ok) return t;
-        const g = newGuild({ id: uid(), name, tag, emblem, motto, founder: { id: 'player', name: c.name, level: c.level } });
+        const g = newGuild({ id: uid(), name, tag, emblem, motto, founder: { id: 'player', name: c.name, level: c.level, side: c.side } });
         set({
           guild: g,
           character: { ...c, kredits: c.kredits - GUILD_FOUND_COST, ledger: { ...c.ledger, kreditsSpent: c.ledger.kreditsSpent + GUILD_FOUND_COST } },
@@ -1307,7 +1388,7 @@ export const useGame = create<GameState>()(
         if (!canManage(guild)) return { ok: false, reason: 'Зовут глава и десятники' };
         const def = RIVALS_BY_ID[rivalId];
         if (!def) return { ok: false, reason: 'Такого нет' };
-        const chk = canRecruitRival(c, rivalId);
+        const chk = canRecruitRival(c, rivalId, guild);
         if (!chk.ok) return chk;
         const level = Math.max(0, c.level + def.levelOffset);
         const cost = recruitCost(level);
@@ -1512,6 +1593,8 @@ export const useGame = create<GameState>()(
           character: c ? { ...c, lastTournamentDay: null } : c,
           guild: get().guild ? { ...get().guild!, lastDay: null } : null,
           npcGuilds: get().npcGuilds.map((g) => ({ ...g, lastDay: null })),
+          // Война: день закрывается, вчерашний лидер станет победителем на тике.
+          war: get().war ? { ...get().war!, day: '' } : null,
         });
         get().tick();
         return { ok: true };
@@ -1598,7 +1681,7 @@ export const useGame = create<GameState>()(
     },
     {
       name: 'combat-save-v1',
-      version: 3,
+      version: 4,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (s) => ({
         character: s.character,
@@ -1620,6 +1703,7 @@ export const useGame = create<GameState>()(
         skirmish: s.skirmish,
         skirmishes: s.skirmishes,
         settings: s.settings,
+        war: s.war,
       }),
       // Старые сейвы дописываем недостающими полями (прочность, заточка, будущие фичи).
       migrate: (persisted) => {
@@ -1631,6 +1715,9 @@ export const useGame = create<GameState>()(
         if (state.character) state.character = normalizeCharacter(state.character);
         state.chat = normalizeChat(state.chat);
         state.npcGuilds = normalizeGuilds(state.npcGuilds);
+        // Гильдия игрока из старого сейва получает его сторону.
+        if (state.guild) state.guild = normalizeGuild(state.guild, state.character?.side);
+        state.war = state.character ? normalizeWar(state.war, dayKey()) : (state.war ?? null);
         state.account = state.account ?? newAccount();
         state.settings = { sound: state.settings?.sound ?? true };
         state.setHydrated();

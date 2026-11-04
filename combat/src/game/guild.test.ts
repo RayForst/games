@@ -16,10 +16,12 @@ import {
   joinCheck,
   ladderPlace,
   newGuild,
+  normalizeGuild,
   normalizeGuilds,
   NPC_GUILDS,
   removeMember,
   setRank,
+  sideCheck,
   skirmishOpponent,
   skirmishPrize,
   taggedName,
@@ -94,11 +96,35 @@ describe('guild', () => {
   });
 
   it('вступление к местным по уровню, рейтингу и местам', () => {
-    const c = newCharacter('Я', { strength: 3, dexterity: 3, intuition: 3, endurance: 3 }, 0);
+    // Псы — Вольница: идём к ним вольным степняком.
+    const c = newCharacter('Я', { strength: 3, dexterity: 3, intuition: 3, endurance: 3 }, 0, Date.now(), { side: 'free', race: 'steppe' });
     const dogs = NPC_GUILDS[0];
+    expect(dogs.side).toBe('free');
     expect(joinCheck({ ...c, level: 1 }, dogs).ok).toBe(false);
     expect(joinCheck({ ...c, level: 2, rating: 10 }, dogs).ok).toBe(false);
     expect(joinCheck({ ...c, level: 2, rating: 40 }, dogs).ok).toBe(true);
+  });
+
+  it('гильдия берёт только свою сторону: вступление, вербовка, стычка', () => {
+    const crown = { ...newCharacter('Я'), level: 5, rating: 500 };
+    const dogs = NPC_GUILDS.find((g) => g.id === 'dogs')!;
+    const guildhall = NPC_GUILDS.find((g) => g.id === 'guildhall')!;
+    expect(joinCheck(crown, dogs)).toMatchObject({ ok: false, reason: expect.stringContaining('Чужая сторона') });
+    expect(joinCheck(crown, guildhall).ok).toBe(true);
+    // Сервер стороны не знает — не проверяет.
+    expect(sideCheck(undefined, dogs).ok).toBe(true);
+    // Своя гильдия княжьего: Толян (Вольница) за стол не сядет, Солдат (Корона) — сядет.
+    const mine = newGuild({ id: 'g2', name: 'Княжьи', tag: 'КНЖ', emblem: 'crown', founder: { ...founder, side: 'crown' }, now: 100 });
+    expect(mine.side).toBe('crown');
+    const won = { ...crown, rivals: { tolyan: { wins: 2, losses: 0 }, soldier: { wins: 2, losses: 0 } } };
+    expect(canRecruitRival(won, 'tolyan', mine).ok).toBe(false);
+    expect(canRecruitRival(won, 'soldier', mine).ok).toBe(true);
+    // Боец на стычке — со стороны своей гильдии.
+    expect(skirmishOpponent(dogs, 3, seq([0.3])).side).toBe('free');
+    // Старые гильдии без стороны: местные — по таблице, игрока — его сторона.
+    expect(normalizeGuild({ ...dogs, side: undefined as unknown as 'free' }).side).toBe('free');
+    expect(normalizeGuild({ ...mine, side: undefined as unknown as 'crown' }, 'free').side).toBe('free');
+    expect(normalizeGuilds([{ ...guildhall, side: undefined as unknown as 'crown' }]).find((g) => g.id === 'guildhall')?.side).toBe('crown');
   });
 
   it('стычка: соперник ближайшего уровня, приз растёт с уровнем гильдии', () => {

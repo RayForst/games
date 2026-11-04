@@ -22,6 +22,12 @@ export const colors = {
   white: '#ffffff',
 } as const;
 
+/** Цвета сторон: Корона — княжеский синий, Вольница — ржавая охра тракта. */
+export const sideColors = {
+  crown: '#5b8fc9',
+  free: '#d2763a',
+} as const;
+
 export const spacing = {
   xs: 4,
   sm: 8,
