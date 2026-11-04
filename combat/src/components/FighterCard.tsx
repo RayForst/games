@@ -37,28 +37,55 @@ function popText(s: Strike): { text: string; color: string; big: boolean } {
   }
 }
 
+/** Цвет вспышки по исходу: крит — золото, попадание — кровь, блок — серый, уворот — синий. */
+function flashColor(s: Strike): string {
+  switch (s.outcome) {
+    case 'crit':
+    case 'crit-through-block':
+      return colors.gold;
+    case 'hit':
+      return colors.red;
+    case 'blocked':
+      return colors.textMuted;
+    case 'dodged':
+      return colors.blue;
+  }
+}
+
 export function FighterCard({ name, level, hp, derived, side, lastStrike, strikeKey, rivalId, injured }: Props) {
   const enemy = side === 'enemy';
   // Одна анимация на раунд: 0 — удар только что случился, 1 — всё растаяло.
   const [anim] = useState(() => new Animated.Value(1));
+  // Тряска карточки от попадания: крит трясёт сильнее, блок и уворот — чуть вздрагивает.
+  const [shake] = useState(() => new Animated.Value(0));
+
+  const pop = lastStrike ? popText(lastStrike) : null;
+  const damaged = lastStrike?.damage ? lastStrike.damage > 0 : false;
 
   useEffect(() => {
     if (strikeKey === undefined || !lastStrike) return;
     anim.setValue(0);
-    Animated.timing(anim, { toValue: 1, duration: 950, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
-  }, [strikeKey, lastStrike, anim]);
+    shake.setValue(0);
+    const amp = pop?.big ? 10 : damaged ? 6 : 2;
+    const wobble = (to: number, duration: number) => Animated.timing(shake, { toValue: to, duration, easing: Easing.linear, useNativeDriver: true });
+    Animated.parallel([
+      Animated.timing(anim, { toValue: 1, duration: 950, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.sequence([wobble(-amp, 40), wobble(amp, 60), wobble(-amp * 0.6, 60), wobble(amp * 0.3, 60), wobble(0, 50)]),
+    ]).start();
+  }, [strikeKey, lastStrike, anim, shake, pop?.big, damaged]);
 
-  const pop = lastStrike ? popText(lastStrike) : null;
-  const damaged = lastStrike?.damage ? lastStrike.damage > 0 : false;
-  const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [0, -34] });
+  // Цифра стартует ниже середины карточки и всплывает к верхнему краю, не уходя за него (overflow: hidden).
+  const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [0, -30] });
   const opacity = anim.interpolate({ inputRange: [0, 0.55, 1], outputRange: [1, 1, 0] });
-  const flash = anim.interpolate({ inputRange: [0, 0.3, 1], outputRange: [damaged ? 0.35 : 0, damaged ? 0.25 : 0, 0] });
+  const peak = pop?.big ? 0.45 : damaged ? 0.35 : 0.18;
+  const flash = anim.interpolate({ inputRange: [0, 0.3, 1], outputRange: [peak, peak * 0.7, 0] });
+  const scale = anim.interpolate({ inputRange: [0, 0.15, 1], outputRange: [pop?.big ? 1.6 : 1.2, 1, 1] });
 
   return (
-    <View style={[styles.card, enemy && styles.enemy]}>
+    <Animated.View style={[styles.card, enemy && styles.enemy, { transform: [{ translateX: shake }] }]}>
       <Animated.View
         pointerEvents="none"
-        style={[StyleSheet.absoluteFill, styles.flash, { opacity: flash, backgroundColor: pop?.big ? colors.gold : colors.red }]}
+        style={[StyleSheet.absoluteFill, styles.flash, { opacity: flash, backgroundColor: lastStrike ? flashColor(lastStrike) : colors.red }]}
       />
       <View style={styles.body}>
         <View style={styles.portrait}>
@@ -78,13 +105,13 @@ export function FighterCard({ name, level, hp, derived, side, lastStrike, strike
         </View>
       </View>
       {pop ? (
-        <Animated.View pointerEvents="none" style={[styles.pop, { opacity, transform: [{ translateY }] }]}>
+        <Animated.View pointerEvents="none" style={[styles.pop, { opacity, transform: [{ translateY }, { scale }] }]}>
           <Txt bold color={pop.color} style={pop.big ? styles.popBig : styles.popText}>
             {pop.text}
           </Txt>
         </Animated.View>
       ) : null}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -116,7 +143,7 @@ const styles = StyleSheet.create({
   flash: { borderRadius: radius.lg },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: spacing.sm },
   name: { flex: 1 },
-  pop: { position: 'absolute', right: spacing.lg, top: spacing.lg },
+  pop: { position: 'absolute', right: spacing.lg, top: 40 },
   popText: { fontSize: 22, lineHeight: 26, textShadowColor: 'rgba(0,0,0,0.8)', textShadowRadius: 4, textShadowOffset: { width: 0, height: 1 } },
   popBig: { fontSize: 30, lineHeight: 34, textShadowColor: 'rgba(0,0,0,0.8)', textShadowRadius: 4, textShadowOffset: { width: 0, height: 1 } },
 });

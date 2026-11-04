@@ -1,20 +1,21 @@
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { Alert, Animated, Easing, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { FighterCard } from '@/components/FighterCard';
 import { FightLog } from '@/components/FightLog';
+import { Hint } from '@/components/Hint';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
 import { ZonePicker } from '@/components/ZonePicker';
-import { activeInjury, BLOCK_LABELS, deriveCharacter, TOURNAMENT_ROUNDS, ZONE_LABELS, type Block, type Zone } from '@/game';
+import { activeInjury, BLOCK_LABELS, deriveCharacter, fightHighlight, hitStreak, TOURNAMENT_ROUNDS, ZONE_LABELS, type Block, type Zone } from '@/game';
 import { useNow } from '@/hooks/useNow';
 import { useGame } from '@/store/useGame';
 import { playSfx, playStrikes } from '@/ui/sfx';
-import { colors, spacing } from '@/ui/theme';
+import { colors, radius, spacing } from '@/ui/theme';
 
 export default function FightScreen() {
   const character = useGame((s) => s.character);
@@ -24,9 +25,19 @@ export default function FightScreen() {
   const surrender = useGame((s) => s.surrender);
   const tournament = useGame((s) => s.tournament);
   const startTournamentFight = useGame((s) => s.startTournamentFight);
+  const tutorial = useGame((s) => s.tutorial);
+  const advanceTutorial = useGame((s) => s.advanceTutorial);
 
   const [attack, setAttack] = useState<Zone | null>(null);
   const [block, setBlock] = useState<Block | null>(null);
+  const pickAttack = (z: Zone) => {
+    setAttack(z);
+    advanceTutorial({ attackChosen: true, blockChosen: block !== null });
+  };
+  const pickBlock = (b: Block) => {
+    setBlock(b);
+    advanceTutorial({ attackChosen: attack !== null, blockChosen: true });
+  };
   // Раз в минуту хватает: повязка на портрете пропадает, когда травма прошла.
   const now = useNow(60_000);
 
@@ -63,11 +74,40 @@ export default function FightScreen() {
     if (lastCrit) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {});
   }, [lastCrit, turn]);
 
+  // Кнопка «Удар!» пульсирует, когда зона и блок выбраны: пора бить.
+  const ready = attack !== null && block !== null && fight?.status === 'active';
+  const [pulse] = useState(() => new Animated.Value(0));
+  useEffect(() => {
+    if (!ready) {
+      pulse.setValue(0);
+      return;
+    }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 420, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0, duration: 420, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [ready, pulse]);
+
+  // Счётчик серии чуть подпрыгивает, когда растёт.
+  const streak = fight ? hitStreak(fight.log) : 0;
+  const [streakAnim] = useState(() => new Animated.Value(1));
+  useEffect(() => {
+    if (streak < 2) return;
+    streakAnim.setValue(1.5);
+    Animated.spring(streakAnim, { toValue: 1, friction: 4, useNativeDriver: true }).start();
+  }, [streak, streakAnim]);
+
   if (!character || !fight) return null;
 
   const derived = deriveCharacter(character);
   const o = fight.opponent;
-  const ready = attack !== null && block !== null && fight.status === 'active';
+  const strikeScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.04] });
+  // Подсветка столбцов в первые два хода обучения.
+  const highlight = fight.turn <= 2 ? fightHighlight(tutorial, attack !== null, block !== null) : null;
 
   const strike = () => {
     if (!attack || !block) return;
@@ -112,13 +152,21 @@ export default function FightScreen() {
           {inTournament ? `ТУРНИР ${Math.min((tournament?.stage ?? 0) + (fight.status === 'won' ? 0 : 1), TOURNAMENT_ROUNDS)}/${TOURNAMENT_ROUNDS} · ` : fight.context === 'forest' ? 'ЗАСАДА · ' : ''}
           {fight.status === 'active' ? `РАУНД ${fight.turn}` : 'БОЙ ОКОНЧЕН'}
         </Txt>
+        {streak >= 2 ? (
+          <Animated.View style={[styles.streak, { transform: [{ scale: streakAnim }] }]}>
+            <Txt variant="small" bold color={colors.black} style={styles.streakText}>
+              СЕРИЯ ×{streak}
+            </Txt>
+          </Animated.View>
+        ) : null}
         <View style={styles.vsLine} />
       </View>
       <FighterCard name={o.name} level={o.level} hp={fight.enemyHp} derived={o.derived} side="enemy" lastStrike={playerStrike} strikeKey={fight.turn} rivalId={o.rivalId} />
 
       {fight.status === 'active' ? (
         <>
-          <ZonePicker attack={attack} block={block} onAttack={setAttack} onBlock={setBlock} />
+          <Hint screen="fight" />
+          <ZonePicker attack={attack} block={block} onAttack={pickAttack} onBlock={pickBlock} highlight={highlight} />
           {fight.lastEnemyMove ? (
             <Txt variant="small" center>
               Прошлый раунд {o.name}: удар {ZONE_LABELS[fight.lastEnemyMove.attack].toLowerCase()}, блок{' '}
@@ -129,7 +177,9 @@ export default function FightScreen() {
               Выбери, куда бить и что закрыть.
             </Txt>
           )}
-          <Button title="Удар!" onPress={strike} disabled={!ready} variant="danger" style={styles.strike} />
+          <Animated.View style={{ transform: [{ scale: strikeScale }] }}>
+            <Button title="Удар!" onPress={strike} disabled={!ready} variant="danger" style={styles.strike} />
+          </Animated.View>
           <Button title="Сдаться" onPress={giveUp} variant="ghost" small style={styles.surrender} />
         </>
       ) : (
@@ -195,6 +245,8 @@ const styles = StyleSheet.create({
   vsLine: { flex: 1, height: 1, backgroundColor: colors.border },
   vs: { letterSpacing: 2, color: colors.textDim },
   strike: { paddingVertical: 16 },
+  streak: { backgroundColor: colors.gold, borderRadius: radius.pill, paddingHorizontal: spacing.sm, paddingVertical: 2 },
+  streakText: { letterSpacing: 1 },
   surrender: { alignSelf: 'center' },
   result: { borderWidth: 2, gap: spacing.md },
 });

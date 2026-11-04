@@ -5,6 +5,7 @@ import { BackBar } from '@/components/BackBar';
 import { Bar } from '@/components/Bar';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { Hint } from '@/components/Hint';
 import { Kredits } from '@/components/Kredits';
 import { Portrait } from '@/components/Portrait';
 import { Screen } from '@/components/Screen';
@@ -54,6 +55,8 @@ export default function ArenaScreen() {
         </Txt>
       </View>
 
+      <Hint screen="arena" />
+
       <Card>
         <Bar value={character.hp} max={derived.maxHp} label={`${character.name}, ${character.level} ур.`} />
         {weak ? (
@@ -66,7 +69,7 @@ export default function ArenaScreen() {
       {arena.length === 0 ? (
         <Card>
           <Txt variant="muted" center>
-            В зале пусто.
+            В зале пусто: все ушли зализывать раны. Крикни «Другие соперники» — подтянутся.
           </Txt>
         </Card>
       ) : null}

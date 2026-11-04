@@ -22,6 +22,7 @@ export default function TavernScreen() {
   const character = useGame((s) => s.character);
   const quests = useGame((s) => s.quests);
   const ensureQuests = useGame((s) => s.ensureQuests);
+  const advanceTutorial = useGame((s) => s.advanceTutorial);
   const claimQuest = useGame((s) => s.claimQuest);
   const unread = useGame((s) => unreadCount(s.chat, s.chatSeenAt));
   const guild = useGame((s) => s.guild);
@@ -30,7 +31,9 @@ export default function TavernScreen() {
   // Доска на сегодня создаётся при входе (и пересоздаётся, если наступил новый день).
   useEffect(() => {
     ensureQuests();
-  }, [ensureQuests]);
+    // Обучение: визит в пивную — последний шаг.
+    advanceTutorial({ tavernVisited: true });
+  }, [ensureQuests, advanceTutorial]);
 
   if (!character) return null;
 

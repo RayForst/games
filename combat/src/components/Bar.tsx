@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Animated, StyleSheet, View } from 'react-native';
+import { Animated, Easing, StyleSheet, View } from 'react-native';
 
 import { Txt } from './Txt';
 import { colors, radius } from '@/ui/theme';
@@ -20,7 +20,7 @@ export function Bar({ value, max, color = colors.red, label, height = 14, showNu
   const [anim] = useState(() => new Animated.Value(ratio));
 
   useEffect(() => {
-    Animated.timing(anim, { toValue: ratio, duration: 350, useNativeDriver: false }).start();
+    Animated.timing(anim, { toValue: ratio, duration: 520, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
   }, [ratio, anim]);
 
   const width = anim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });

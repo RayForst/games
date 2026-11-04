@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
 import { BackBar } from '@/components/BackBar';
+import { Hint } from '@/components/Hint';
 import { JobPanel } from '@/components/JobPanel';
 import { Kredits } from '@/components/Kredits';
 import { Screen } from '@/components/Screen';
@@ -21,6 +22,7 @@ export default function MineScreen() {
         <Txt variant="title">Шахта</Txt>
         <Txt variant="muted">{BUILDINGS_BY_ID.mine.description}</Txt>
       </View>
+      <Hint screen="mine" />
       <JobPanel
         job="mine"
         rateHint={`Сила ${d.stats.strength} машет киркой, выносливость ${d.stats.endurance} держит темп. Прокачаешь — платить будут больше.`}

@@ -4,6 +4,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { BackBar } from '@/components/BackBar';
 import { Chip } from '@/components/Chip';
 import { Flash } from '@/components/Flash';
+import { Hint } from '@/components/Hint';
 import { ItemCard } from '@/components/ItemCard';
 import { Kredits } from '@/components/Kredits';
 import { Screen } from '@/components/Screen';
@@ -47,6 +48,8 @@ export default function ShopScreen() {
         </View>
         <Kredits value={character.kredits} size={20} />
       </View>
+
+      <Hint screen="shop" />
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
         <Chip label="Все" active={filter === 'all'} onPress={() => setFilter('all')} />

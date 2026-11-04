@@ -38,6 +38,14 @@ import {
   relicPriceAtCastle,
   rollRoadEvent,
   wildOpponent,
+  advanceSteps,
+  firstSeen,
+  newTutorial,
+  normalizeTutorial,
+  skipSteps,
+  type Tutorial,
+  type TutorialSnapshot,
+  type SeenEvent,
   woodForRepair,
   generateArena,
   getItem,
@@ -210,6 +218,8 @@ export interface GameState {
   skirmishes: { day: string; count: number } | null;
   /** Настройки игрока. */
   settings: { sound: boolean };
+  /** Обучение новичка: текущий шаг и показанные пояснения. */
+  tutorial: Tutorial;
   hydrated: boolean;
 
   setHydrated: () => void;
@@ -312,6 +322,10 @@ export interface GameState {
   gmResetSave: () => Check;
 
   setSound: (on: boolean) => void;
+
+  /** Обучение: закрыть сделанные шаги (force — кнопка «Понял»), пропустить целиком. */
+  advanceTutorial: (extras?: Pick<TutorialSnapshot, 'attackChosen' | 'blockChosen' | 'tavernVisited'>, force?: boolean) => void;
+  skipTutorial: () => void;
 }
 
 export interface GatherResult extends Check {
@@ -329,6 +343,14 @@ export const useGame = create<GameState>()(
        * Общий хвост для обычного конца раунда и для «Сдаться». Турнир обновляется через set,
        * персонаж и лог возвращаются вызывающему.
        */
+      /** Пояснение события боя при первом появлении: строка в лог и отметка в обучении. */
+      const explainOnce = (event: SeenEvent, log: LogLine[], turn: number) => {
+        const r = firstSeen(get().tutorial, event);
+        if (!r) return;
+        set({ tutorial: r.tutorial });
+        log.push(makeLogLine(turn, r.text, 'system'));
+      };
+
       const settle = (c: Character, f: FightState, status: FightStatus): { character: Character; reward: Reward; log: LogLine[] } => {
         const log = [...f.log];
         const turn = f.turn;
@@ -380,6 +402,7 @@ export const useGame = create<GameState>()(
         const worn = wearEquipment(character);
         character = worn.character;
         for (const item of worn.broke) log.push(makeLogLine(turn, `${item.name}: сломалось. Нужен кузнец.`, 'system'));
+        if (worn.broke.length > 0) explainOnce('broke', log, turn);
         // Рейтинг: за каждый бой, турнирные вдвое.
         const inTournament = f.context === 'tournament';
         const delta = ratingDelta(status, c.level, f.opponent.level, inTournament);
@@ -475,6 +498,7 @@ export const useGame = create<GameState>()(
           if (injury !== current) {
             character = { ...character, injury };
             log.push(makeLogLine(turn, `${injuryText(rolled)}. Пройдёт сама или вылечит лекарь.`, 'system'));
+            explainOnce('injury', log, turn);
           }
         }
 
@@ -572,6 +596,7 @@ export const useGame = create<GameState>()(
       skirmish: null,
       skirmishes: null,
       settings: { sound: true },
+      tutorial: newTutorial(),
       hydrated: false,
 
       setHydrated: () => set({ hydrated: true }),
@@ -594,12 +619,13 @@ export const useGame = create<GameState>()(
           npcGuilds: normalizeGuilds(undefined),
           skirmish: null,
           skirmishes: null,
+          tutorial: newTutorial(),
         });
         get().sendChat('tavern', 'Здарова всем. Я тут новенький.');
       },
 
       resetGame: () =>
-        set({ character: null, fight: null, mining: null, quests: null, tournament: null, travel: null, gathering: null, pendingHaul: null, arena: [], chat: emptyChat(), chatSeenAt: 0, guild: null, npcGuilds: normalizeGuilds(undefined), skirmish: null, skirmishes: null }),
+        set({ character: null, fight: null, mining: null, quests: null, tournament: null, travel: null, gathering: null, pendingHaul: null, arena: [], chat: emptyChat(), chatSeenAt: 0, guild: null, npcGuilds: normalizeGuilds(undefined), skirmish: null, skirmishes: null, tutorial: newTutorial() }),
 
       ensureQuests: () => {
         const { character, quests } = get();
@@ -752,6 +778,7 @@ export const useGame = create<GameState>()(
           },
         });
         get().track('buyItem');
+        get().advanceTutorial();
         return { ok: true };
       },
 
@@ -839,6 +866,7 @@ export const useGame = create<GameState>()(
           startedAt: Date.now(),
         };
         set({ character: fresh, fight, lastFightContext: 'arena' });
+        get().advanceTutorial();
         return { ok: true };
       },
 
@@ -859,6 +887,9 @@ export const useGame = create<GameState>()(
           makeLogLine(f.turn, describeStrike(c.name, f.opponent.name, ps), 'player', ps.outcome),
           makeLogLine(f.turn, describeStrike(f.opponent.name, c.name, es), 'enemy', es.outcome),
         ];
+        // Новичку объясняем крит и уворот, когда они случились впервые.
+        if (result.strikes.some((x) => x.outcome === 'crit' || x.outcome === 'crit-through-block')) explainOnce('crit', log, f.turn);
+        if (result.strikes.some((x) => x.outcome === 'dodged')) explainOnce('dodge', log, f.turn);
 
         const next: FightState = {
           ...f,
@@ -886,10 +917,12 @@ export const useGame = create<GameState>()(
 
         if (result.status === 'active') {
           set({ character: counted, fight: next });
+          get().advanceTutorial();
           return;
         }
         const settled = settle(counted, { ...next, log: [...log, makeLogLine(f.turn, describeFinish(result.status, c.name, f.opponent.name), 'system')] }, result.status);
         set({ character: settled.character, fight: { ...next, log: settled.log, reward: settled.reward } });
+        get().advanceTutorial();
       },
 
       surrender: () => {
@@ -1086,6 +1119,7 @@ export const useGame = create<GameState>()(
         if (job === 'caravan' && state.character.location !== 'brod') return { ok: false, reason: 'Караваны собирают в Броде.' };
         if (!isShiftHours(hours)) return { ok: false, reason: 'Такой смены нет' };
         set({ mining: { startedAt: Date.now(), hours, job } });
+        get().advanceTutorial();
         return { ok: true };
       },
 
@@ -1563,6 +1597,37 @@ export const useGame = create<GameState>()(
 
       setSound: (on) => set({ settings: { ...get().settings, sound: on } }),
 
+      advanceTutorial: (extras, force = false) => {
+        const { character: c, tutorial, fight, mining } = get();
+        if (!c || tutorial.done) return;
+        const snap: TutorialSnapshot = {
+          fightActive: !!fight,
+          movesMade: fight?.playerMoves.length ?? 0,
+          fightsTotal: c.ledger.fightsTotal,
+          itemsBought: c.ledger.itemsBought,
+          mineStarted: !!mining || c.ledger.mineEarned > 0,
+          ...extras,
+        };
+        const r = advanceSteps(tutorial, snap, force);
+        if (r.tutorial === tutorial) return;
+        if (r.reward) {
+          set({
+            tutorial: r.tutorial,
+            character: {
+              ...c,
+              kredits: c.kredits + r.reward.kredits,
+              resources: { ...c.resources, herbs: c.resources.herbs + r.reward.herbs },
+              ledger: { ...c.ledger, kreditsEarned: c.ledger.kreditsEarned + r.reward.kredits },
+            },
+          });
+          worldSays('tavern', `${c.name} больше не новичок. Старый Солдат выдал ${r.reward.kredits} кр. и пучок трав на зелье.`);
+          return;
+        }
+        set({ tutorial: r.tutorial });
+      },
+
+      skipTutorial: () => set({ tutorial: skipSteps(get().tutorial) }),
+
       gmResetSave: () => {
         const p = need('save.reset');
         if (!p.ok) return p;
@@ -1620,6 +1685,7 @@ export const useGame = create<GameState>()(
         skirmish: s.skirmish,
         skirmishes: s.skirmishes,
         settings: s.settings,
+        tutorial: s.tutorial,
       }),
       // Старые сейвы дописываем недостающими полями (прочность, заточка, будущие фичи).
       migrate: (persisted) => {
@@ -1633,6 +1699,7 @@ export const useGame = create<GameState>()(
         state.npcGuilds = normalizeGuilds(state.npcGuilds);
         state.account = state.account ?? newAccount();
         state.settings = { sound: state.settings?.sound ?? true };
+        state.tutorial = normalizeTutorial(state.tutorial, state.character?.ledger.fightsTotal ?? 0);
         state.setHydrated();
       },
     },

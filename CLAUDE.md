@@ -97,6 +97,10 @@
   `EXPO_PUBLIC_BACKEND_URL`; пусто — офлайн как раньше). Экраны пока зовут стор напрямую. Подробности `server/README.md`.
 - Звук: `src/ui/sfx.ts` (`playSfx`, `playStrikes`, expo-audio), файлы `assets/sfx/` — боевые из `scripts/sfx.mjs`
   (`npm run sfx`), интерфейсные из npm-пакета uisfx (CC0). Настройка `settings.sound` в сторе, тумблер на экране персонажа.
+- Обучение новичка: `tutorial.ts` (шаги `TUTORIAL_STEPS`, условия `stepDone`, `advanceSteps`/`skipSteps`, награда один раз,
+  пояснения первых событий `firstSeen`, серия попаданий `hitStreak`), стор `tutorial`, действия `advanceTutorial`/`skipTutorial`;
+  компонент `Hint screen="…"` ставить в поток экрана, не поверх кнопок. Подсветка столбцов в бою — проп `highlight` у `ZonePicker`.
+  Новый шаг — запись в `TUTORIAL_STEPS` и ветка в `stepDone`; новое пояснение — ключ в `SeenEvent`/`SEEN_TEXTS` и `explainOnce` в сторе.
 - Завершение боя — один хелпер `settle()` внутри стора (награда, уровень, умения, износ, рейтинг, турнир, трофей,
   задания, травма). Любая новая «после боя» логика добавляется туда.
 - Сейвы: `persist.version` и `normalizeCharacter()` дописывают новые поля старым сохранениям — обновлять при каждом

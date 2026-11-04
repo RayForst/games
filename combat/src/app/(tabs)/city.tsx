@@ -8,10 +8,11 @@ import { Button } from '@/components/Button';
 import { CityMap } from '@/components/CityMap';
 import { BrodHub } from '@/components/BrodHub';
 import { GiIcon } from '@/components/GiIcon';
+import { Hint } from '@/components/Hint';
 import { TravelHub } from '@/components/TravelHub';
 import { WildsHub } from '@/components/WildsHub';
 import { Txt } from '@/components/Txt';
-import { activeInjury, BUILDINGS_BY_ID, CITY_START, dayKey, deriveCharacter, healCost, isWild, mineIsDone, mineSecondsLeft, questDone, unreadCount, wornItems, type BuildingId } from '@/game';
+import { activeInjury, BUILDINGS_BY_ID, CITY_START, dayKey, deriveCharacter, healCost, hintFor, isWild, mineIsDone, mineSecondsLeft, questDone, unreadCount, wornItems, type BuildingId } from '@/game';
 import { useNow } from '@/hooks/useNow';
 import { useGame } from '@/store/useGame';
 import { formatDuration, plural } from '@/ui/format';
@@ -52,6 +53,8 @@ function CityScreen() {
   const roadNews = useGame((s) => s.roadNews);
   const dismissRoadNews = useGame((s) => s.dismissRoadNews);
   const unread = useGame((s) => unreadCount(s.chat, s.chatSeenAt));
+  // Пока идёт обучение, описание заведения укорачиваем: подсказка не должна наезжать на таблички карты.
+  const tutoring = useGame((s) => hintFor(s.tutorial, 'city') !== null);
   const now = useNow();
   const insets = useSafeAreaInsets();
   const [selected, setSelected] = useState<BuildingId>(CITY_START);
@@ -154,12 +157,15 @@ function CityScreen() {
             </Txt>
           </Pressable>
         ) : null}
+        <Hint screen="city" />
         <View style={styles.panel}>
           <View style={styles.panelHeader}>
             <Txt variant="heading">{building.name}</Txt>
             <Txt variant="small">{status[selected]}</Txt>
           </View>
-          <Txt variant="muted">{building.description}</Txt>
+          <Txt variant="muted" numberOfLines={tutoring ? 2 : undefined}>
+            {building.description}
+          </Txt>
           <Button title={action} onPress={enter} disabled={!building.open} />
         </View>
         {scene && scene.height >= SHORT_SCENE ? (
