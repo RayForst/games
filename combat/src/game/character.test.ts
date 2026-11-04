@@ -13,9 +13,16 @@ import {
   normalizeCharacter,
   secondsToFullHp,
   wearEquipment,
+  rollInjury,
+  statsWithInjury,
+  activeInjury,
+  injurySecondsLeft,
+  heavier,
+  cureCost,
+  injuryText,
 } from './character';
 import { canUpgrade, getItem, itemDisplayName, maxDurability, repairCost, sellPrice, upgradeCost } from './items';
-import type { InventoryItem } from './types';
+import type { Injury, InventoryItem } from './types';
 import { FULL_REGEN_MINUTES } from './formulas';
 import { chooseEnemyMove } from './ai';
 import { generateArena, generateOpponent } from './opponents';
@@ -158,5 +165,39 @@ describe('прочность и кузница', () => {
     expect(canUpgrade(getItem('leather-gloves'))).toBe(false);
     expect(sellPrice(sword, 2)).toBeGreaterThan(sellPrice(sword));
     expect(itemDisplayName(sword, 3)).toBe('Меч +3');
+  });
+});
+
+describe('травмы', () => {
+  it('победа без травм, поражение иногда, тяжесть по весам', () => {
+    expect(rollInjury('won', () => 0)).toBeNull();
+    expect(rollInjury('lost', () => 0.99)).toBeNull();
+    const seq = (...v: number[]) => { let i = 0; return () => v[i++] ?? 0.5; };
+    const light = rollInjury('lost', seq(0.1, 0.2, 0.0), 0)!;
+    expect(light.kind).toBe('light');
+    expect(light.stat).toBe('strength');
+    expect(light.until).toBe(20 * 60_000);
+    expect(rollInjury('lost', seq(0.1, 0.95, 0.5), 0)!.kind).toBe('heavy');
+    expect(rollInjury('draw', seq(0.1, 0.7, 0.5), 0)!.kind).toBe('medium');
+  });
+
+  it('штраф режет характеристику не ниже 1 и проходит по времени', () => {
+    const c = { ...newCharacter('Вася'), injury: { kind: 'heavy', stat: 'dexterity', amount: 3, until: 1000 } as Injury };
+    expect(statsWithInjury(c, 500).dexterity).toBe(1);
+    expect(deriveCharacter(c, 500).dodge).toBeLessThan(deriveCharacter(c, 2000).dodge);
+    expect(activeInjury(c, 1000)).toBeNull();
+    expect(injurySecondsLeft(c.injury!, 0)).toBe(1);
+  });
+
+  it('тяжёлая травма вытесняет лёгкую, цена растёт с уровнем', () => {
+    const light: Injury = { kind: 'light', stat: 'strength', amount: 1, until: 1 };
+    const heavy: Injury = { kind: 'heavy', stat: 'strength', amount: 3, until: 1 };
+    expect(heavier(light, heavy)).toBe(heavy);
+    expect(heavier(heavy, light)).toBe(heavy);
+    expect(heavier(null, light)).toBe(light);
+    const c = newCharacter('Вася');
+    expect(cureCost({ ...c, level: 2 }, heavy)).toBeGreaterThan(cureCost(c, heavy));
+    expect(cureCost(c, light)).toBeLessThan(cureCost(c, heavy));
+    expect(injuryText(light)).toContain('сила');
   });
 });

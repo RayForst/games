@@ -143,6 +143,16 @@ export interface EquippedPiece {
 
 export type Stats = Record<StatKey, number>;
 
+export type InjuryKind = 'light' | 'medium' | 'heavy';
+
+/** Травма: штраф к характеристике до момента `until`. Снимает лекарь или время. */
+export interface Injury {
+  kind: InjuryKind;
+  stat: StatKey;
+  amount: number;
+  until: number;
+}
+
 export interface Character {
   name: string;
   level: number;
@@ -162,6 +172,8 @@ export interface Character {
   createdAt: number;
   /** Когда последний раз пересчитывали hp (для регенерации). */
   hpUpdatedAt: number;
+  /** Текущая травма или null. */
+  injury: Injury | null;
 }
 
 export interface DerivedStats {

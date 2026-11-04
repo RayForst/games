@@ -2,12 +2,13 @@ import { Alert, Image, Pressable, StyleSheet, View } from 'react-native';
 
 import { BackBar } from '@/components/BackBar';
 import { Bar } from '@/components/Bar';
+import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Flash } from '@/components/Flash';
 import { Kredits } from '@/components/Kredits';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
-import { BUILDINGS_BY_ID, deriveCharacter, HEAL_OPTIONS, healAmount, healPrice, secondsToFullHp } from '@/game';
+import { activeInjury, BUILDINGS_BY_ID, cureCost, deriveCharacter, HEAL_OPTIONS, healAmount, healPrice, injurySecondsLeft, injuryText, secondsToFullHp } from '@/game';
 import { useFlash } from '@/hooks/useFlash';
 import { useNow } from '@/hooks/useNow';
 import { useGame } from '@/store/useGame';
@@ -19,6 +20,7 @@ import { colors, radius, spacing } from '@/ui/theme';
 export default function HealerScreen() {
   const character = useGame((s) => s.character);
   const heal = useGame((s) => s.heal);
+  const cureInjury = useGame((s) => s.cureInjury);
   const now = useNow();
   const [flash, show] = useFlash();
 
@@ -27,6 +29,17 @@ export default function HealerScreen() {
   const derived = deriveCharacter(character);
   const toFull = secondsToFullHp(character, now);
   const healthy = toFull === 0;
+  const injury = activeInjury(character, now);
+  const cure = injury ? cureCost(character, injury) : 0;
+
+  const onCure = () => {
+    const r = cureInjury();
+    if (!r.ok) {
+      Alert.alert('Лекарь', r.reason ?? 'Не получилось');
+      return;
+    }
+    show('Вправил. Больше не ноет.');
+  };
 
   const drink = (fraction: number, flavor: string) => {
     const r = heal(fraction);
@@ -51,6 +64,14 @@ export default function HealerScreen() {
         <Bar value={character.hp} max={derived.maxHp} />
         <Txt variant="small">{healthy ? 'Ты здоров, лечить нечего.' : `Само заживёт через ${formatDuration(toFull)}.`}</Txt>
       </Card>
+
+      {injury ? (
+        <Card title="Травма" right={<Txt variant="small">ещё {formatDuration(injurySecondsLeft(injury, now))}</Txt>}>
+          <Txt color={colors.red}>{injuryText(injury)}</Txt>
+          <Txt variant="small">Пройдёт сама, но драться с ней хуже. Лекарь вправит сразу.</Txt>
+          <Button title={`Вылечить травму · ${cure} кр.`} onPress={onCure} disabled={character.kredits < cure} />
+        </Card>
+      ) : null}
 
       <Card title="Зелья">
         {HEAL_OPTIONS.map((o) => {

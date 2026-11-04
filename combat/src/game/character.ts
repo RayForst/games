@@ -1,4 +1,4 @@
-import type { Character, DerivedStats, EquippedPiece, Fighter, InventoryItem, ItemDef, Slot, StatKey, Stats } from './types';
+import type { Character, DerivedStats, EquippedPiece, FightStatus, Fighter, Injury, InjuryKind, InventoryItem, ItemDef, Slot, StatKey, Stats } from './types';
 import { SLOTS, STAT_KEYS, STAT_LABELS } from './types';
 import { ITEMS_BY_ID, maxDurability } from './items';
 import { CREATION_FREE_POINTS, FULL_REGEN_MINUTES, baseStats, deriveStats } from './formulas';
@@ -27,6 +27,7 @@ export function newCharacter(name: string, stats: Stats = baseStats(), freePoint
     draws: 0,
     createdAt: now,
     hpUpdatedAt: now,
+    injury: null,
   };
 }
 
@@ -54,8 +55,62 @@ export function equippedPieces(c: Character): EquippedPiece[] {
   return pieces;
 }
 
-export function deriveCharacter(c: Character): DerivedStats {
-  return deriveStats(c.stats, c.level, equippedPieces(c));
+export function deriveCharacter(c: Character, now = Date.now()): DerivedStats {
+  return deriveStats(statsWithInjury(c, now), c.level, equippedPieces(c));
+}
+
+// ─── Травмы ──────────────────────────────────────────────────────────────────
+
+export const INJURY_INFO: Record<InjuryKind, { name: string; amount: number; minutes: number; cureBase: number }> = {
+  light: { name: 'Лёгкая травма', amount: 1, minutes: 20, cureBase: 4 },
+  medium: { name: 'Средняя травма', amount: 2, minutes: 60, cureBase: 10 },
+  heavy: { name: 'Тяжёлая травма', amount: 3, minutes: 180, cureBase: 22 },
+};
+
+/** Травма ещё действует? */
+export function activeInjury(c: Character, now = Date.now()): Injury | null {
+  return c.injury && c.injury.until > now ? c.injury : null;
+}
+
+/** Базовые характеристики со штрафом травмы (не ниже 1). */
+export function statsWithInjury(c: Character, now = Date.now()): Stats {
+  const injury = activeInjury(c, now);
+  if (!injury) return c.stats;
+  return { ...c.stats, [injury.stat]: Math.max(1, c.stats[injury.stat] - injury.amount) };
+}
+
+/**
+ * Бросок на травму после боя: поражение 40 %, ничья 15 %, победа никогда.
+ * Тяжесть: лёгкая 60 %, средняя 30 %, тяжёлая 10 %. Характеристика случайная.
+ */
+export function rollInjury(status: FightStatus, rng: () => number, now = Date.now()): Injury | null {
+  const chance = status === 'lost' ? 0.4 : status === 'draw' ? 0.15 : 0;
+  if (rng() >= chance) return null;
+  const r = rng();
+  const kind: InjuryKind = r < 0.6 ? 'light' : r < 0.9 ? 'medium' : 'heavy';
+  const stat = STAT_KEYS[Math.floor(rng() * STAT_KEYS.length)];
+  const info = INJURY_INFO[kind];
+  return { kind, stat, amount: info.amount, until: now + info.minutes * 60_000 };
+}
+
+/** Новая травма заменяет старую только если тяжелее. */
+export function heavier(a: Injury | null, b: Injury | null): Injury | null {
+  if (!a) return b;
+  if (!b) return a;
+  return b.amount > a.amount ? b : a;
+}
+
+/** Цена лечения травмы у лекаря: растёт с уровнем. */
+export function cureCost(c: Character, injury: Injury): number {
+  return Math.ceil(INJURY_INFO[injury.kind].cureBase * (1 + c.level * 0.4));
+}
+
+export function injuryText(injury: Injury): string {
+  return `${INJURY_INFO[injury.kind].name}: −${injury.amount} ${STAT_LABELS[injury.stat].toLowerCase()}`;
+}
+
+export function injurySecondsLeft(injury: Injury, now = Date.now()): number {
+  return Math.max(0, Math.ceil((injury.until - now) / 1000));
 }
 
 /** Новый экземпляр вещи: полная прочность, без заточки. */
@@ -77,7 +132,7 @@ export function normalizeCharacter(raw: Character): Character {
       upgrade: typeof i.upgrade === 'number' ? i.upgrade : 0,
     };
   });
-  return { ...raw, backpack };
+  return { ...raw, backpack, injury: raw.injury ?? null };
 }
 
 /** Износ после боя: всё надетое теряет `amount` прочности. Возвращает персонажа и список сломавшегося. */

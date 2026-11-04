@@ -3,15 +3,18 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import {
+  activeInjury,
   applyRegen,
   canEquip,
   canUpgrade,
+  cureCost,
   chooseEnemyMove,
   deriveCharacter,
   describeFinish,
   describeStrike,
   generateArena,
   getItem,
+  heavier,
   healAmount,
   healPrice,
   isEquipped,
@@ -28,6 +31,8 @@ import {
   repairCost,
   resolveTurn,
   rewardFor,
+  rollInjury,
+  injuryText,
   sellPrice,
   toFighter,
   upgradeCost,
@@ -70,6 +75,8 @@ export interface GameState {
   tick: () => void;
   /** Лечение у лекаря: доля максимального hp (зелья 0.3 / 0.6 / 1). */
   heal: (fraction?: number) => Check;
+  /** Снять травму у лекаря. */
+  cureInjury: () => MineResult;
 
   buyItem: (itemId: string) => Check;
   sellItem: (itemUid: string) => Check;
@@ -124,8 +131,21 @@ export const useGame = create<GameState>()(
       tick: () => {
         const c = get().character;
         if (!c || get().fight?.status === 'active') return;
-        const next = applyRegen(c);
+        let next = applyRegen(c);
+        // Травма прошла сама — убираем, чтобы экраны перестали её показывать.
+        if (next.injury && !activeInjury(next)) next = { ...next, injury: null };
         if (next !== c) set({ character: next });
+      },
+
+      cureInjury: () => {
+        const c = get().character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        const injury = activeInjury(c);
+        if (!injury) return { ok: false, reason: 'Травм нет' };
+        const cost = cureCost(c, injury);
+        if (c.kredits < cost) return { ok: false, reason: `Нужно ${cost} кр.` };
+        set({ character: { ...c, injury: null, kredits: c.kredits - cost } });
+        return { ok: true, kredits: cost };
       },
 
       heal: (fraction = 1) => {
@@ -222,7 +242,10 @@ export const useGame = create<GameState>()(
           enemyHp: opponent.derived.maxHp,
           turn: 1,
           status: 'active',
-          log: [makeLogLine(0, `${fresh.name} против ${opponent.name}. Бой начался!`, 'system')],
+          log: [
+            makeLogLine(0, `${fresh.name} против ${opponent.name}. Бой начался!`, 'system'),
+            ...(activeInjury(fresh) ? [makeLogLine(0, `${fresh.name} дерётся с травмой: ${injuryText(activeInjury(fresh)!).toLowerCase()}.`, 'system')] : []),
+          ],
           playerMoves: [],
           lastEnemyMove: null,
           reward: null,
@@ -277,6 +300,16 @@ export const useGame = create<GameState>()(
           const worn = wearEquipment(character);
           character = worn.character;
           for (const item of worn.broke) log.push(makeLogLine(f.turn, `${item.name}: сломалось. Нужен кузнец.`, 'system'));
+          // Травма: проигрыш и ничья могут оставить след. Тяжёлая вытесняет лёгкую.
+          const rolled = rollInjury(result.status, rng);
+          if (rolled) {
+            const current = activeInjury(character);
+            const injury = heavier(current, rolled);
+            if (injury !== current) {
+              character = { ...character, injury };
+              log.push(makeLogLine(f.turn, `${injuryText(rolled)}. Пройдёт сама или вылечит лекарь.`, 'system'));
+            }
+          }
         }
 
         set({

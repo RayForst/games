@@ -10,8 +10,11 @@ import { PaperDoll } from '@/components/PaperDoll';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
 import {
+  activeInjury,
   deriveCharacter,
   expForLevel,
+  injurySecondsLeft,
+  injuryText,
   healCost,
   secondsToFullHp,
   SLOT_LABELS,
@@ -48,6 +51,7 @@ export default function CharacterScreen() {
   const nextExp = expForLevel(character.level + 1);
   const curExp = expForLevel(character.level);
   const free = character.freePoints;
+  const injury = activeInjury(character, now);
 
   const onHeal = () => {
     const r = heal();
@@ -125,6 +129,11 @@ export default function CharacterScreen() {
           showNumbers={false}
           label={`Опыт ${character.exp} / ${nextExp} · до ${character.level + 1} уровня`}
         />
+        {injury ? (
+          <Txt variant="small" color={colors.red}>
+            {injuryText(injury)} · ещё {formatSeconds(injurySecondsLeft(injury, now))} · лекарь вправит
+          </Txt>
+        ) : null}
       </Card>
 
       <Pressable

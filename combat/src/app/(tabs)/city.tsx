@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { CityMap } from '@/components/CityMap';
 import { Txt } from '@/components/Txt';
-import { BUILDINGS_BY_ID, CITY_START, deriveCharacter, healCost, mineIsDone, mineSecondsLeft, wornItems, type BuildingId } from '@/game';
+import { activeInjury, BUILDINGS_BY_ID, CITY_START, deriveCharacter, healCost, mineIsDone, mineSecondsLeft, wornItems, type BuildingId } from '@/game';
 import { useNow } from '@/hooks/useNow';
 import { useGame } from '@/store/useGame';
 import { formatDuration, plural } from '@/ui/format';
@@ -50,7 +50,7 @@ export default function CityScreen() {
   const status: Partial<Record<BuildingId, string>> = {
     arena: mining ? 'ты в шахте' : `${arena.length} ${plural(arena.length, ['соперник', 'соперника', 'соперников'])}`,
     shop: `${character.kredits} кр.`,
-    healer: character.hp >= derived.maxHp ? 'ты здоров' : `${healCost(character)} кр.`,
+    healer: activeInjury(character, now) ? 'травма' : character.hp >= derived.maxHp ? 'ты здоров' : `${healCost(character)} кр.`,
     mine: mining ? (mineIsDone(mining, now) ? 'смена окончена' : `ещё ${formatDuration(mineSecondsLeft(mining, now))}`) : 'свободна',
     smithy: wornItems(character).length > 0 ? `${wornItems(character).length} ${plural(wornItems(character).length, ['вещь изношена', 'вещи изношены', 'вещей изношено'])}` : 'всё цело',
     tavern: 'скоро',
