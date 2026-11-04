@@ -27,6 +27,8 @@ import {
   newCharacter,
   newInventoryItem,
   normalizeCharacter,
+  offerPerks,
+  perkPicksBetween,
   POINTS_PER_LEVEL,
   repairCost,
   resolveTurn,
@@ -44,6 +46,7 @@ import {
   type Mining,
   type Move,
   type Opponent,
+  type PerkId,
   type Slot,
   type StatKey,
   type Stats,
@@ -72,6 +75,8 @@ export interface GameState {
   resetGame: () => void;
 
   addStat: (stat: StatKey) => void;
+  /** Выбрать умение из текущего предложения. */
+  choosePerk: (id: PerkId) => Check;
   tick: () => void;
   /** Лечение у лекаря: доля максимального hp (зелья 0.3 / 0.6 / 1). */
   heal: (fraction?: number) => Check;
@@ -126,6 +131,20 @@ export const useGame = create<GameState>()(
           next.hp = Math.min(deriveCharacter(next).maxHp, next.hp + gained);
         }
         set({ character: next });
+      },
+
+      choosePerk: (id) => {
+        const c = get().character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        if (!c.perkChoices?.includes(id)) return { ok: false, reason: 'Такого выбора нет' };
+        const perks = [...c.perks, id];
+        const perkPicks = Math.max(0, c.perkPicks - 1);
+        const next: Character = { ...c, perks, perkPicks, perkChoices: perkPicks > 0 ? offerPerks(perks as PerkId[], rng) : null };
+        // «Железное брюхо» поднимает максимум — текущее hp растёт вместе с ним.
+        const gained = deriveCharacter(next).maxHp - deriveCharacter(c).maxHp;
+        if (gained > 0) next.hp = Math.min(deriveCharacter(next).maxHp, next.hp + gained);
+        set({ character: next });
+        return { ok: true };
       },
 
       tick: () => {
@@ -278,6 +297,8 @@ export const useGame = create<GameState>()(
         if (result.status !== 'active') {
           log.push(makeLogLine(f.turn, describeFinish(result.status, c.name, f.opponent.name), 'system'));
           const base = rewardFor(result.status, c.level, f.opponent.level, rng);
+          // «Грамотей» даёт больше опыта.
+          base.exp = Math.round(base.exp * deriveCharacter(c).expMult);
           const exp = c.exp + base.exp;
           const newLevel = levelForExp(exp);
           const levelsGained = newLevel - c.level;
@@ -296,6 +317,16 @@ export const useGame = create<GameState>()(
           };
           if (levelsGained > 0) character.hp = deriveCharacter(character).maxHp;
           if (levelsGained > 0) log.push(makeLogLine(f.turn, `Уровень повышен! Теперь ${newLevel} уровень.`, 'system'));
+          // Окно выбора умения на 2, 4, 6… уровнях.
+          const picks = perkPicksBetween(c.level, newLevel);
+          if (picks > 0) {
+            character = {
+              ...character,
+              perkPicks: character.perkPicks + picks,
+              perkChoices: character.perkChoices ?? offerPerks(character.perks as PerkId[], rng),
+            };
+            log.push(makeLogLine(f.turn, 'Новое умение! Выбери его на экране персонажа.', 'system'));
+          }
           // Износ: каждый бой снимает по единице прочности со всего надетого.
           const worn = wearEquipment(character);
           character = worn.character;

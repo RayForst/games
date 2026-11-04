@@ -15,6 +15,8 @@ import {
   expForLevel,
   injurySecondsLeft,
   injuryText,
+  PERKS_BY_ID,
+  type PerkId,
   healCost,
   secondsToFullHp,
   SLOT_LABELS,
@@ -40,6 +42,7 @@ function formatSeconds(total: number): string {
 export default function CharacterScreen() {
   const character = useGame((s) => s.character);
   const heal = useGame((s) => s.heal);
+  const choosePerk = useGame((s) => s.choosePerk);
   const unequip = useGame((s) => s.unequip);
   const now = useNow();
 
@@ -136,6 +139,34 @@ export default function CharacterScreen() {
         ) : null}
       </Card>
 
+      {character.perkChoices ? (
+        <Card title="Выбери умение" right={character.perkPicks > 1 ? <Txt variant="small">ещё {character.perkPicks}</Txt> : undefined} style={styles.perkCard}>
+          {character.perkChoices.map((id) => {
+            const perk = PERKS_BY_ID[id as PerkId];
+            if (!perk) return null;
+            return (
+              <Pressable
+                key={id}
+                onPress={() => choosePerk(perk.id)}
+                accessibilityRole="button"
+                accessibilityLabel={`Умение: ${perk.name}`}
+                style={({ pressed }) => [styles.perkOption, pressed && styles.pressed]}>
+                <Txt bold color={colors.gold}>
+                  {perk.name}
+                </Txt>
+                <Txt variant="small">{perk.description}</Txt>
+              </Pressable>
+            );
+          })}
+        </Card>
+      ) : null}
+
+      {character.perks.length > 0 ? (
+        <Txt variant="small" center>
+          Умения: {character.perks.map((id) => PERKS_BY_ID[id as PerkId]?.name ?? id).join(' · ')}
+        </Txt>
+      ) : null}
+
       <Pressable
         onPress={openStats}
         accessibilityRole="button"
@@ -184,6 +215,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
   },
   statsStripHot: { borderColor: colors.gold },
+  perkCard: { borderColor: colors.gold, borderWidth: 2 },
+  perkOption: {
+    padding: spacing.sm,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.goldDim,
+    backgroundColor: colors.bgElevated,
+    gap: 2,
+  },
   pressed: { opacity: 0.7 },
   statCell: { flex: 1, alignItems: 'center' },
   statLabel: { fontSize: 10, lineHeight: 13, letterSpacing: 1 },

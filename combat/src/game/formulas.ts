@@ -1,6 +1,7 @@
 import { ITEMS_BY_ID } from './items';
 import type { ArmorZone, DerivedStats, EquippedPiece, StatKey, Stats, Zone } from './types';
 import { ARMOR_ZONES, STAT_KEYS, ZONE_TO_ARMOR } from './types';
+import { applyPerks, type PerkId } from './perks';
 
 // ─── Константы баланса ──────────────────────────────────────────────────────
 
@@ -31,7 +32,7 @@ export function baseStats(): Stats {
  * Вещь можно передать просто id (боты) или с заточкой/поломкой (игрок): сломанная не даёт ничего,
  * заточка добавляет +1 к урону оружия и +1 к каждой защищаемой зоне брони за уровень.
  */
-export function deriveStats(stats: Stats, level: number, pieces: (string | EquippedPiece)[]): DerivedStats {
+export function deriveStats(stats: Stats, level: number, pieces: (string | EquippedPiece)[], perks: PerkId[] = []): DerivedStats {
   const eff: Stats = { ...stats };
   let hpBonus = 0;
   let crit = 0;
@@ -57,7 +58,7 @@ export function deriveStats(stats: Stats, level: number, pieces: (string | Equip
     if (b.armor) for (const z of ARMOR_ZONES) if ((b.armor[z] ?? 0) > 0) armor[z] += (b.armor[z] ?? 0) + upgrade;
   }
 
-  return {
+  const derived: DerivedStats = {
     stats: eff,
     maxHp: 12 + eff.endurance * 6 + level * 2 + hpBonus,
     dmgMin: damage[0] + Math.floor(eff.strength / 2),
@@ -67,7 +68,12 @@ export function deriveStats(stats: Stats, level: number, pieces: (string | Equip
     dodge: eff.dexterity * 3 + dodge,
     antiDodge: eff.intuition * 2 + antiDodge,
     armor,
+    mineBonus: 0,
+    expMult: 1,
+    healMult: 1,
+    regenMult: 1,
   };
+  return applyPerks(derived, perks);
 }
 
 /** Шанс крита атакующего против защищающегося, %. */

@@ -174,6 +174,12 @@ export interface Character {
   hpUpdatedAt: number;
   /** Текущая травма или null. */
   injury: Injury | null;
+  /** Взятые умения. */
+  perks: string[];
+  /** Сколько выборов умения ещё не сделано. */
+  perkPicks: number;
+  /** Текущее предложение из трёх умений или null. */
+  perkChoices: string[] | null;
 }
 
 export interface DerivedStats {
@@ -187,6 +193,12 @@ export interface DerivedStats {
   dodge: number;
   antiDodge: number;
   armor: Record<ArmorZone, number>;
+  /** Добавка к ставке шахты (кр./ч), от умений. */
+  mineBonus: number;
+  /** Множители от умений: опыт за бой, цены лекаря, скорость регенерации. */
+  expMult: number;
+  healMult: number;
+  regenMult: number;
 }
 
 /** Участник боя — всё, что нужно формулам. */

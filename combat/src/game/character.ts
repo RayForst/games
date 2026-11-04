@@ -2,6 +2,7 @@ import type { Character, DerivedStats, EquippedPiece, FightStatus, Fighter, Inju
 import { SLOTS, STAT_KEYS, STAT_LABELS } from './types';
 import { ITEMS_BY_ID, maxDurability } from './items';
 import { CREATION_FREE_POINTS, FULL_REGEN_MINUTES, baseStats, deriveStats } from './formulas';
+import type { PerkId } from './perks';
 
 export function emptyEquipment(): Record<Slot, string | null> {
   return Object.fromEntries(SLOTS.map((s) => [s, null])) as Record<Slot, string | null>;
@@ -28,6 +29,9 @@ export function newCharacter(name: string, stats: Stats = baseStats(), freePoint
     createdAt: now,
     hpUpdatedAt: now,
     injury: null,
+    perks: [],
+    perkPicks: 0,
+    perkChoices: null,
   };
 }
 
@@ -56,7 +60,7 @@ export function equippedPieces(c: Character): EquippedPiece[] {
 }
 
 export function deriveCharacter(c: Character, now = Date.now()): DerivedStats {
-  return deriveStats(statsWithInjury(c, now), c.level, equippedPieces(c));
+  return deriveStats(statsWithInjury(c, now), c.level, equippedPieces(c), c.perks as PerkId[]);
 }
 
 // ─── Травмы ──────────────────────────────────────────────────────────────────
@@ -102,7 +106,7 @@ export function heavier(a: Injury | null, b: Injury | null): Injury | null {
 
 /** Цена лечения травмы у лекаря: растёт с уровнем. */
 export function cureCost(c: Character, injury: Injury): number {
-  return Math.ceil(INJURY_INFO[injury.kind].cureBase * (1 + c.level * 0.4));
+  return Math.ceil(INJURY_INFO[injury.kind].cureBase * (1 + c.level * 0.4) * deriveCharacter(c).healMult);
 }
 
 export function injuryText(injury: Injury): string {
@@ -132,7 +136,14 @@ export function normalizeCharacter(raw: Character): Character {
       upgrade: typeof i.upgrade === 'number' ? i.upgrade : 0,
     };
   });
-  return { ...raw, backpack, injury: raw.injury ?? null };
+  return {
+    ...raw,
+    backpack,
+    injury: raw.injury ?? null,
+    perks: raw.perks ?? [],
+    perkPicks: raw.perkPicks ?? 0,
+    perkChoices: raw.perkChoices ?? null,
+  };
 }
 
 /** Износ после боя: всё надетое теряет `amount` прочности. Возвращает персонажа и список сломавшегося. */
@@ -242,9 +253,9 @@ export const HEAL_OPTIONS: HealOption[] = [
   { id: 'large', name: 'Большое зелье', fraction: 1, icon: 'potion-large', flavor: 'Как новенький.' },
 ];
 
-/** Цена зелья: доля от полного лечения, не меньше 1 кредита. */
+/** Цена зелья: доля от полного лечения с учётом умения «Торгаш», не меньше 1 кредита. */
 export function healPrice(c: Character, fraction: number): number {
-  return Math.max(1, Math.ceil(healCost(c) * Math.min(1, Math.max(0, fraction))));
+  return Math.max(1, Math.ceil(healCost(c) * Math.min(1, Math.max(0, fraction)) * deriveCharacter(c).healMult));
 }
 
 /** Сколько hp даст зелье с учётом потолка. */
@@ -255,12 +266,12 @@ export function healAmount(c: Character, fraction: number): number {
 
 /** Регенерация: полное восстановление за FULL_REGEN_MINUTES, считается по времени с последнего обновления. */
 export function applyRegen(c: Character, now = Date.now()): Character {
-  const maxHp = deriveCharacter(c).maxHp;
+  const { maxHp, regenMult } = deriveCharacter(c);
   // При полном hp метку времени обновляем не чаще раза в 30 с, чтобы не плодить лишние записи,
   // но и не накопить «мгновенную» регенерацию после снижения hp.
   if (c.hp >= maxHp) return now - c.hpUpdatedAt < 30_000 ? c : { ...c, hp: maxHp, hpUpdatedAt: now };
   const elapsed = Math.max(0, now - c.hpUpdatedAt);
-  const perMs = maxHp / (FULL_REGEN_MINUTES * 60 * 1000);
+  const perMs = (maxHp * regenMult) / (FULL_REGEN_MINUTES * 60 * 1000);
   const gained = Math.floor(elapsed * perMs);
   if (gained <= 0) return c;
   return { ...c, hp: Math.min(maxHp, c.hp + gained), hpUpdatedAt: now };
@@ -268,9 +279,9 @@ export function applyRegen(c: Character, now = Date.now()): Character {
 
 /** Через сколько секунд hp будет полным. */
 export function secondsToFullHp(c: Character, now = Date.now()): number {
-  const maxHp = deriveCharacter(c).maxHp;
+  const { maxHp, regenMult } = deriveCharacter(c);
   if (c.hp >= maxHp) return 0;
-  const perMs = maxHp / (FULL_REGEN_MINUTES * 60 * 1000);
+  const perMs = (maxHp * regenMult) / (FULL_REGEN_MINUTES * 60 * 1000);
   const elapsed = Math.max(0, now - c.hpUpdatedAt);
   const remainingMs = (maxHp - c.hp) / perMs - elapsed;
   return Math.max(0, Math.ceil(remainingMs / 1000));
