@@ -273,6 +273,8 @@ export interface FightState {
   /** История ходов игрока — ИИ соперника подстраивается. */
   playerMoves: Move[];
   lastEnemyMove: Move | null;
+  /** Удары последнего раунда: [игрока, соперника] — для анимации на карточках. */
+  lastStrikes?: [Strike, Strike] | null;
   reward: Reward | null;
   startedAt: number;
 }

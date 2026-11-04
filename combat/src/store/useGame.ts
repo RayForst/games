@@ -54,12 +54,15 @@ import {
   type Character,
   type Check,
   type FightState,
+  type FightStatus,
+  type LogLine,
   type Mining,
   type Move,
   type Opponent,
   type PerkId,
   type QuestBoard,
   type QuestEvent,
+  type Reward,
   type Slot,
   type StatKey,
   type Stats,
@@ -111,6 +114,8 @@ export interface GameState {
   refreshArena: () => void;
   startFight: (opponentId: string) => Check;
   playTurn: (move: Move) => void;
+  /** Сдаться: засчитывается как поражение. */
+  surrender: () => void;
   endFight: () => void;
 
   startMining: (hours: number) => Check;
@@ -133,7 +138,103 @@ export interface GameState {
 
 export const useGame = create<GameState>()(
   persist(
-    (set, get) => ({
+    (set, get) => {
+      /**
+       * Завершение боя: награда и уровень, умения, износ вещей, рейтинг, турнир, задания, травма.
+       * Общий хвост для обычного конца раунда и для «Сдаться». Турнир обновляется через set,
+       * персонаж и лог возвращаются вызывающему.
+       */
+      const settle = (c: Character, f: FightState, status: FightStatus): { character: Character; reward: Reward; log: LogLine[] } => {
+        const log = [...f.log];
+        const turn = f.turn;
+        const base = rewardFor(status, c.level, f.opponent.level, rng);
+        // «Грамотей» даёт больше опыта.
+        base.exp = Math.round(base.exp * deriveCharacter(c).expMult);
+        const exp = c.exp + base.exp;
+        const newLevel = levelForExp(exp);
+        const levelsGained = newLevel - c.level;
+        let reward: Reward = { ...base, levelsGained };
+        let character: Character = {
+          ...c,
+          exp,
+          level: newLevel,
+          kredits: c.kredits + base.kredits,
+          freePoints: c.freePoints + levelsGained * POINTS_PER_LEVEL,
+          hp: Math.max(0, f.playerHp),
+          hpUpdatedAt: Date.now(),
+          wins: c.wins + (status === 'won' ? 1 : 0),
+          losses: c.losses + (status === 'lost' ? 1 : 0),
+          draws: c.draws + (status === 'draw' ? 1 : 0),
+        };
+        if (levelsGained > 0) character.hp = deriveCharacter(character).maxHp;
+        if (levelsGained > 0) log.push(makeLogLine(turn, `Уровень повышен! Теперь ${newLevel} уровень.`, 'system'));
+        // Окно выбора умения на 2, 4, 6… уровнях.
+        const picks = perkPicksBetween(c.level, newLevel);
+        if (picks > 0) {
+          character = {
+            ...character,
+            perkPicks: character.perkPicks + picks,
+            perkChoices: character.perkChoices ?? offerPerks(character.perks as PerkId[], rng),
+          };
+          log.push(makeLogLine(turn, 'Новое умение! Выбери его на экране персонажа.', 'system'));
+        }
+        // Износ: каждый бой снимает по единице прочности со всего надетого.
+        const worn = wearEquipment(character);
+        character = worn.character;
+        for (const item of worn.broke) log.push(makeLogLine(turn, `${item.name}: сломалось. Нужен кузнец.`, 'system'));
+        // Рейтинг: за каждый бой, турнирные вдвое.
+        const inTournament = f.context === 'tournament';
+        const delta = ratingDelta(status, c.level, f.opponent.level, inTournament);
+        character = { ...character, rating: Math.max(0, character.rating + delta) };
+        reward = { ...reward, rating: delta };
+        // Турнир: победа ведёт к следующему бою, финал даёт приз, поражение выбивает.
+        const t = get().tournament;
+        if (inTournament && t && t.status === 'active') {
+          if (status === 'won') {
+            const stage = t.stage + 1;
+            if (stage >= TOURNAMENT_ROUNDS) {
+              const prize = tournamentPrize(c.level);
+              const exp2 = character.exp + prize.exp;
+              const lvl2 = levelForExp(exp2);
+              const gained2 = lvl2 - character.level;
+              character = {
+                ...character,
+                exp: exp2,
+                level: lvl2,
+                freePoints: character.freePoints + gained2 * POINTS_PER_LEVEL,
+                kredits: character.kredits + prize.kredits,
+                titles: character.titles.includes(prize.title) ? character.titles : [...character.titles, prize.title],
+              };
+              reward = { ...reward, exp: reward.exp + prize.exp, kredits: reward.kredits + prize.kredits, title: prize.title };
+              log.push(makeLogLine(turn, `Турнир выигран! Князь жалует ${prize.kredits} кр. и титул «${prize.title}».`, 'system'));
+              set({ tournament: { ...t, stage, status: 'won' } });
+            } else {
+              log.push(makeLogLine(turn, `Бой ${stage} из ${TOURNAMENT_ROUNDS} за тобой. Следующий ждёт.`, 'system'));
+              set({ tournament: { ...t, stage } });
+            }
+          } else {
+            log.push(makeLogLine(turn, 'Турнир окончен. Приходи завтра.', 'system'));
+            set({ tournament: { ...t, status: 'lost' } });
+          }
+        }
+        // Задания пивной.
+        get().track('fightPlay');
+        if (status === 'won') get().track('fightWin');
+        if (status === 'won' && f.opponent.level > c.level) get().track('fightWinStronger');
+        // Травма: проигрыш и ничья могут оставить след. Тяжёлая вытесняет лёгкую.
+        const rolled = rollInjury(status, rng);
+        if (rolled) {
+          const current = activeInjury(character);
+          const injury = heavier(current, rolled);
+          if (injury !== current) {
+            character = { ...character, injury };
+            log.push(makeLogLine(turn, `${injuryText(rolled)}. Пройдёт сама или вылечит лекарь.`, 'system'));
+          }
+        }
+        return { character, reward, log };
+      };
+
+      return {
       character: null,
       fight: null,
       arena: [],
@@ -369,110 +470,35 @@ export const useGame = create<GameState>()(
           makeLogLine(f.turn, describeStrike(f.opponent.name, c.name, es), 'enemy', es.outcome),
         ];
 
-        let reward = f.reward;
-        let character = c;
-        if (result.status !== 'active') {
-          log.push(makeLogLine(f.turn, describeFinish(result.status, c.name, f.opponent.name), 'system'));
-          const base = rewardFor(result.status, c.level, f.opponent.level, rng);
-          // «Грамотей» даёт больше опыта.
-          base.exp = Math.round(base.exp * deriveCharacter(c).expMult);
-          const exp = c.exp + base.exp;
-          const newLevel = levelForExp(exp);
-          const levelsGained = newLevel - c.level;
-          reward = { ...base, levelsGained };
-          character = {
-            ...c,
-            exp,
-            level: newLevel,
-            kredits: c.kredits + base.kredits,
-            freePoints: c.freePoints + levelsGained * POINTS_PER_LEVEL,
-            hp: Math.max(0, result.playerHp),
-            hpUpdatedAt: Date.now(),
-            wins: c.wins + (result.status === 'won' ? 1 : 0),
-            losses: c.losses + (result.status === 'lost' ? 1 : 0),
-            draws: c.draws + (result.status === 'draw' ? 1 : 0),
-          };
-          if (levelsGained > 0) character.hp = deriveCharacter(character).maxHp;
-          if (levelsGained > 0) log.push(makeLogLine(f.turn, `Уровень повышен! Теперь ${newLevel} уровень.`, 'system'));
-          // Окно выбора умения на 2, 4, 6… уровнях.
-          const picks = perkPicksBetween(c.level, newLevel);
-          if (picks > 0) {
-            character = {
-              ...character,
-              perkPicks: character.perkPicks + picks,
-              perkChoices: character.perkChoices ?? offerPerks(character.perks as PerkId[], rng),
-            };
-            log.push(makeLogLine(f.turn, 'Новое умение! Выбери его на экране персонажа.', 'system'));
-          }
-          // Износ: каждый бой снимает по единице прочности со всего надетого.
-          const worn = wearEquipment(character);
-          character = worn.character;
-          for (const item of worn.broke) log.push(makeLogLine(f.turn, `${item.name}: сломалось. Нужен кузнец.`, 'system'));
-          // Рейтинг: за каждый бой, турнирные вдвое.
-          const inTournament = f.context === 'tournament';
-          const delta = ratingDelta(result.status, c.level, f.opponent.level, inTournament);
-          character = { ...character, rating: Math.max(0, character.rating + delta) };
-          reward = { ...reward, rating: delta };
-          // Турнир: победа ведёт к следующему бою, финал даёт приз, поражение выбивает.
-          const t = state.tournament;
-          if (inTournament && t && t.status === 'active') {
-            if (result.status === 'won') {
-              const stage = t.stage + 1;
-              if (stage >= TOURNAMENT_ROUNDS) {
-                const prize = tournamentPrize(c.level);
-                const exp2 = character.exp + prize.exp;
-                const lvl2 = levelForExp(exp2);
-                const gained2 = lvl2 - character.level;
-                character = {
-                  ...character,
-                  exp: exp2,
-                  level: lvl2,
-                  freePoints: character.freePoints + gained2 * POINTS_PER_LEVEL,
-                  kredits: character.kredits + prize.kredits,
-                  titles: character.titles.includes(prize.title) ? character.titles : [...character.titles, prize.title],
-                };
-                reward = { ...reward, exp: reward.exp + prize.exp, kredits: reward.kredits + prize.kredits, title: prize.title };
-                log.push(makeLogLine(f.turn, `Турнир выигран! Князь жалует ${prize.kredits} кр. и титул «${prize.title}».`, 'system'));
-                set({ tournament: { ...t, stage, status: 'won' } });
-              } else {
-                log.push(makeLogLine(f.turn, `Бой ${stage} из ${TOURNAMENT_ROUNDS} за тобой. Следующий ждёт.`, 'system'));
-                set({ tournament: { ...t, stage } });
-              }
-            } else {
-              log.push(makeLogLine(f.turn, 'Турнир окончен. Приходи завтра.', 'system'));
-              set({ tournament: { ...t, status: 'lost' } });
-            }
-          }
-          // Задания пивной.
-          get().track('fightPlay');
-          if (result.status === 'won') get().track('fightWin');
-          if (result.status === 'won' && f.opponent.level > c.level) get().track('fightWinStronger');
-          // Травма: проигрыш и ничья могут оставить след. Тяжёлая вытесняет лёгкую.
-          const rolled = rollInjury(result.status, rng);
-          if (rolled) {
-            const current = activeInjury(character);
-            const injury = heavier(current, rolled);
-            if (injury !== current) {
-              character = { ...character, injury };
-              log.push(makeLogLine(f.turn, `${injuryText(rolled)}. Пройдёт сама или вылечит лекарь.`, 'system'));
-            }
-          }
-        }
+        const next: FightState = {
+          ...f,
+          playerHp: result.playerHp,
+          enemyHp: result.enemyHp,
+          turn: f.turn + 1,
+          status: result.status,
+          log,
+          lastStrikes: result.strikes,
+          playerMoves: [...f.playerMoves, move],
+          lastEnemyMove: enemyMove,
+        };
 
-        set({
-          character,
-          fight: {
-            ...f,
-            playerHp: result.playerHp,
-            enemyHp: result.enemyHp,
-            turn: f.turn + 1,
-            status: result.status,
-            log,
-            playerMoves: [...f.playerMoves, move],
-            lastEnemyMove: enemyMove,
-            reward,
-          },
-        });
+        if (result.status === 'active') {
+          set({ fight: next });
+          return;
+        }
+        const settled = settle(c, { ...next, log: [...log, makeLogLine(f.turn, describeFinish(result.status, c.name, f.opponent.name), 'system')] }, result.status);
+        set({ character: settled.character, fight: { ...next, log: settled.log, reward: settled.reward } });
+      },
+
+      surrender: () => {
+        const state = get();
+        const c = state.character;
+        const f = state.fight;
+        if (!c || !f || f.status !== 'active') return;
+        const log = [...f.log, makeLogLine(f.turn, `${c.name} сдаётся. ${f.opponent.name} забирает победу.`, 'system')];
+        const next: FightState = { ...f, status: 'lost', log, lastStrikes: null };
+        const settled = settle(c, next, 'lost');
+        set({ character: settled.character, fight: { ...next, log: settled.log, reward: settled.reward } });
       },
 
       endFight: () => {
@@ -599,7 +625,8 @@ export const useGame = create<GameState>()(
         get().track('sharpen');
         return { ok: true };
       },
-    }),
+      };
+    },
     {
       name: 'combat-save-v1',
       version: 2,

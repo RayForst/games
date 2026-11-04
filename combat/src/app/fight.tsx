@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
@@ -19,6 +19,7 @@ export default function FightScreen() {
   const fight = useGame((s) => s.fight);
   const playTurn = useGame((s) => s.playTurn);
   const endFight = useGame((s) => s.endFight);
+  const surrender = useGame((s) => s.surrender);
   const tournament = useGame((s) => s.tournament);
   const startTournamentFight = useGame((s) => s.startTournamentFight);
 
@@ -42,6 +43,13 @@ export default function FightScreen() {
     if (!fight) router.dismissTo(lastContext === 'tournament' ? '/castle' : '/arena');
   }, [fight, lastContext]);
 
+  // Крит по кому угодно — тяжёлая вибрация. Хук стоит до раннего выхода.
+  const lastCrit = !!fight?.lastStrikes?.some((s) => s.outcome === 'crit' || s.outcome === 'crit-through-block');
+  const turn = fight?.turn;
+  useEffect(() => {
+    if (lastCrit) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {});
+  }, [lastCrit, turn]);
+
   if (!character || !fight) return null;
 
   const derived = deriveCharacter(character);
@@ -54,8 +62,17 @@ export default function FightScreen() {
     playTurn({ attack, block });
   };
 
+
   const leave = () => endFight();
+  const giveUp = () => {
+    Alert.alert('Сдаться?', 'Засчитают поражение: рейтинг −4, опыта крохи, и травму никто не отменял.', [
+      { text: 'Драться', style: 'cancel' },
+      { text: 'Сдаться', style: 'destructive', onPress: surrender },
+    ]);
+  };
   const inTournament = fight.context === 'tournament';
+  // Удар игрока прилетает в соперника, удар соперника — в игрока.
+  const [playerStrike, enemyStrike] = fight.lastStrikes ?? [null, null];
   const tournamentGoesOn = inTournament && tournament?.status === 'active' && fight.status === 'won';
   const nextFight = () => {
     const r = startTournamentFight();
@@ -64,7 +81,7 @@ export default function FightScreen() {
 
   return (
     <Screen>
-      <FighterCard name={character.name} level={character.level} hp={fight.playerHp} derived={derived} side="player" />
+      <FighterCard name={character.name} level={character.level} hp={fight.playerHp} derived={derived} side="player" lastStrike={enemyStrike} strikeKey={fight.turn} />
       <View style={styles.vsRow}>
         <View style={styles.vsLine} />
         <Txt variant="small" style={styles.vs}>
@@ -73,7 +90,7 @@ export default function FightScreen() {
         </Txt>
         <View style={styles.vsLine} />
       </View>
-      <FighterCard name={o.name} level={o.level} hp={fight.enemyHp} derived={o.derived} side="enemy" />
+      <FighterCard name={o.name} level={o.level} hp={fight.enemyHp} derived={o.derived} side="enemy" lastStrike={playerStrike} strikeKey={fight.turn} />
 
       {fight.status === 'active' ? (
         <>
@@ -89,6 +106,7 @@ export default function FightScreen() {
             </Txt>
           )}
           <Button title="Удар!" onPress={strike} disabled={!ready} variant="danger" style={styles.strike} />
+          <Button title="Сдаться" onPress={giveUp} variant="ghost" small style={styles.surrender} />
         </>
       ) : (
         <ResultCard status={fight.status} reward={fight.reward} onLeave={leave} onNext={tournamentGoesOn ? nextFight : undefined} leaveTitle={inTournament ? 'В замок' : 'Вернуться в зал'} />
@@ -148,5 +166,6 @@ const styles = StyleSheet.create({
   vsLine: { flex: 1, height: 1, backgroundColor: colors.border },
   vs: { letterSpacing: 2, color: colors.textDim },
   strike: { paddingVertical: 16 },
+  surrender: { alignSelf: 'center' },
   result: { borderWidth: 2, gap: spacing.md },
 });
