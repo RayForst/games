@@ -13,13 +13,18 @@ import {
   canEnterTournament,
   dayKey,
   deriveCharacter,
+  RELIC_RATING,
+  relicPriceAtCastle,
   nextRank,
   rankFor,
   TOURNAMENT_ROUNDS,
   tournamentLevels,
   tournamentPrize,
 } from '@/game';
+import { useFlash } from '@/hooks/useFlash';
 import { useNow } from '@/hooks/useNow';
+import { Flash } from '@/components/Flash';
+import { GiIcon } from '@/components/GiIcon';
 import { useGame } from '@/store/useGame';
 import { colors, spacing } from '@/ui/theme';
 
@@ -30,7 +35,9 @@ export default function CastleScreen() {
   const mining = useGame((s) => s.mining);
   const startTournament = useGame((s) => s.startTournament);
   const startTournamentFight = useGame((s) => s.startTournamentFight);
+  const sellRelics = useGame((s) => s.sellRelics);
   const now = useNow();
+  const [flash, show] = useFlash();
 
   if (!character) return null;
 
@@ -55,6 +62,24 @@ export default function CastleScreen() {
         <Txt variant="title">Замок</Txt>
         <Txt variant="muted">{BUILDINGS_BY_ID.castle.description}</Txt>
       </View>
+
+      <Flash text={flash} />
+
+      <Card title="Казначей князя" right={<GiIcon name="relics" size={22} />}>
+        <Txt variant="muted">
+          Скупает реликвии из руин вдвое дороже лавки: {relicPriceAtCastle(dayKey(now))} кр. за штуку сегодня, и по {RELIC_RATING} очка рейтинга за каждую.
+        </Txt>
+        <Button
+          small
+          variant="secondary"
+          title={character.resources.relics > 0 ? `Сдать ${character.resources.relics} шт. · ${character.resources.relics * relicPriceAtCastle(dayKey(now))} кр.` : 'Реликвий нет'}
+          disabled={character.resources.relics === 0}
+          onPress={() => {
+            const r = sellRelics();
+            show(r.ok ? `Казначей отсчитал ${r.kredits} кр. Князь запомнил имя.` : (r.reason ?? 'Не получилось'));
+          }}
+        />
+      </Card>
 
       <Card title="Рейтинг" right={<Txt variant="gold">{rankFor(character.rating)}</Txt>}>
         <Txt>

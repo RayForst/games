@@ -25,6 +25,9 @@ import {
   isGatherMinutes,
   isWild,
   POTION_HERBS,
+  oreForUpgrade,
+  RELIC_RATING,
+  relicPriceAtCastle,
   rollRoadEvent,
   wildOpponent,
   woodForRepair,
@@ -159,7 +162,8 @@ export interface GameState {
   repairItem: (itemUid: string) => MineResult;
   /** Починить всё за кредиты или за дрова. */
   repairAll: (pay?: 'kredits' | 'wood') => MineResult;
-  upgradeItem: (itemUid: string) => Check;
+  /** Заточить за кредиты или за руду. */
+  upgradeItem: (itemUid: string, pay?: 'kredits' | 'ore') => Check;
 
   /** Пивная: доска на сегодня (пересоздаётся на новый день), прогресс и награда. */
   ensureQuests: () => QuestBoard | null;
@@ -179,6 +183,8 @@ export interface GameState {
   startGathering: (activity: ActivityId, minutes: number) => Check;
   collectGathering: () => GatherResult;
   sellResource: (resource: ResourceId, amount?: number) => MineResult;
+  /** Сдать реликвии князю: вдвое дороже лавки и рейтинг. */
+  sellRelics: () => MineResult;
   dismissRoadNews: () => void;
 }
 
@@ -669,6 +675,26 @@ export const useGame = create<GameState>()(
         return { ok: true };
       },
 
+      sellRelics: () => {
+        const c = get().character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        if (c.location !== 'city') return { ok: false, reason: 'Князь принимает в замке у города' };
+        const qty = c.resources.relics;
+        if (qty <= 0) return { ok: false, reason: 'Реликвий нет' };
+        const total = qty * relicPriceAtCastle(dayKey());
+        set({
+          character: {
+            ...c,
+            kredits: c.kredits + total,
+            rating: c.rating + qty * RELIC_RATING,
+            resources: { ...c.resources, relics: 0 },
+            ledger: { ...c.ledger, kreditsEarned: c.ledger.kreditsEarned + total },
+          },
+        });
+        get().track('sellResources', qty);
+        return { ok: true, kredits: total };
+      },
+
       dismissRoadNews: () => set({ roadNews: null }),
 
       startTravel: (to) => {
@@ -848,7 +874,7 @@ export const useGame = create<GameState>()(
         return { ok: true, kredits: total };
       },
 
-      upgradeItem: (itemUid) => {
+      upgradeItem: (itemUid, pay = 'kredits') => {
         const c = get().character;
         if (!c) return { ok: false, reason: 'Нет персонажа' };
         const inv = c.backpack.find((i) => i.uid === itemUid);
@@ -859,14 +885,16 @@ export const useGame = create<GameState>()(
         if (inv.durability <= 0) return { ok: false, reason: 'Сначала почини' };
         const next = inv.upgrade + 1;
         const cost = upgradeCost(item, next);
+        const backpack = c.backpack.map((i) => (i.uid === itemUid ? { ...i, upgrade: next } : i));
+        if (pay === 'ore') {
+          const ore = oreForUpgrade(cost);
+          if (c.resources.ore < ore) return { ok: false, reason: `Нужно ${ore} руды` };
+          set({ character: { ...c, resources: { ...c.resources, ore: c.resources.ore - ore }, backpack } });
+          get().track('sharpen');
+          return { ok: true };
+        }
         if (c.kredits < cost) return { ok: false, reason: `Нужно ${cost} кр.` };
-        set({
-          character: {
-            ...c,
-            kredits: c.kredits - cost,
-            backpack: c.backpack.map((i) => (i.uid === itemUid ? { ...i, upgrade: next } : i)),
-          },
-        });
+        set({ character: { ...c, kredits: c.kredits - cost, backpack } });
         get().track('sharpen');
         return { ok: true };
       },

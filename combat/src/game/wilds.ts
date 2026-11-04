@@ -232,6 +232,20 @@ export function woodForRepair(kredits: number): number {
   return Math.max(1, Math.ceil(kredits / WOOD_REPAIR_VALUE));
 }
 
+/** Заточка у Макара за руду: кусок руды закрывает столько кредитов заточки. */
+export const ORE_UPGRADE_VALUE = 4;
+
+export function oreForUpgrade(kredits: number): number {
+  return Math.max(1, Math.ceil(kredits / ORE_UPGRADE_VALUE));
+}
+
+/** Князь скупает реликвии вдвое дороже лавки и добавляет рейтинг за каждую. */
+export const RELIC_RATING = 2;
+
+export function relicPriceAtCastle(day: string): number {
+  return marketPrice('relics', day) * 2;
+}
+
 // ─── Дорожные события ──────────────────────────────────────────────────────
 
 export interface RoadEvent {

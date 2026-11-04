@@ -19,6 +19,7 @@ import {
   repairCost,
   upgradeCost,
   UPGRADE_MAX,
+  oreForUpgrade,
   woodForRepair,
   type InventoryItem,
 } from '@/game';
@@ -51,9 +52,9 @@ export default function SmithyScreen() {
   };
 
   // Цена написана на кнопке, подтверждение не нужно.
-  const onUpgrade = (inv: InventoryItem) => {
+  const onUpgrade = (inv: InventoryItem, pay: 'kredits' | 'ore' = 'kredits') => {
     const item = getItem(inv.itemId);
-    const r = upgradeItem(inv.uid);
+    const r = upgradeItem(inv.uid, pay);
     show(r.ok ? `${item.name} теперь +${inv.upgrade + 1}.` : (r.reason ?? 'Не получилось'));
   };
 
@@ -128,13 +129,22 @@ export default function SmithyScreen() {
                   disabled={!sharpenable || maxed || broken || character.kredits < nextCost}
                   onPress={() => onUpgrade(inv)}
                 />
+                {sharpenable && !maxed && !broken ? (
+                  <Button
+                    small
+                    variant="ghost"
+                    title={`или ${oreForUpgrade(nextCost)} руды`}
+                    disabled={character.resources.ore < oreForUpgrade(nextCost)}
+                    onPress={() => onUpgrade(inv, 'ore')}
+                  />
+                ) : null}
               </View>
             </View>
           </View>
         );
       })}
       <Txt variant="small" center color={colors.textDim}>
-        Заточка: оружию +1 к урону, броне +1 к защите за уровень. До +{UPGRADE_MAX}.
+        Заточка: оружию +1 к урону, броне +1 к защите за уровень. До +{UPGRADE_MAX}. Руды в сумке: {character.resources.ore}, дров: {character.resources.wood}.
       </Txt>
     </Screen>
   );

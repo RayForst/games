@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { newCharacter } from './character';
 import { canTravel, locationOpen, LOCATIONS, neighbours, routeBetween, travelDone, travelProgress, travelSecondsLeft } from './world';
-import { ACTIVITIES, gatherRatePerHour, gatherYield, haulAfterAmbush, marketPrice, normalizeResources, rollRoadEvent, WILDS, wildOpponent, woodForRepair } from './wilds';
+import { ACTIVITIES, gatherRatePerHour, gatherYield, haulAfterAmbush, marketPrice, normalizeResources, oreForUpgrade, relicPriceAtCastle, rollRoadEvent, WILDS, wildOpponent, woodForRepair } from './wilds';
 import { baseStats, deriveStats } from './formulas';
 
 const busyFree = { mining: false, gathering: false, traveling: false, fighting: false };
@@ -86,5 +86,7 @@ describe('лес', () => {
     expect(toll.kredits).toBeLessThan(0);
     expect(woodForRepair(10)).toBe(4);
     expect(woodForRepair(1)).toBe(1);
+    expect(oreForUpgrade(18)).toBe(5);
+    expect(relicPriceAtCastle('2026-11-04')).toBe(marketPrice('relics', '2026-11-04') * 2);
   });
 });
