@@ -17,6 +17,8 @@ import {
   injurySecondsLeft,
   injuryText,
   claimableAchievements,
+  dailyClaimed,
+  totalChests,
   PERKS_BY_ID,
   rankFor,
   ROLE_LABELS,
@@ -53,6 +55,7 @@ export default function CharacterScreen() {
   const account = useGame((s) => s.account);
   const sound = useGame((s) => s.settings.sound);
   const setSound = useGame((s) => s.setSound);
+  const daily = useGame((s) => s.daily);
   const now = useNow();
 
   if (!character) return null;
@@ -188,6 +191,12 @@ export default function CharacterScreen() {
           </Txt>
         </Pressable>
       ) : null}
+
+      <Pressable onPress={() => router.push('/daily')} accessibilityRole="button" accessibilityLabel="Календарь">
+        <Txt variant="small" center color={!dailyClaimed(daily) || totalChests(character.chests) > 0 ? colors.gold : colors.textDim}>
+          {!dailyClaimed(daily) ? 'Награда за день ждёт в календаре.' : totalChests(character.chests) > 0 ? `Сундуков не открыто: ${totalChests(character.chests)}. Календарь.` : 'Календарь: награды, цели недели, события.'}
+        </Txt>
+      </Pressable>
 
       <Pressable
         onPress={openStats}

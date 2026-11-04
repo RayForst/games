@@ -106,6 +106,10 @@ const WANT = {
   chat: ['GiConversation', 'GiTalk', 'GiDiscussion'],
   staff: ['GiWizardStaff', 'GiCrystalWand', 'GiMagicSwirl'],
   key: ['GiKey', 'GiHouseKeys'],
+  // сундуки и календарь
+  chest: ['GiLockedChest', 'GiChest'],
+  'chest-open': ['GiOpenChest', 'GiOpenTreasureChest', 'GiChest'],
+  calendar: ['GiCalendar', 'GiScrollUnfurled'],
 };
 
 const src = await readFile(path.join(root, 'node_modules/react-icons/gi/index.mjs'), 'utf8');

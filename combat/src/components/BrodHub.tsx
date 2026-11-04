@@ -8,7 +8,7 @@ import { GiIcon } from './GiIcon';
 import { Kredits } from './Kredits';
 import { Screen } from './Screen';
 import { Txt } from './Txt';
-import { dayKey, LOCATIONS_BY_ID, MARKET_MULT, marketPrice, RESOURCES, routeBetween, unreadCount } from '@/game';
+import { dayKey, LOCATIONS_BY_ID, MARKET_MULT, marketPriceToday, RESOURCES, routeBetween, unreadCount } from '@/game';
 import { useFlash } from '@/hooks/useFlash';
 import { useGame } from '@/store/useGame';
 import { colors, spacing } from '@/ui/theme';
@@ -84,7 +84,7 @@ export function BrodHub() {
       <Card title="Рынок Брода" right={<Txt variant="small">цены ×{MARKET_MULT.brod}</Txt>}>
         {RESOURCES.filter((r) => character.resources[r.id] > 0).map((r) => {
           const have = character.resources[r.id];
-          const price = marketPrice(r.id, dayKey(), 'brod');
+          const price = marketPriceToday(r.id, dayKey(), 'brod');
           return (
             <View key={r.id} style={styles.row}>
               <GiIcon name={r.icon} size={22} color={colors.textMuted} />
