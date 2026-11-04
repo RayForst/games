@@ -15,7 +15,7 @@ import {
   dayKey,
   LOCATIONS_BY_ID,
   MARKET_MULT,
-  marketPrice,
+  marketPriceToday,
   neighbours,
   RACES_BY_ID,
   RESOURCES,
@@ -137,7 +137,7 @@ export function TownHub({ town }: { town: TownId }) {
       <Card title={`Рынок: ${def.name}`} right={<Txt variant="small">цены ×{marketMult}</Txt>}>
         {RESOURCES.filter((r) => character.resources[r.id] > 0).map((r) => {
           const have = character.resources[r.id];
-          const price = marketPrice(r.id, dayKey(), town);
+          const price = marketPriceToday(r.id, dayKey(), town);
           return (
             <View key={r.id} style={styles.row}>
               <GiIcon name={r.icon} size={22} color={colors.textMuted} />

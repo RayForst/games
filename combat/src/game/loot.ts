@@ -5,9 +5,9 @@ import { ITEMS_BY_ID, maxDurability } from './items';
 
 export const LOOT_CHANCE = 0.2;
 
-/** Вещь соперника как трофей или null. Прочность трофея — половина. */
-export function rollLoot(opponent: Opponent, rng: () => number, uid: string): InventoryItem | null {
-  if (opponent.itemIds.length === 0 || rng() >= LOOT_CHANCE) return null;
+/** Вещь соперника как трофей или null. Прочность трофея — половина. `chanceMult` — событие дня (ночь воров). */
+export function rollLoot(opponent: Opponent, rng: () => number, uid: string, chanceMult = 1): InventoryItem | null {
+  if (opponent.itemIds.length === 0 || rng() >= Math.min(1, LOOT_CHANCE * chanceMult)) return null;
   const itemId = opponent.itemIds[Math.floor(rng() * opponent.itemIds.length)];
   const item = ITEMS_BY_ID[itemId];
   if (!item) return null;

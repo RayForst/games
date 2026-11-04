@@ -8,7 +8,7 @@ import { Flash } from '@/components/Flash';
 import { Kredits } from '@/components/Kredits';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
-import { activeInjury, BUILDINGS_BY_ID, cureCost, deriveCharacter, HEAL_OPTIONS, healAmount, healPrice, INJURY_BOGWORT, injurySecondsLeft, injuryText, POTION_BONES, POTION_HERBS, secondsToFullHp, townHealerMult, townOf, townPrice } from '@/game';
+import { activeInjury, BUILDINGS_BY_ID, cureCostToday, deriveCharacter, HEAL_OPTIONS, healAmount, healPriceToday, INJURY_BOGWORT, injurySecondsLeft, injuryText, POTION_BONES, POTION_HERBS, secondsToFullHp, townHealerMult, townOf, townPrice } from '@/game';
 import { GiIcon } from '@/components/GiIcon';
 import { useFlash } from '@/hooks/useFlash';
 import { useNow } from '@/hooks/useNow';
@@ -35,7 +35,7 @@ export default function HealerScreen() {
   const town = townOf(character.location);
   const mult = townHealerMult(character.location);
   const bogwortNeed = town?.perk.injuryBogwort ?? INJURY_BOGWORT;
-  const cure = injury ? townPrice(cureCost(character, injury), mult) : 0;
+  const cure = injury ? townPrice(cureCostToday(character, injury), mult) : 0;
 
   const onCure = (pay: 'kredits' | 'bogwort' = 'kredits') => {
     const r = cureInjury(pay);
@@ -87,7 +87,7 @@ export default function HealerScreen() {
 
       <Card title="Зелья">
         {HEAL_OPTIONS.map((o) => {
-          const price = townPrice(healPrice(character, o.fraction), mult);
+          const price = townPrice(healPriceToday(character, o.fraction), mult);
           const amount = healAmount(character, o.fraction);
           const poor = character.kredits < price;
           const noHerbs = character.resources.herbs < POTION_HERBS[o.id];
@@ -146,7 +146,7 @@ export default function HealerScreen() {
         <Txt variant="small">
           Трав в сумке: {character.resources.herbs}{character.resources.bones > 0 ? `, костей из склепа: ${character.resources.bones}` : ''}. Лекарь варит из них сам, деньги не берёт.
         </Txt>
-        {!healthy && character.kredits < townPrice(healPrice(character, HEAL_OPTIONS[0].fraction), mult) ? (
+        {!healthy && character.kredits < townPrice(healPriceToday(character, HEAL_OPTIONS[0].fraction), mult) ? (
           <Txt variant="small" color={colors.red}>
             Не хватает даже на малое. Подожди или сходи в шахту.
           </Txt>

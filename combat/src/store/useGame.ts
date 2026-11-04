@@ -14,7 +14,6 @@ import {
   canTravel,
   canUpgrade,
   createTournament,
-  cureCost,
   dayKey,
   generateBoard,
   chooseEnemyMove,
@@ -51,7 +50,6 @@ import {
   getItem,
   heavier,
   healAmount,
-  healPrice,
   isEquipped,
   isShiftHours,
   isTown,
@@ -60,13 +58,23 @@ import {
   ledgerAfterFight,
   levelForExp,
   makeLogLine,
-  marketPrice,
   maxDurability,
   mineEarnings,
   mineElapsedMs,
   newCharacter,
   newInventoryItem,
   normalizeCharacter,
+  // косметика
+  authorCosmetics,
+  buyCosmetic as buyCosmeticPure,
+  canBuyCosmetic,
+  equipCosmetic as equipCosmeticPure,
+  unequipCosmetic as unequipCosmeticPure,
+  sealPackPrice,
+  SEAL_PACKS,
+  sealsForAchievement,
+  SEALS_FOR_TOURNAMENT,
+  type CosmeticKind,
   offerPerks,
   perkPicksBetween,
   POINTS_PER_LEVEL,
@@ -228,10 +236,58 @@ import {
   type RaidLog,
   bonesForRepair,
   POTION_BONES,
+  // ежедневки, сундуки, события
+  applyLoot,
+  applyWeeklyEvent,
+  arenaEventMult,
+  CHESTS,
+  claimDailyState,
+  cureCostToday,
+  DAILY_DAYS,
+  SEALS_FOR_WEEK_STREAK,
+  dailyRewind,
+  eventMults,
+  generateWeekly,
+  giveChest,
+  healPriceToday,
+  marketPriceToday,
+  newDaily,
+  normalizeChests,
+  normalizeDaily,
+  openChest as openChestLoot,
+  roadLoss,
+  roadLossText,
+  rollChestDrop,
+  streakBonusMult,
+  streakStepReached,
+  weekKey,
+  weeklyChest,
+  weeklyDone,
+  type ChestKind,
+  type ChestLoot,
+  type DailyState,
+  type WeeklyBoard,
+  type WeeklyEvent,
 } from '@/game';
 
 export interface MineResult extends Check {
   kredits?: number;
+  /** Печати князя, если событие их даёт (достижения). */
+  seals?: number;
+}
+
+export interface DailyClaimResult extends Check {
+  /** Который день цепочки. */
+  day?: number;
+  loot?: ChestLoot[];
+}
+
+export interface ChestOpenResult extends Check {
+  loot?: ChestLoot[];
+}
+
+export interface WeeklyClaimResult extends Check {
+  chest?: ChestKind;
 }
 
 const rng = Math.random;
@@ -289,6 +345,8 @@ export interface GameState {
   raid: Raid | null;
   /** Журнал рейдов: лимит в день, ответные рейды, оборона. */
   raids: RaidLog;
+  /** Ежедневки: награда за вход и недельные цели. Сундуки лежат в персонаже (`character.chests`). */
+  daily: DailyState;
   hydrated: boolean;
 
   setHydrated: () => void;
@@ -395,6 +453,25 @@ export interface GameState {
 
   setSound: (on: boolean) => void;
 
+  // --- Ежедневки, сундуки, события ---
+  /** Забрать награду за вход (раз в день, цепочка из семи). */
+  claimDaily: () => DailyClaimResult;
+  /** Недельные цели: доска на неделю (пересоздаётся в понедельник), прогресс, сундук за выполненную. */
+  ensureWeekly: () => WeeklyBoard | null;
+  trackWeekly: (event: WeeklyEvent, amount?: number) => void;
+  claimWeekly: (goalId: string) => WeeklyClaimResult;
+  /** Открыть сундук: содержимое сразу в персонажа, список строк — на экран. */
+  openChest: (kind: ChestKind) => ChestOpenResult;
+  // --- Косметика (Лавка князя) ---
+  buyCosmetic: (id: string) => Check;
+  equipCosmetic: (id: string) => Check;
+  unequipCosmetic: (kind: CosmeticKind) => Check;
+  /** Обмен кредитов на печати по курсу лавки (пачки из `SEAL_PACKS`). */
+  buySeals: (seals: number) => Check;
+  /** Начислить печати за событие вне лавки (ежедневки: 7-й день входа). */
+  grantSeals: (amount: number) => Check;
+  gmGiveSeals: (amount: number) => Check;
+
   /** Обучение: закрыть сделанные шаги (force — кнопка «Понял»), пропустить целиком. */
   advanceTutorial: (extras?: Pick<TutorialSnapshot, 'attackChosen' | 'blockChosen' | 'tavernVisited'>, force?: boolean) => void;
   skipTutorial: () => void;
@@ -459,6 +536,17 @@ export const useGame = create<GameState>()(
           base.exp = Math.round(base.exp * gp.expMult);
           base.kredits = Math.round(base.kredits * gp.kreditsMult);
         }
+        // --- Ежедневки, сундуки, события: событие дня и серия побед ---
+        const evMults = eventMults();
+        const evArena = f.context === 'arena' ? arenaEventMult(c.side, f.opponent.side, status) : 1;
+        if (evArena > 1) {
+          base.kredits = Math.round(base.kredits * evArena);
+          log.push(makeLogLine(turn, `Набор в стражу: за битого вольного Хозяин доплатил из княжьей казны (×${evArena}).`, 'system'));
+        }
+        const streakNow = status === 'won' ? c.ledger.streak + 1 : 0;
+        const streakMult = streakBonusMult(streakNow);
+        if (streakMult > 1) base.kredits = Math.round(base.kredits * streakMult);
+        if (streakStepReached(streakNow)) log.push(makeLogLine(turn, `Серия: ${streakNow} побед подряд. Награда за победы ×${streakMult}, пока не упадёшь.`, 'system'));
         const exp = c.exp + base.exp;
         const newLevel = Math.max(c.level, levelForExp(exp));
         const levelsGained = newLevel - c.level;
@@ -529,6 +617,7 @@ export const useGame = create<GameState>()(
                 level: lvl2,
                 freePoints: character.freePoints + gained2 * POINTS_PER_LEVEL,
                 kredits: character.kredits + prize.kredits,
+                seals: character.seals + SEALS_FOR_TOURNAMENT,
                 titles: character.titles.includes(prize.title) ? character.titles : [...character.titles, prize.title],
                 ledger: {
                   ...character.ledger,
@@ -537,7 +626,7 @@ export const useGame = create<GameState>()(
                 },
               };
               reward = { ...reward, exp: reward.exp + prize.exp, kredits: reward.kredits + prize.kredits, title: prize.title };
-              log.push(makeLogLine(turn, `Турнир выигран! Князь жалует ${prize.kredits} кр. и титул «${prize.title}».`, 'system'));
+              log.push(makeLogLine(turn, `Турнир выигран! Князь жалует ${prize.kredits} кр., титул «${prize.title}» и ${SEALS_FOR_TOURNAMENT} печатей для лавки.`, 'system'));
               set({ tournament: { ...t, stage, status: 'won' } });
             } else {
               log.push(makeLogLine(turn, `Бой ${stage} из ${TOURNAMENT_ROUNDS} за тобой. Следующий ждёт.`, 'system'));
@@ -653,20 +742,28 @@ export const useGame = create<GameState>()(
         }
         // Трофей: с побеждённого иногда удаётся снять вещь.
         if (status === 'won') {
-          const loot = rollLoot(f.opponent, rng, uid());
+          const loot = rollLoot(f.opponent, rng, uid(), evMults.lootMult);
           if (loot) {
             const def = getItem(loot.itemId);
             character = { ...character, backpack: [...character.backpack, loot] };
             reward = { ...reward, loot: def.name };
             log.push(makeLogLine(turn, `Трофей: ${def.name}. Снял с ${f.opponent.name}, теперь в рюкзаке.`, 'system'));
           }
+          // Сундук с побеждённого: редко, в ночь воров вдвое чаще. Открывается в календаре.
+          const chest = rollChestDrop(rng, evMults.chestMult);
+          if (chest) {
+            character = giveChest(character, chest);
+            log.push(makeLogLine(turn, `${CHESTS[chest].name}: нашёлся при ${f.opponent.name}. Открыть можно в календаре.`, 'system'));
+          }
         }
         // Задания пивной.
         get().track('fightPlay');
         if (status === 'won') get().track('fightWin');
         if (status === 'won' && f.opponent.level > c.level) get().track('fightWinStronger');
+        if (f.context === 'guild') get().trackWeekly('skirmish');
         // Травма: проигрыш и ничья могут оставить след. Тяжёлая вытесняет лёгкую.
-        const rolled = rollInjury(status, rng, Date.now(), deriveCharacter(c).injuryMult);
+        // В чуму травмы чаще: второй бросок, если первый прошёл мимо.
+        const rolled = rollInjury(status, rng, Date.now(), deriveCharacter(c).injuryMult) ?? (evMults.injuryExtraRoll ? rollInjury(status, rng, Date.now(), deriveCharacter(c).injuryMult) : null);
         if (rolled) {
           const current = activeInjury(character);
           const injury = heavier(current, rolled);
@@ -722,7 +819,7 @@ export const useGame = create<GameState>()(
       };
 
       /** Автор-игрок для чата: имя с тегом гильдии и служебной ролью. */
-      const me = (c: Character): ChatAuthor => ({ id: 'player', name: c.name, tag: get().guild?.tag ?? null, role: get().account.role, side: c.side });
+      const me = (c: Character): ChatAuthor => ({ id: 'player', name: c.name, tag: get().guild?.tag ?? null, role: get().account.role, side: c.side, cosmetics: authorCosmetics(c) });
 
       /** Прибавить опыт с ростом уровня (уровень не падает), очками и окном умений. */
       const withExp = (c: Character, amount: number): Character => {
@@ -779,6 +876,7 @@ export const useGame = create<GameState>()(
       crypt: null,
       raid: null,
       raids: newRaidLog(),
+      daily: newDaily(),
       hydrated: false,
 
       setHydrated: () => set({ hydrated: true }),
@@ -807,6 +905,7 @@ export const useGame = create<GameState>()(
           crypt: null,
           raid: null,
           raids: newRaidLog(),
+          daily: newDaily(),
         });
         get().sendChat('tavern', 'Здарова всем. Я тут новенький.');
       },
@@ -840,7 +939,7 @@ export const useGame = create<GameState>()(
       },
 
       resetGame: () =>
-        set({ character: null, fight: null, mining: null, quests: null, tournament: null, travel: null, gathering: null, pendingHaul: null, arena: [], chat: emptyChat(), chatSeenAt: 0, guild: null, npcGuilds: normalizeGuilds(undefined), skirmish: null, skirmishes: null, tutorial: newTutorial(), crypt: null, raid: null, raids: newRaidLog() }),
+        set({ character: null, fight: null, mining: null, quests: null, tournament: null, travel: null, gathering: null, pendingHaul: null, arena: [], chat: emptyChat(), chatSeenAt: 0, guild: null, npcGuilds: normalizeGuilds(undefined), skirmish: null, skirmishes: null, tutorial: newTutorial(), daily: newDaily(), crypt: null, raid: null, raids: newRaidLog() }),
 
       ensureQuests: () => {
         const { character, quests } = get();
@@ -852,6 +951,7 @@ export const useGame = create<GameState>()(
       },
 
       track: (event, amount = 1) => {
+        get().trackWeekly(event, amount);
         const board = get().ensureQuests();
         if (!board) return;
         const next = applyQuestEvent(board, event, amount);
@@ -927,7 +1027,14 @@ export const useGame = create<GameState>()(
             if (event.kredits) next = { ...next, kredits: Math.max(0, next.kredits + event.kredits) };
             if (event.resource) next = { ...next, resources: { ...next.resources, [event.resource.id]: next.resources[event.resource.id] + event.resource.amount } };
           }
-          set({ travel: null, roadNews: event?.text ?? null, arena: newArena(next) });
+          // Ночь воров: по дороге могут срезать кошель.
+          let news = event?.text ?? null;
+          const lost = roadLoss(next.kredits, rng);
+          if (lost > 0) {
+            next = { ...next, kredits: next.kredits - lost };
+            news = roadLossText(lost, rng);
+          }
+          set({ travel: null, roadNews: news, arena: newArena(next) });
         }
         if (next !== c) set({ character: next });
         // Чат: созревшие ответы и болтовня завсегдатаев без повода.
@@ -984,7 +1091,7 @@ export const useGame = create<GameState>()(
           set({ character: { ...c, injury: null, resources: { ...c.resources, bogwort: c.resources.bogwort - need } } });
           return { ok: true, kredits: 0 };
         }
-        const cost = townPrice(cureCost(c, injury), townHealerMult(c.location));
+        const cost = townPrice(cureCostToday(c, injury), townHealerMult(c.location));
         if (c.kredits < cost) return { ok: false, reason: `Нужно ${cost} кр.` };
         set({ character: { ...c, injury: null, kredits: c.kredits - cost } });
         return { ok: true, kredits: cost };
@@ -1006,7 +1113,7 @@ export const useGame = create<GameState>()(
           if (c.resources.bones < bones) return { ok: false, reason: `Нужно ${bones} костей` };
           set({ character: { ...c, hp, resources: { ...c.resources, bones: c.resources.bones - bones }, hpUpdatedAt: Date.now() } });
         } else {
-          const cost = townPrice(healPrice(c, fraction), townHealerMult(c.location));
+          const cost = townPrice(healPriceToday(c, fraction), townHealerMult(c.location));
           if (c.kredits < cost) return { ok: false, reason: `Нужно ${cost} кр.` };
           set({ character: { ...c, hp, kredits: c.kredits - cost, hpUpdatedAt: Date.now() } });
         }
@@ -1293,7 +1400,7 @@ export const useGame = create<GameState>()(
         const amount = gatherYield(g, gatherRatePerHour(g.activity, deriveCharacter(c)), Date.now());
         const wild: WildId = isWild(c.location) ? c.location : 'forest';
         // Засада: улов ставится на кон, начинается бой.
-        if (amount > 0 && rollAmbush(wild, rng)) {
+        if (amount > 0 && (rollAmbush(wild, rng) || rng() < eventMults().ambushBonus)) {
           const opponent: OpponentType = wildOpponent(wild, c.level, rng);
           const fresh = applyRegen(c);
           const fight: FightState = {
@@ -1327,7 +1434,7 @@ export const useGame = create<GameState>()(
         const have = c.resources[resource] ?? 0;
         const qty = Math.min(have, amount ?? have);
         if (qty <= 0) return { ok: false, reason: 'Нечего продавать' };
-        const price = marketPrice(resource, dayKey(), c.location);
+        const price = marketPriceToday(resource, dayKey(), c.location);
         const total = qty * price;
         set({
           character: {
@@ -1348,15 +1455,17 @@ export const useGame = create<GameState>()(
         if (!a) return { ok: false, reason: 'Такого достижения нет' };
         if (c.achievements.includes(id)) return { ok: false, reason: 'Уже забрал' };
         if (!a.check(c)) return { ok: false, reason: 'Ещё не выполнено' };
+        const seals = sealsForAchievement(a);
         set({
           character: {
             ...c,
             kredits: c.kredits + a.reward,
+            seals: c.seals + seals,
             achievements: [...c.achievements, id],
             ledger: { ...c.ledger, kreditsEarned: c.ledger.kreditsEarned + a.reward },
           },
         });
-        return { ok: true, kredits: a.reward };
+        return { ok: true, kredits: a.reward, seals };
       },
 
       startMining: (hours, job = 'mine') => {
@@ -1813,6 +1922,8 @@ export const useGame = create<GameState>()(
           crypt: null,
           raid: null,
           raids: { ...get().raids, lastDay: null, enemyDay: null, defense: null },
+          // Награда за вход: отметка на день назад, чтобы забрать снова.
+          daily: dailyRewind(get().daily),
         });
         get().tick();
         return { ok: true };
@@ -1863,6 +1974,65 @@ export const useGame = create<GameState>()(
       },
 
       setSound: (on) => set({ settings: { ...get().settings, sound: on } }),
+
+      // --- Ежедневки, сундуки, события ---------------------------------------------------------
+
+      claimDaily: () => {
+        const c = get().character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        const r = claimDailyState(get().daily, c.level, rng);
+        if (!r) return { ok: false, reason: 'Сегодня уже забрал. Приходи завтра' };
+        // Ярмарка кладёт сверху деревянный сундук.
+        const bonus = eventMults().dailyChest;
+        const loot: ChestLoot[] = bonus ? [...r.loot, { kind: 'chest', chest: bonus }] : r.loot;
+        set({ character: applyLoot(c, loot, uid), daily: r.state });
+        // Седьмой день подряд — ещё и печати князя для лавки косметики.
+        if (r.day === DAILY_DAYS) get().grantSeals(SEALS_FOR_WEEK_STREAK);
+        return { ok: true, day: r.day, loot };
+      },
+
+      ensureWeekly: () => {
+        const { character, daily } = get();
+        if (!character) return null;
+        if (daily.weekly && daily.weekly.week === weekKey()) return daily.weekly;
+        const weekly = generateWeekly(rng);
+        set({ daily: { ...daily, weekly } });
+        return weekly;
+      },
+
+      trackWeekly: (event, amount = 1) => {
+        const board = get().ensureWeekly();
+        if (!board) return;
+        const next = applyWeeklyEvent(board, event, amount);
+        if (next !== board) set({ daily: { ...get().daily, weekly: next } });
+      },
+
+      claimWeekly: (goalId) => {
+        const c = get().character;
+        const board = get().ensureWeekly();
+        if (!c || !board) return { ok: false, reason: 'Нет персонажа' };
+        const g = board.goals.find((x) => x.id === goalId);
+        if (!g) return { ok: false, reason: 'Такой цели нет' };
+        if (g.claimed) return { ok: false, reason: 'Уже забрал' };
+        if (!weeklyDone(g)) return { ok: false, reason: 'Ещё не выполнено' };
+        const chest = weeklyChest(g);
+        set({
+          character: giveChest(c, chest),
+          daily: { ...get().daily, weekly: { ...board, goals: board.goals.map((x) => (x.id === goalId ? { ...x, claimed: true } : x)) } },
+        });
+        return { ok: true, chest };
+      },
+
+      openChest: (kind) => {
+        const c = get().character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        const chests = normalizeChests(c.chests);
+        if (chests[kind] <= 0) return { ok: false, reason: 'Такого сундука у тебя нет' };
+        const loot = openChestLoot(kind, c.level, rng);
+        const opened: Character = { ...c, chests: { ...chests, [kind]: chests[kind] - 1 } };
+        set({ character: applyLoot(opened, loot, uid) });
+        return { ok: true, loot };
+      },
 
       advanceTutorial: (extras, force = false) => {
         const { character: c, tutorial, fight, mining } = get();
@@ -2068,6 +2238,57 @@ export const useGame = create<GameState>()(
         get().track('sharpen');
         return { ok: true };
       },
+
+      // --- Косметика ---
+      buyCosmetic: (id) => {
+        const c = get().character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        const r = canBuyCosmetic(c, id);
+        if (!r.ok) return r;
+        set({ character: buyCosmeticPure(c, id) });
+        return { ok: true };
+      },
+
+      equipCosmetic: (id) => {
+        const c = get().character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        if (!c.cosmetics.owned.includes(id)) return { ok: false, reason: 'Сначала купи' };
+        set({ character: equipCosmeticPure(c, id) });
+        return { ok: true };
+      },
+
+      unequipCosmetic: (kind) => {
+        const c = get().character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        if (!c.cosmetics.equipped[kind]) return { ok: false, reason: 'Нечего снимать' };
+        set({ character: unequipCosmeticPure(c, kind) });
+        return { ok: true };
+      },
+
+      buySeals: (seals) => {
+        const c = get().character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        if (!SEAL_PACKS.some((p) => p.seals === seals)) return { ok: false, reason: 'Такой пачки нет' };
+        const price = sealPackPrice(seals);
+        if (c.kredits < price) return { ok: false, reason: `Нужно ${price} кр.` };
+        set({ character: { ...c, kredits: c.kredits - price, seals: c.seals + seals, ledger: { ...c.ledger, kreditsSpent: c.ledger.kreditsSpent + price } } });
+        return { ok: true };
+      },
+
+      grantSeals: (amount) => {
+        const c = get().character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        const n = Math.round(amount);
+        if (!Number.isFinite(n) || n <= 0) return { ok: false, reason: 'Сколько?' };
+        set({ character: { ...c, seals: c.seals + n } });
+        return { ok: true };
+      },
+
+      gmGiveSeals: (amount) => {
+        const p = need('player.grant');
+        if (!p.ok) return p;
+        return get().grantSeals(amount);
+      },
       };
     },
     {
@@ -2099,6 +2320,7 @@ export const useGame = create<GameState>()(
         crypt: s.crypt,
         raid: s.raid,
         raids: s.raids,
+        daily: s.daily,
       }),
       // Старые сейвы дописываем недостающими полями (прочность, заточка, будущие фичи).
       migrate: (persisted) => {
@@ -2120,6 +2342,7 @@ export const useGame = create<GameState>()(
         state.crypt = state.crypt ? normalizeCrypt(state.crypt, dayKey()) : null;
         state.raid = state.raid && typeof state.raid.day === 'string' && state.raid.day === dayKey() ? state.raid : null;
         state.raids = normalizeRaidLog(state.raids);
+        state.daily = normalizeDaily(state.daily);
         state.setHydrated();
       },
     },

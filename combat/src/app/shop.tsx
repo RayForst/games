@@ -9,7 +9,7 @@ import { ItemCard } from '@/components/ItemCard';
 import { Kredits } from '@/components/Kredits';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
-import { canEquip, dayKey, ITEM_SLOT_LABELS, ITEM_SLOTS, ITEMS, marketPrice, prepareEquip, RESOURCES, type ItemSlot } from '@/game';
+import { canEquip, dayKey, ITEM_SLOT_LABELS, ITEM_SLOTS, ITEMS, marketPriceToday, prepareEquip, RESOURCES, type ItemSlot } from '@/game';
 import { GiIcon } from '@/components/GiIcon';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
@@ -63,7 +63,7 @@ export default function ShopScreen() {
       <Card title="Скупка" right={<Txt variant="small">цены на сегодня</Txt>}>
         {RESOURCES.map((r) => {
           const have = character.resources[r.id];
-          const price = marketPrice(r.id, dayKey());
+          const price = marketPriceToday(r.id, dayKey());
           return (
             <View key={r.id} style={styles.resourceRow}>
               <GiIcon name={r.icon} size={22} color={colors.textMuted} />

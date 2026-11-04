@@ -6,12 +6,14 @@ import { BackBar } from '@/components/BackBar';
 import { Button } from '@/components/Button';
 import { Chip } from '@/components/Chip';
 import { Flash } from '@/components/Flash';
+import { GiIcon } from '@/components/GiIcon';
 import { Input } from '@/components/Input';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
 import { can, CHANNELS, CHANNELS_BY_ID, isMuted, MESSAGE_MAX, ROLE_TAGS, visibleMessages, type ChannelId, type ChatMessage } from '@/game';
 import { useFlash } from '@/hooks/useFlash';
 import { useGame } from '@/store/useGame';
+import type { GiName } from '@/ui/gi.generated';
 import { playSfx } from '@/ui/sfx';
 import { colors, radius, sideColors, spacing } from '@/ui/theme';
 
@@ -140,11 +142,15 @@ function Message({ m, moderator, muted, onDelete, onMute }: { m: ChatMessage; mo
   }
   const mine = m.author.id === 'player';
   const tag = m.author.role ? ROLE_TAGS[m.author.role] : null;
+  // Косметика из Лавки князя: цвет имени (служебный красный важнее) и эмблема перед именем.
+  const nameColor = m.kind === 'staff' ? colors.red : (m.author.cosmetics?.nameColor ?? (mine ? colors.gold : colors.text));
+  const emblem = m.author.cosmetics?.emblem as GiName | undefined;
   return (
     <View style={[styles.msg, mine && styles.mine, m.deleted && styles.deleted]}>
       <View style={styles.msgHead}>
+        {emblem ? <GiIcon name={emblem} size={14} color={nameColor} /> : null}
         <Pressable onPress={moderator && !mine ? onMute : undefined} accessibilityRole={moderator && !mine ? 'button' : undefined} accessibilityLabel={moderator && !mine ? `Заткнуть: ${m.author.name}` : undefined}>
-          <Txt variant="small" bold color={m.kind === 'staff' ? colors.red : mine ? colors.gold : colors.text}>
+          <Txt variant="small" bold color={nameColor}>
             {m.author.side ? (
               <Txt variant="small" bold color={sideColors[m.author.side]}>
                 {'● '}

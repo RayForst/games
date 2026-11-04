@@ -36,6 +36,7 @@ import {
   tournamentPrize,
   RAID_FIGHTS,
   RAID_WAR_POINTS,
+  SEALS_FOR_TOURNAMENT,
 } from '@/game';
 import { useFlash } from '@/hooks/useFlash';
 import { useNow } from '@/hooks/useNow';
@@ -230,6 +231,13 @@ export default function CastleScreen() {
             Титулы: {character.titles.join(' · ')}
           </Txt>
         ) : null}
+      </Card>
+
+      <Card title="Лавка князя" right={<GiIcon name="boutique" size={22} />}>
+        <Txt variant="muted">
+          Рамки портрета, прозвища, эмблемы и цвет имени за печати князя. Печати — за достижения и турнир ({SEALS_FOR_TOURNAMENT} за победу). На бой не влияет.
+        </Txt>
+        <Button variant="secondary" title={`Зайти в лавку · ${character.seals} печ.`} onPress={() => router.push('/boutique')} />
       </Card>
 
       {todays && todays.status === 'active' ? (

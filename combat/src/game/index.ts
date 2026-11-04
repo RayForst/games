@@ -25,3 +25,7 @@ export * from './war';
 export * from './towns';
 export * from './crypt';
 export * from './raid';
+export * from './events';
+export * from './chests';
+export * from './daily';
+export * from './cosmetics';

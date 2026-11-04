@@ -111,6 +111,7 @@ function GrantCard({ act }: { act: Act }) {
   const gmSetLevel = useGame((s) => s.gmSetLevel);
   const gmHeal = useGame((s) => s.gmHeal);
   const gmGiveItem = useGame((s) => s.gmGiveItem);
+  const gmGiveSeals = useGame((s) => s.gmGiveSeals);
   const [showItems, setShowItems] = useState(false);
   return (
     <Card title="Персонаж" right={<Txt variant="small">{character.level} ур. · {character.kredits} кр.</Txt>}>
@@ -120,6 +121,7 @@ function GrantCard({ act }: { act: Act }) {
         <Button small variant="secondary" title="+200 опыта" onPress={() => act(gmGive('exp', 200), '+200 опыта')} />
         <Button small variant="secondary" title="+1 уровень" onPress={() => act(gmSetLevel(character.level + 1), `Теперь ${character.level + 1} уровень`)} />
         <Button small variant="secondary" title="+10 ресурсов" onPress={() => act(gmGive('resources', 10), 'По 10 каждого ресурса')} />
+        <Button small variant="secondary" title="+20 печатей" onPress={() => act(gmGiveSeals(20), '+20 печатей князя')} />
         <Button small variant="secondary" title="Вылечить" onPress={() => act(gmHeal(), 'Здоров, травм нет')} />
         <Button small variant="ghost" title={showItems ? 'Скрыть вещи' : 'Выдать вещь…'} onPress={() => setShowItems((v) => !v)} />
       </View>

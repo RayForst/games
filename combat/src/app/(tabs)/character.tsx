@@ -17,6 +17,9 @@ import {
   injurySecondsLeft,
   injuryText,
   claimableAchievements,
+  dailyClaimed,
+  totalChests,
+  equippedCosmetic,
   PERKS_BY_ID,
   rankFor,
   ROLE_LABELS,
@@ -53,6 +56,7 @@ export default function CharacterScreen() {
   const account = useGame((s) => s.account);
   const sound = useGame((s) => s.settings.sound);
   const setSound = useGame((s) => s.setSound);
+  const daily = useGame((s) => s.daily);
   const now = useNow();
 
   if (!character) return null;
@@ -65,6 +69,7 @@ export default function CharacterScreen() {
   const free = character.freePoints;
   const injury = activeInjury(character, now);
   const claimable = claimableAchievements(character).length;
+  const nickname = equippedCosmetic(character, 'title');
 
   const onHeal = () => {
     const r = heal();
@@ -97,6 +102,7 @@ export default function CharacterScreen() {
             {character.level} уровень · {character.kredits} кр. · <Txt variant="muted" color={sideColors[character.side]}>{originText(character.side, character.race)}</Txt>
           </Txt>
           <Txt variant="small" color={colors.gold}>
+            {nickname ? `«${nickname.name}» · ` : ''}
             {rankFor(character.rating)} · рейтинг {character.rating}
             {character.titles.length > 0 ? ` · ${character.titles[character.titles.length - 1]}` : ''}
           </Txt>
@@ -118,7 +124,7 @@ export default function CharacterScreen() {
       </View>
 
       <PaperDoll character={character} onSlotPress={onSlot}>
-        <Avatar seed={character.name} hpRatio={character.hp / derived.maxHp} injured={!!injury} />
+        <Avatar seed={character.name} hpRatio={character.hp / derived.maxHp} injured={!!injury} frame={equippedCosmetic(character, 'frame')} cardBg={equippedCosmetic(character, 'cardBg')} />
       </PaperDoll>
 
       <Card style={styles.vitals}>
@@ -188,6 +194,18 @@ export default function CharacterScreen() {
           </Txt>
         </Pressable>
       ) : null}
+
+      <Pressable onPress={() => router.push('/daily')} accessibilityRole="button" accessibilityLabel="Календарь">
+        <Txt variant="small" center color={!dailyClaimed(daily) || totalChests(character.chests) > 0 ? colors.gold : colors.textDim}>
+          {!dailyClaimed(daily) ? 'Награда за день ждёт в календаре.' : totalChests(character.chests) > 0 ? `Сундуков не открыто: ${totalChests(character.chests)}. Календарь.` : 'Календарь: награды, цели недели, события.'}
+        </Txt>
+      </Pressable>
+
+      <Pressable onPress={() => router.push('/boutique')} accessibilityRole="button" accessibilityLabel="Лавка князя">
+        <Txt variant="small" center color={colors.textMuted}>
+          Лавка князя · {character.seals} печ.{character.cosmetics.owned.length > 0 ? ` · куплено ${character.cosmetics.owned.length}` : ' · рамки, прозвища, эмблемы'}
+        </Txt>
+      </Pressable>
 
       <Pressable
         onPress={openStats}
