@@ -1,6 +1,6 @@
 import type { Character, DerivedStats, EquippedPiece, FightStatus, Fighter, Injury, InjuryKind, InventoryItem, ItemDef, Slot, StatKey, Stats } from './types';
-import { SLOTS, STAT_KEYS, STAT_LABELS } from './types';
-import { ITEMS_BY_ID, maxDurability } from './items';
+import { ITEM_SLOT_LABELS, SLOTS, STAT_KEYS, STAT_LABELS, slotsForItem } from './types';
+import { ITEMS_BY_ID, isTwoHanded, maxDurability } from './items';
 import { CREATION_FREE_POINTS, FULL_REGEN_MINUTES, baseStats, deriveStats } from './formulas';
 import { emptyLedger, normalizeLedger } from './achievements';
 import { emptyResources, normalizeResources } from './wilds';
@@ -146,9 +146,14 @@ export function normalizeCharacter(raw: Character): Character {
       upgrade: typeof i.upgrade === 'number' ? i.upgrade : 0,
     };
   });
+  // Новые слоты (кольца, амулет) дописываем пустыми; щит рядом с двуручником из старого сейва снимаем.
+  const equipment = { ...emptyEquipment(), ...(raw.equipment ?? {}) };
+  const weapon = equipment.weapon ? backpack.find((i) => i.uid === equipment.weapon) : null;
+  if (weapon && isTwoHanded(ITEMS_BY_ID[weapon.itemId]) && equipment.shield) equipment.shield = null;
   return {
     ...raw,
     backpack,
+    equipment,
     injury: raw.injury ?? null,
     perks: raw.perks ?? [],
     perkPicks: raw.perkPicks ?? 0,
@@ -199,11 +204,42 @@ export function isEquipped(c: Character, uid: string): boolean {
 export interface Check {
   ok: boolean;
   reason?: string;
+  /** Пояснение при успехе: «щит снят». */
+  note?: string;
 }
 
-/** Можно ли надеть предмет: уровень и характеристики (с учётом уже надетого). */
+/** Что мешает надеть вещь из-за рук: щит при двуручнике и наоборот. Возвращает слот, который надо освободить. */
+export function handsConflict(c: Character, item: ItemDef): Slot | null {
+  if (item.slot === 'weapon' && item.twoHanded && c.equipment.shield) return 'shield';
+  if (item.slot === 'shield' && c.equipment.weapon && isTwoHanded(itemOf(c.equipment.weapon, c))) return 'weapon';
+  return null;
+}
+
+/** В какой слот ляжет вещь: кольцо — в свободный из двух (если оба заняты, в первый), остальное — в свой. */
+export function targetSlot(c: Character, item: ItemDef): Slot {
+  const slots = slotsForItem(item.slot);
+  return slots.find((s) => !c.equipment[s]) ?? slots[0];
+}
+
+/**
+ * Персонаж «как будто перед надеванием»: целевой слот и конфликтующая рука освобождены.
+ * Так проверка требований не учитывает вещь, которую мы заменяем, а стор знает, что снять.
+ */
+export function prepareEquip(c: Character, item: ItemDef): { character: Character; slot: Slot; freed: Slot[] } {
+  const slot = targetSlot(c, item);
+  const conflict = handsConflict(c, item);
+  const freed = [slot, conflict].filter((s): s is Slot => !!s && !!c.equipment[s]);
+  const equipment = { ...c.equipment };
+  for (const s of freed) equipment[s] = null;
+  return { character: { ...c, equipment }, slot, freed };
+}
+
+/** Можно ли надеть предмет: уровень, характеристики (с учётом уже надетого) и свободные руки. */
 export function canEquip(c: Character, item: ItemDef): Check {
   if (c.level < item.level) return { ok: false, reason: `Нужен ${item.level} уровень` };
+  const conflict = handsConflict(c, item);
+  if (conflict === 'shield') return { ok: false, reason: 'Двуручное: сначала сними щит' };
+  if (conflict === 'weapon') return { ok: false, reason: 'Сначала сними двуручное оружие' };
   const eff = deriveCharacter(c).stats;
   const lacking = STAT_KEYS.filter((k) => (item.requires?.[k] ?? 0) > eff[k]);
   if (lacking.length > 0) {
@@ -211,6 +247,11 @@ export function canEquip(c: Character, item: ItemDef): Check {
     return { ok: false, reason: `Нужно: ${text}` };
   }
   return { ok: true };
+}
+
+/** Подпись слота вещи для карточек: «Кольцо», «Оружие»… */
+export function itemSlotLabel(item: ItemDef): string {
+  return ITEM_SLOT_LABELS[item.slot];
 }
 
 /** Требования предмета одной строкой — для карточек. */
@@ -228,6 +269,7 @@ export function requirementsText(item: ItemDef): string {
 export function bonusText(item: ItemDef): string {
   const parts: string[] = [];
   if (item.damage) parts.push(`урон ${item.damage[0]}–${item.damage[1]}`);
+  if (item.twoHanded) parts.push('двуручное, без щита');
   const b = item.bonus;
   if (b) {
     if (b.armor) {

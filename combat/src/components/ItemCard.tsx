@@ -4,7 +4,7 @@ import { Button } from './Button';
 import { ItemIcon } from './ItemIcon';
 import { Txt } from './Txt';
 import { colors, radius, spacing } from '@/ui/theme';
-import { bonusText, itemDisplayName, maxDurability, requirementsText, SLOT_LABELS, type InventoryItem, type ItemDef } from '@/game';
+import { bonusText, itemDisplayName, itemSlotLabel, maxDurability, requirementsText, type InventoryItem, type ItemDef } from '@/game';
 
 interface Action {
   title: string;
@@ -36,7 +36,7 @@ export function ItemCard({ item, inv, price, priceLabel, badge, warning, actions
         <View style={styles.titleCol}>
           <Txt bold>{itemDisplayName(item, inv?.upgrade)}</Txt>
           <Txt variant="small">
-            {SLOT_LABELS[item.slot]}
+            {itemSlotLabel(item)}
             {inv ? (broken ? ' · сломано' : ` · прочность ${inv.durability}/${max}`) : ''}
           </Txt>
         </View>

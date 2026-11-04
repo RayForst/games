@@ -1,6 +1,6 @@
-import type { ItemDef, Slot } from './types';
+import type { ItemDef, ItemSlot } from './types';
 
-// Каталог предметов. Уровни 0–3, цены в кредитах.
+// Каталог предметов. Уровни 0–6, цены в кредитах.
 // Логика бонусов: сила → урон, ловкость → уворот/антикрит, интуиция → крит/антиуворот, выносливость → hp.
 
 export const ITEMS: ItemDef[] = [
@@ -57,7 +57,7 @@ export const ITEMS: ItemDef[] = [
   { id: 'longsword', name: 'Полуторный меч', slot: 'weapon', price: 950, level: 4, damage: [10, 16], requires: { strength: 13 } },
   { id: 'war-hammer', name: 'Боевой молот', slot: 'weapon', price: 800, level: 5, damage: [12, 20], requires: { strength: 15 }, bonus: { antiDodge: 6 } },
   { id: 'estoc', name: 'Эсток', slot: 'weapon', price: 850, level: 5, damage: [10, 17], requires: { intuition: 10 }, bonus: { crit: 10 } },
-  { id: 'halberd', name: 'Алебарда', slot: 'weapon', price: 1300, level: 6, damage: [14, 24], requires: { strength: 17 } },
+  { id: 'halberd', name: 'Алебарда', slot: 'weapon', price: 1300, level: 6, damage: [19, 31], requires: { strength: 19 }, twoHanded: true, bonus: { antiDodge: 4, dodge: -4 }, description: 'Древко в полтора роста. Щит к ней не прилагается.' },
   { id: 'executioner-sword', name: 'Меч палача', slot: 'weapon', price: 1500, level: 6, damage: [15, 25], requires: { strength: 18 }, bonus: { crit: 6 }, description: 'Зазубрен не от боёв.' },
   // Щиты
   { id: 'kite-shield', name: 'Каплевидный щит', slot: 'shield', price: 900, level: 4, requires: { strength: 11 }, bonus: { armor: { head: 2, body: 3, belt: 2, legs: 1 }, dodge: -5 } },
@@ -75,6 +75,36 @@ export const ITEMS: ItemDef[] = [
   { id: 'plate-legs', name: 'Латные поножи', slot: 'pants', price: 650, level: 5, requires: { strength: 12 }, bonus: { armor: { legs: 6 } } },
   { id: 'dragon-legs', name: 'Драконьи поножи', slot: 'pants', price: 1250, level: 6, requires: { strength: 15 }, bonus: { armor: { legs: 8 }, stats: { endurance: 1 } } },
   { id: 'knight-sabatons', name: 'Рыцарские сабатоны', slot: 'boots', price: 600, level: 5, bonus: { armor: { legs: 5 }, stats: { endurance: 1 }, dodge: 2 } },
+
+  // ─── Двуручное оружие ─────────────────────────────────────────────────────
+  // Урон на треть выше одноручного того же уровня, но щит не надеть; тяжёлое — минус к увороту.
+  { id: 'wagon-shaft', name: 'Оглобля', slot: 'weapon', price: 120, level: 1, damage: [7, 12], requires: { strength: 8 }, twoHanded: true, bonus: { dodge: -2 }, description: 'Сняли с телеги. Телега не возражала.' },
+  { id: 'poleaxe', name: 'Секира', slot: 'weapon', price: 330, level: 2, damage: [8, 14], requires: { strength: 10 }, twoHanded: true, bonus: { crit: 3, dodge: -2 } },
+  { id: 'greatsword', name: 'Двуручный меч', slot: 'weapon', price: 650, level: 3, damage: [11, 18], requires: { strength: 13 }, twoHanded: true, bonus: { antiDodge: 3, dodge: -3 } },
+  { id: 'bardiche', name: 'Бердыш', slot: 'weapon', price: 1100, level: 4, damage: [13, 22], requires: { strength: 15 }, twoHanded: true, bonus: { crit: 4, dodge: -3 } },
+  { id: 'maul', name: 'Кувалда', slot: 'weapon', price: 1000, level: 5, damage: [16, 26], requires: { strength: 18 }, twoHanded: true, bonus: { antiDodge: 6, dodge: -4 }, description: 'Кузнец Макар сделал, кузнец Макар предупреждал.' },
+
+  // ─── Кольца ───────────────────────────────────────────────────────────────
+  // Два слота, одинаковые можно. Прибавки маленькие, но складываются; цены — около 60 % от вещи того же уровня.
+  { id: 'copper-ring', name: 'Медное кольцо', slot: 'ring', price: 25, level: 0, bonus: { hp: 3 } },
+  { id: 'bone-ring', name: 'Костяное кольцо', slot: 'ring', price: 30, level: 0, bonus: { crit: 2 }, description: 'Чья кость — не спрашивай.' },
+  { id: 'iron-ring', name: 'Железное кольцо', slot: 'ring', price: 90, level: 1, bonus: { stats: { strength: 1 } } },
+  { id: 'silver-ring', name: 'Серебряное кольцо', slot: 'ring', price: 100, level: 1, bonus: { stats: { intuition: 1 } } },
+  { id: 'onyx-ring', name: 'Кольцо с ониксом', slot: 'ring', price: 220, level: 2, bonus: { stats: { dexterity: 1 }, dodge: 2 } },
+  { id: 'garnet-ring', name: 'Кольцо с гранатом', slot: 'ring', price: 240, level: 2, bonus: { stats: { strength: 1 }, crit: 2 } },
+  { id: 'drowned-ring', name: 'Кольцо утопленника', slot: 'ring', price: 380, level: 3, bonus: { stats: { endurance: 1 }, hp: 6, antiCrit: 2 }, description: 'С пальца не снималось. Пришлось с пальцем.' },
+  { id: 'headsman-ring', name: 'Перстень палача', slot: 'ring', price: 420, level: 3, bonus: { crit: 5, antiDodge: 3 } },
+  { id: 'prince-ring', name: 'Княжий перстень', slot: 'ring', price: 600, level: 4, bonus: { stats: { strength: 1, intuition: 1 }, crit: 3 } },
+  { id: 'host-ring', name: 'Перстень Хозяина', slot: 'ring', price: 700, level: 5, bonus: { stats: { strength: 2, endurance: 1 }, antiCrit: 4 }, description: 'Таких несколько. Хозяин раздаёт их тем, кто дожил.' },
+  { id: 'dragon-ring', name: 'Кольцо дракона', slot: 'ring', price: 950, level: 6, bonus: { stats: { strength: 1, intuition: 2 }, crit: 6, antiDodge: 4 } },
+
+  // ─── Амулеты ──────────────────────────────────────────────────────────────
+  { id: 'wolf-fang', name: 'Волчий клык', slot: 'amulet', price: 30, level: 0, bonus: { crit: 2, antiDodge: 1 } },
+  { id: 'ladanka', name: 'Ладанка', slot: 'amulet', price: 90, level: 1, bonus: { hp: 5, antiCrit: 2 }, description: 'Внутри что-то шуршит. Лучше не открывать.' },
+  { id: 'evil-eye-charm', name: 'Оберег от сглаза', slot: 'amulet', price: 240, level: 2, bonus: { dodge: 4, antiCrit: 3 } },
+  { id: 'veteran-medallion', name: 'Медальон ветерана', slot: 'amulet', price: 400, level: 3, bonus: { stats: { strength: 1, endurance: 1 }, hp: 5 } },
+  { id: 'tooth-necklace', name: 'Ожерелье из зубов', slot: 'amulet', price: 650, level: 4, bonus: { stats: { intuition: 2 }, crit: 5, antiDodge: 3 }, description: 'Зубы человеческие. Разные.' },
+  { id: 'host-amulet', name: 'Амулет Хозяина', slot: 'amulet', price: 1100, level: 6, bonus: { stats: { strength: 1, endurance: 2 }, hp: 15, antiCrit: 5 } },
 ];
 
 export const ITEMS_BY_ID: Record<string, ItemDef> = Object.fromEntries(ITEMS.map((i) => [i.id, i]));
@@ -85,8 +115,13 @@ export function getItem(id: string): ItemDef {
   return item;
 }
 
-export function itemsForSlot(slot: Slot): ItemDef[] {
+export function itemsForSlot(slot: ItemSlot): ItemDef[] {
   return ITEMS.filter((i) => i.slot === slot);
+}
+
+/** Двуручное оружие и щит вместе не носятся. */
+export function isTwoHanded(item: ItemDef | null | undefined): boolean {
+  return !!item?.twoHanded;
 }
 
 /** Цена продажи — половина стоимости, заточка добавляет по 15 % за уровень. */
@@ -98,7 +133,7 @@ export function sellPrice(item: ItemDef, upgrade = 0): number {
 
 export const UPGRADE_MAX = 3;
 
-const DURABILITY_BY_SLOT: Record<Slot, number> = {
+const DURABILITY_BY_SLOT: Record<ItemSlot, number> = {
   weapon: 40,
   shield: 50,
   helmet: 50,
@@ -107,6 +142,8 @@ const DURABILITY_BY_SLOT: Record<Slot, number> = {
   belt: 40,
   pants: 50,
   boots: 50,
+  ring: 60,
+  amulet: 60,
 };
 
 /** Полная прочность вещи: по слоту, дорогие вещи крепче. */

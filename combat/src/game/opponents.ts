@@ -1,5 +1,5 @@
 import type { Opponent, Slot, StatKey, Stats } from './types';
-import { SLOTS, STAT_KEYS } from './types';
+import { itemSlotOf, SLOTS, STAT_KEYS } from './types';
 import { ITEMS } from './items';
 import { baseStats, deriveStats, statPointsTotal } from './formulas';
 import type { Rng } from './combat';
@@ -78,14 +78,21 @@ function rollGear(level: number, stats: Stats, gearScale: number, rng: Rng): str
   const ids: string[] = [];
   const chance: Record<Slot, number> = {
     weapon: 0.9, shield: 0.3, helmet: 0.5, armor: 0.6, gloves: 0.4, belt: 0.4, pants: 0.5, boots: 0.5,
+    ring1: 0.4, ring2: 0.25, amulet: 0.4,
   };
+  let twoHanded = false;
   for (const slot of SLOTS) {
+    // Щит при двуручнике не носят — то же правило, что у игрока.
+    if (slot === 'shield' && twoHanded) continue;
     if (rng() >= (chance[slot] + level * 0.05) * gearScale) continue;
-    const options = ITEMS.filter((i) => i.slot === slot && i.level <= level && meetsRequirements(stats, i.requires));
+    const catalogSlot = itemSlotOf(slot);
+    const options = ITEMS.filter((i) => i.slot === catalogSlot && i.level <= level && meetsRequirements(stats, i.requires));
     if (options.length === 0) continue;
     // Предпочитаем предметы ближе к уровню бота.
     const best = options.filter((i) => i.level >= level - 1);
-    ids.push(pick(rng, best.length > 0 ? best : options).id);
+    const chosen = pick(rng, best.length > 0 ? best : options);
+    if (slot === 'weapon' && chosen.twoHanded) twoHanded = true;
+    ids.push(chosen.id);
   }
   return ids;
 }

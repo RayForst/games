@@ -8,7 +8,7 @@ import { ItemCard } from '@/components/ItemCard';
 import { Kredits } from '@/components/Kredits';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
-import { canEquip, dayKey, ITEMS, marketPrice, RESOURCES, SLOT_LABELS, SLOTS, type Slot } from '@/game';
+import { canEquip, dayKey, ITEM_SLOT_LABELS, ITEM_SLOTS, ITEMS, marketPrice, prepareEquip, RESOURCES, type ItemSlot } from '@/game';
 import { GiIcon } from '@/components/GiIcon';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
@@ -16,7 +16,11 @@ import { useFlash } from '@/hooks/useFlash';
 import { useGame } from '@/store/useGame';
 import { colors, spacing } from '@/ui/theme';
 
-type Filter = 'all' | Slot;
+type Filter = 'all' | ItemSlot | 'two-handed';
+
+/** Подписи фильтров: во множественном числе там, где это звучит. */
+const FILTER_LABELS: Record<Exclude<Filter, 'all'>, string> = { ...ITEM_SLOT_LABELS, ring: 'Кольца', amulet: 'Амулеты', 'two-handed': 'Двуручное' };
+const FILTERS: Exclude<Filter, 'all'>[] = [...ITEM_SLOTS.slice(0, 1), 'two-handed', ...ITEM_SLOTS.slice(1)];
 
 export default function ShopScreen() {
   const character = useGame((s) => s.character);
@@ -26,7 +30,7 @@ export default function ShopScreen() {
   const [flash, show] = useFlash();
 
   const items = useMemo(() => {
-    const list = filter === 'all' ? ITEMS : ITEMS.filter((i) => i.slot === filter);
+    const list = filter === 'all' ? ITEMS : filter === 'two-handed' ? ITEMS.filter((i) => i.twoHanded) : ITEMS.filter((i) => i.slot === filter);
     return [...list].sort((a, b) => a.level - b.level || a.price - b.price);
   }, [filter]);
 
@@ -45,8 +49,8 @@ export default function ShopScreen() {
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
         <Chip label="Все" active={filter === 'all'} onPress={() => setFilter('all')} />
-        {SLOTS.map((s) => (
-          <Chip key={s} label={SLOT_LABELS[s]} active={filter === s} onPress={() => setFilter(s)} />
+        {FILTERS.map((s) => (
+          <Chip key={s} label={FILTER_LABELS[s]} active={filter === s} onPress={() => setFilter(s)} />
         ))}
       </ScrollView>
 
@@ -81,7 +85,7 @@ export default function ShopScreen() {
       </Card>
 
       {items.map((item) => {
-        const check = canEquip(character, item);
+        const check = canEquip(prepareEquip(character, item).character, item);
         const affordable = character.kredits >= item.price;
         return (
           <ItemCard

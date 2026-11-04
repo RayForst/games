@@ -49,7 +49,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   {
     id: 'full-set',
     name: 'Полный комплект',
-    description: 'Надень вещи во все восемь слотов',
+    description: 'Надень вещи во все слоты, кольца и амулет тоже',
     reward: 40,
     check: (c) => SLOTS.every((s) => !!c.equipment[s]),
     progress: (c) => [SLOTS.filter((s) => !!c.equipment[s]).length, SLOTS.length],

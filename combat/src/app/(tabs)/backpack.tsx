@@ -6,7 +6,7 @@ import { ItemCard } from '@/components/ItemCard';
 import { Kredits } from '@/components/Kredits';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
-import { canEquip, getItem, isEquipped, RESOURCES, sellPrice, SLOTS } from '@/game';
+import { canEquip, getItem, isEquipped, prepareEquip, RESOURCES, sellPrice, SLOTS } from '@/game';
 import { GiIcon } from '@/components/GiIcon';
 import { useFlash } from '@/hooks/useFlash';
 import { useGame } from '@/store/useGame';
@@ -99,7 +99,8 @@ export default function BackpackScreen() {
         </Card>
       ) : null}
       {loose.map(({ inv, item }) => {
-        const check = canEquip({ ...character, equipment: { ...character.equipment, [item.slot]: null } }, item);
+        // Щит при двуручнике (и наоборот) снимется сам, поэтому проверяем «как будто уже снято».
+        const check = canEquip(prepareEquip(character, item).character, item);
         const price = sellPrice(item, inv.upgrade);
         return (
           <ItemCard
@@ -113,7 +114,7 @@ export default function BackpackScreen() {
                 disabled: !check.ok,
                 onPress: () => {
                   const r = equip(inv.uid);
-                  show(r.ok ? `${item.name} — надето` : (r.reason ?? 'Не получилось'));
+                  show(r.ok ? `${item.name} — надето${r.note ? `, ${r.note}` : ''}` : (r.reason ?? 'Не получилось'));
                 },
               },
               { title: `Продать · ${price} кр.`, variant: 'secondary', onPress: () => onSell(inv.uid, item.name, price) },
