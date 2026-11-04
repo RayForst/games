@@ -223,7 +223,10 @@ export function wildOpponent(wild: WildId, playerLevel: number, rng: () => numbe
     name: foe.name,
     flavor: foe.flavor,
     itemIds,
-    derived: deriveStats(base.stats, base.level, itemIds),
+    derived: deriveStats(base.stats, base.level, itemIds, [], foe.beast ? null : base.race),
+    // Зверь — ничей; человек с тракта — Вольница, бой с ним идёт в войну сторон.
+    side: foe.beast ? undefined : 'free',
+    race: foe.beast ? undefined : base.race,
     foeIcon: foe.icon,
   };
 }

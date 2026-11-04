@@ -19,3 +19,5 @@ export * from './rivals';
 export * from './roles';
 export * from './chat';
 export * from './guild';
+export * from './races';
+export * from './war';

@@ -12,6 +12,7 @@ import { Txt } from '@/components/Txt';
 import {
   activeInjury,
   deriveCharacter,
+  originText,
   expForLevel,
   injurySecondsLeft,
   injuryText,
@@ -31,7 +32,7 @@ import {
 import { useNow } from '@/hooks/useNow';
 import { playSfx } from '@/ui/sfx';
 import { useGame } from '@/store/useGame';
-import { colors, radius, spacing } from '@/ui/theme';
+import { colors, radius, spacing, sideColors } from '@/ui/theme';
 
 function formatSeconds(total: number): string {
   const m = Math.floor(total / 60);
@@ -93,7 +94,7 @@ export default function CharacterScreen() {
             {character.name}
           </Txt>
           <Txt variant="muted">
-            {character.level} уровень · {character.kredits} кр.
+            {character.level} уровень · {character.kredits} кр. · <Txt variant="muted" color={sideColors[character.side]}>{originText(character.side, character.race)}</Txt>
           </Txt>
           <Txt variant="small" color={colors.gold}>
             {rankFor(character.rating)} · рейтинг {character.rating}

@@ -51,8 +51,14 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: server/package-lock.json
+          cache-dependency-path: |
+            server/package-lock.json
+            combat/package-lock.json
       - run: npm ci
+      # Сервер импортирует правила из combat/src, а vitest читает combat/tsconfig.json (extends expo/tsconfig.base),
+      # поэтому зависимости клиента тоже нужны.
+      - run: npm ci
+        working-directory: combat
       - run: npm test
       - run: npm run typecheck
 

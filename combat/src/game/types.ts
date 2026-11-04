@@ -1,5 +1,7 @@
 // Базовые типы игры. Всё, что здесь, — чистые данные, без React.
 
+import type { RaceId, SideId } from './races';
+
 export type StatKey = 'strength' | 'dexterity' | 'intuition' | 'endurance';
 
 export const STAT_KEYS: StatKey[] = ['strength', 'dexterity', 'intuition', 'endurance'];
@@ -220,6 +222,12 @@ export interface Character {
   resources: Record<'herbs' | 'wood' | 'pelts' | 'bogwort' | 'relics' | 'ore', number>;
   /** Счёт против именных соперников: id → победы/поражения игрока. */
   rivals: Record<string, { wins: number; losses: number }>;
+  /** Сторона: Корона или Вольница. */
+  side: SideId;
+  /** Раса внутри стороны. */
+  race: RaceId;
+  /** Сколько раз перебегал на другую сторону (первый раз бесплатно). */
+  defections: number;
 }
 
 export interface Ledger {
@@ -253,6 +261,8 @@ export interface DerivedStats {
   expMult: number;
   healMult: number;
   regenMult: number;
+  /** Множитель длительности травм (расовая черта). */
+  injuryMult: number;
 }
 
 /** Участник боя — всё, что нужно формулам. */
@@ -291,6 +301,9 @@ export interface Opponent {
   flavor: string;
   /** Именной соперник (см. rivals.ts). */
   rivalId?: string;
+  /** Сторона бота: нет у зверей из засад. Победа над чужой стороной идёт в войну сторон. */
+  side?: SideId;
+  race?: RaceId;
 }
 
 export interface Reward {

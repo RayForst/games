@@ -3,6 +3,7 @@ import { itemSlotOf, STAT_KEYS } from './types';
 import { ITEMS } from './items';
 import { baseStats, deriveStats, statPointsTotal } from './formulas';
 import type { Rng } from './combat';
+import { randomRace, randomSide, type RaceId, type SideId } from './races';
 
 /**
  * Клички массовки. Именные лица арены (Толян, Барт, Нюра, Мясник, Тень, Солдат) живут в rivals.ts
@@ -155,8 +156,12 @@ function rollGear(level: number, stats: Stats, gearScale: number, rng: Rng): str
   return ids;
 }
 
-export function generateOpponent(level: number, rng: Rng, usedNames: Set<string> = new Set(), gearScale = 1, archetype?: ArchetypeName): Opponent {
+export function generateOpponent(level: number, rng: Rng, usedNames: Set<string> = new Set(), gearScale = 1, archetype?: ArchetypeName, origin?: { side: SideId; race?: RaceId }): Opponent {
   const lvl = Math.max(0, level);
+  // Сторона и раса бота: заданные или случайные. Расовая черта считается в derived, +1 к характеристике не даём —
+  // очков у бота столько же, сколько у игрока того же уровня, и так честнее.
+  const side = origin?.side ?? randomSide(rng);
+  const race = origin?.race ?? randomRace(side, rng);
   const arch = ARCHETYPES.find((a) => a.name === archetype) ?? pick(rng, ARCHETYPES);
   const stats = rollStats(lvl, arch, rng);
   const itemIds = rollGear(lvl, stats, Math.max(0, Math.min(1, gearScale)), rng);
@@ -173,8 +178,10 @@ export function generateOpponent(level: number, rng: Rng, usedNames: Set<string>
     level: lvl,
     stats,
     itemIds,
-    derived: deriveStats(stats, lvl, itemIds),
+    derived: deriveStats(stats, lvl, itemIds, [], race),
     flavor: `${arch.name[0].toUpperCase()}${arch.name.slice(1)}. ${pick(rng, rng() < 0.5 ? arch.flavors : FLAVOR)}`,
+    side,
+    race,
   };
 }
 

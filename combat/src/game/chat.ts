@@ -1,6 +1,8 @@
 import type { Check } from './character';
 import type { FightStatus } from './types';
 import type { Role } from './roles';
+import type { SideId } from './races';
+import { RIVALS_BY_ID } from './rivals';
 
 // Чат. Сервера нет, поэтому собеседники — завсегдатаи пивной и знакомые с арены: они болтают сами
 // по себе и отвечают на слова игрока по теме. Структура сообщений та же, что будет у сетевого чата
@@ -31,6 +33,8 @@ export interface ChatAuthor {
   tag?: string | null;
   /** Служебная роль автора, если он не простой игрок. */
   role?: Role;
+  /** Сторона автора — цветная метка перед именем. Логику чата не меняет. */
+  side?: SideId;
 }
 
 export interface ChatMessage {
@@ -118,6 +122,8 @@ export type Topic = 'greet' | 'fight' | 'money' | 'guild' | 'brod' | 'work' | 'h
 export interface NpcVoice {
   id: string;
   name: string;
+  /** Сторона завсегдатая; у именных соперников берётся из rivals.ts. Городские (Марфа, Гришка, Фома) — Корона. */
+  side?: SideId;
   /** Реплики без повода. */
   ambient: string[];
   /** Ответы по темам; темы без ответов — молчание этого персонажа. */
@@ -445,7 +451,7 @@ function between(rng: () => number, [min, max]: [number, number]): number {
 }
 
 export function npcAuthor(voice: NpcVoice): ChatAuthor {
-  return { id: `npc:${voice.id}`, name: voice.name };
+  return { id: `npc:${voice.id}`, name: voice.name, side: voice.side ?? RIVALS_BY_ID[voice.id]?.side ?? 'crown' };
 }
 
 /**

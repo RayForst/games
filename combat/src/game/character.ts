@@ -5,6 +5,7 @@ import { CREATION_FREE_POINTS, FULL_REGEN_MINUTES, baseStats, deriveStats } from
 import { emptyLedger, normalizeLedger } from './achievements';
 import { emptyResources, normalizeResources } from './wilds';
 import type { PerkId } from './perks';
+import { DEFAULT_ORIGIN, isValidOrigin, raceStats, switchRaceStats, type Origin, type RaceId, type SideId } from './races';
 
 export function emptyEquipment(): Record<Slot, string | null> {
   return Object.fromEntries(SLOTS.map((s) => [s, null])) as Record<Slot, string | null>;
@@ -12,9 +13,13 @@ export function emptyEquipment(): Record<Slot, string | null> {
 
 export const STARTING_KREDITS = 50;
 
-export function newCharacter(name: string, stats: Stats = baseStats(), freePoints = CREATION_FREE_POINTS, now = Date.now()): Character {
+/**
+ * Новый персонаж. `stats` — уже с расовым +1 (см. `raceStats`): так экран создания показывает то, что получится,
+ * а старые тесты и боты без происхождения считают очки как раньше.
+ */
+export function newCharacter(name: string, stats: Stats = baseStats(), freePoints = CREATION_FREE_POINTS, now = Date.now(), origin: Origin = DEFAULT_ORIGIN): Character {
   const level = 0;
-  const derived = deriveStats(stats, level, []);
+  const derived = deriveStats(stats, level, [], [], origin.race);
   return {
     name: name.trim(),
     level,
@@ -42,7 +47,16 @@ export function newCharacter(name: string, stats: Stats = baseStats(), freePoint
     location: 'city',
     resources: emptyResources(),
     rivals: {},
+    side: origin.side,
+    race: origin.race,
+    defections: 0,
   };
+}
+
+/** Перебежчик: новая сторона и раса, расовый +1 переезжает, счётчик переходов растёт. */
+export function defect(c: Character, side: SideId, race: RaceId): Character {
+  if (!isValidOrigin(side, race)) return c;
+  return { ...c, side, race, stats: switchRaceStats(c.stats, c.race, race), defections: c.defections + 1 };
 }
 
 /** Id предметов (каталожные), которые сейчас надеты. */
@@ -70,7 +84,7 @@ export function equippedPieces(c: Character): EquippedPiece[] {
 }
 
 export function deriveCharacter(c: Character, now = Date.now()): DerivedStats {
-  return deriveStats(statsWithInjury(c, now), c.level, equippedPieces(c), c.perks as PerkId[]);
+  return deriveStats(statsWithInjury(c, now), c.level, equippedPieces(c), c.perks as PerkId[], c.race);
 }
 
 // ─── Травмы ──────────────────────────────────────────────────────────────────
@@ -97,14 +111,14 @@ export function statsWithInjury(c: Character, now = Date.now()): Stats {
  * Бросок на травму после боя: поражение 40 %, ничья 15 %, победа никогда.
  * Тяжесть: лёгкая 60 %, средняя 30 %, тяжёлая 10 %. Характеристика случайная.
  */
-export function rollInjury(status: FightStatus, rng: () => number, now = Date.now()): Injury | null {
+export function rollInjury(status: FightStatus, rng: () => number, now = Date.now(), durationMult = 1): Injury | null {
   const chance = status === 'lost' ? 0.4 : status === 'draw' ? 0.15 : 0;
   if (rng() >= chance) return null;
   const r = rng();
   const kind: InjuryKind = r < 0.6 ? 'light' : r < 0.9 ? 'medium' : 'heavy';
   const stat = STAT_KEYS[Math.floor(rng() * STAT_KEYS.length)];
   const info = INJURY_INFO[kind];
-  return { kind, stat, amount: info.amount, until: now + info.minutes * 60_000 };
+  return { kind, stat, amount: info.amount, until: now + Math.round(info.minutes * 60_000 * durationMult) };
 }
 
 /** Новая травма заменяет старую только если тяжелее. */
@@ -150,6 +164,11 @@ export function normalizeCharacter(raw: Character): Character {
   const equipment = { ...emptyEquipment(), ...(raw.equipment ?? {}) };
   const weapon = equipment.weapon ? backpack.find((i) => i.uid === equipment.weapon) : null;
   if (weapon && isTwoHanded(ITEMS_BY_ID[weapon.itemId]) && equipment.shield) equipment.shield = null;
+  // Сейв до сторон: записываем в Корону Людьми и даём расовый +1, чтобы не отставать от новых.
+  const hadOrigin = !!raw.race && !!raw.side && isValidOrigin(raw.side, raw.race);
+  const side = hadOrigin ? raw.side : DEFAULT_ORIGIN.side;
+  const race = hadOrigin ? raw.race : DEFAULT_ORIGIN.race;
+  const stats = hadOrigin ? raw.stats : raceStats(raw.stats, race);
   return {
     ...raw,
     backpack,
@@ -166,6 +185,10 @@ export function normalizeCharacter(raw: Character): Character {
     location: raw.location ?? 'city',
     resources: normalizeResources(raw.resources),
     rivals: raw.rivals ?? {},
+    stats,
+    side,
+    race,
+    defections: typeof raw.defections === 'number' ? raw.defections : 0,
   };
 }
 
