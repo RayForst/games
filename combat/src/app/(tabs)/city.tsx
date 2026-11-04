@@ -7,17 +7,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { CityMap } from '@/components/CityMap';
 import { Txt } from '@/components/Txt';
-import { BUILDINGS_BY_ID, CITY_START, deriveCharacter, healCost, mineIsDone, mineSecondsLeft, type BuildingId } from '@/game';
+import { BUILDINGS_BY_ID, CITY_START, deriveCharacter, healCost, mineIsDone, mineSecondsLeft, wornItems, type BuildingId } from '@/game';
 import { useNow } from '@/hooks/useNow';
 import { useGame } from '@/store/useGame';
 import { formatDuration, plural } from '@/ui/format';
 import { colors, radius, spacing } from '@/ui/theme';
 
-const ROUTES: Partial<Record<BuildingId, '/arena' | '/shop' | '/healer' | '/mine'>> = {
+const ROUTES: Partial<Record<BuildingId, '/arena' | '/shop' | '/healer' | '/mine' | '/smithy'>> = {
   arena: '/arena',
   shop: '/shop',
   healer: '/healer',
   mine: '/mine',
+  smithy: '/smithy',
 };
 
 // На коротких экранах (iPhone SE) панель внизу иначе наезжает на нижние заведения — подсказку убираем.
@@ -51,7 +52,7 @@ export default function CityScreen() {
     shop: `${character.kredits} кр.`,
     healer: character.hp >= derived.maxHp ? 'ты здоров' : `${healCost(character)} кр.`,
     mine: mining ? (mineIsDone(mining, now) ? 'смена окончена' : `ещё ${formatDuration(mineSecondsLeft(mining, now))}`) : 'свободна',
-    smithy: 'скоро',
+    smithy: wornItems(character).length > 0 ? `${wornItems(character).length} ${plural(wornItems(character).length, ['вещь изношена', 'вещи изношены', 'вещей изношено'])}` : 'всё цело',
     tavern: 'скоро',
   };
 

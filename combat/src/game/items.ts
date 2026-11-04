@@ -64,7 +64,52 @@ export function itemsForSlot(slot: Slot): ItemDef[] {
   return ITEMS.filter((i) => i.slot === slot);
 }
 
-/** Цена продажи — половина стоимости. */
-export function sellPrice(item: ItemDef): number {
-  return Math.floor(item.price / 2);
+/** Цена продажи — половина стоимости, заточка добавляет по 15 % за уровень. */
+export function sellPrice(item: ItemDef, upgrade = 0): number {
+  return Math.floor((item.price * (1 + 0.15 * upgrade)) / 2);
+}
+
+// ─── Кузница ────────────────────────────────────────────────────────────────
+
+export const UPGRADE_MAX = 3;
+
+const DURABILITY_BY_SLOT: Record<Slot, number> = {
+  weapon: 40,
+  shield: 50,
+  helmet: 50,
+  armor: 60,
+  gloves: 40,
+  belt: 40,
+  pants: 50,
+  boots: 50,
+};
+
+/** Полная прочность вещи: по слоту, дорогие вещи крепче. */
+export function maxDurability(item: ItemDef): number {
+  return DURABILITY_BY_SLOT[item.slot] + item.level * 10;
+}
+
+/** Ремонт: четверть цены за полный износ, пропорционально недостающему, не меньше 1 кр. */
+export function repairCost(item: ItemDef, durability: number): number {
+  const max = maxDurability(item);
+  const missing = Math.max(0, max - durability);
+  if (missing === 0) return 0;
+  return Math.max(1, Math.ceil((item.price * 0.25 * missing) / max));
+}
+
+/** Точить можно оружие и всё, что даёт броню. Перчатки с бонусом к статам — нет. */
+export function canUpgrade(item: ItemDef): boolean {
+  if (item.damage) return true;
+  const armor = item.bonus?.armor;
+  return !!armor && Object.values(armor).some((v) => (v ?? 0) > 0);
+}
+
+/** Заточка до уровня `next` (1..3): 60 % цены за первый уровень, дальше дороже. */
+export function upgradeCost(item: ItemDef, next: number): number {
+  return Math.max(2, Math.ceil(item.price * 0.6 * next));
+}
+
+/** Имя с заточкой: «Меч +2». */
+export function itemDisplayName(item: ItemDef, upgrade = 0): string {
+  return upgrade > 0 ? `${item.name} +${upgrade}` : item.name;
 }

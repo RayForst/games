@@ -1,6 +1,6 @@
-import type { Character, DerivedStats, Fighter, ItemDef, Slot, StatKey, Stats } from './types';
+import type { Character, DerivedStats, EquippedPiece, Fighter, InventoryItem, ItemDef, Slot, StatKey, Stats } from './types';
 import { SLOTS, STAT_KEYS, STAT_LABELS } from './types';
-import { ITEMS_BY_ID } from './items';
+import { ITEMS_BY_ID, maxDurability } from './items';
 import { CREATION_FREE_POINTS, FULL_REGEN_MINUTES, baseStats, deriveStats } from './formulas';
 
 export function emptyEquipment(): Record<Slot, string | null> {
@@ -42,8 +42,66 @@ export function equippedItemIds(c: Character): string[] {
   return ids;
 }
 
+/** Надетые вещи с заточкой и поломкой — для формул. */
+export function equippedPieces(c: Character): EquippedPiece[] {
+  const pieces: EquippedPiece[] = [];
+  for (const slot of SLOTS) {
+    const uid = c.equipment[slot];
+    if (!uid) continue;
+    const inv = c.backpack.find((i) => i.uid === uid);
+    if (inv) pieces.push({ id: inv.itemId, upgrade: inv.upgrade, broken: inv.durability <= 0 });
+  }
+  return pieces;
+}
+
 export function deriveCharacter(c: Character): DerivedStats {
-  return deriveStats(c.stats, c.level, equippedItemIds(c));
+  return deriveStats(c.stats, c.level, equippedPieces(c));
+}
+
+/** Новый экземпляр вещи: полная прочность, без заточки. */
+export function newInventoryItem(uid: string, itemId: string): InventoryItem {
+  const item = ITEMS_BY_ID[itemId];
+  return { uid, itemId, durability: item ? maxDurability(item) : 0, upgrade: 0 };
+}
+
+/**
+ * Старые сейвы без новых полей: дописываем значения по умолчанию, ничего не ломая.
+ * Вызывается при загрузке; поля будущих фич тоже добавлять сюда.
+ */
+export function normalizeCharacter(raw: Character): Character {
+  const backpack = (raw.backpack ?? []).map((i) => {
+    const item = ITEMS_BY_ID[i.itemId];
+    return {
+      ...i,
+      durability: typeof i.durability === 'number' ? i.durability : item ? maxDurability(item) : 0,
+      upgrade: typeof i.upgrade === 'number' ? i.upgrade : 0,
+    };
+  });
+  return { ...raw, backpack };
+}
+
+/** Износ после боя: всё надетое теряет `amount` прочности. Возвращает персонажа и список сломавшегося. */
+export function wearEquipment(c: Character, amount = 1): { character: Character; broke: ItemDef[] } {
+  const equippedUids = new Set(SLOTS.map((s) => c.equipment[s]).filter((u): u is string => !!u));
+  const broke: ItemDef[] = [];
+  const backpack = c.backpack.map((i) => {
+    if (!equippedUids.has(i.uid) || i.durability <= 0) return i;
+    const durability = Math.max(0, i.durability - amount);
+    if (durability === 0) {
+      const item = ITEMS_BY_ID[i.itemId];
+      if (item) broke.push(item);
+    }
+    return { ...i, durability };
+  });
+  return { character: { ...c, backpack }, broke };
+}
+
+/** Сколько надетых и лежащих вещей изношено (прочность ниже полной). */
+export function wornItems(c: Character): InventoryItem[] {
+  return c.backpack.filter((i) => {
+    const item = ITEMS_BY_ID[i.itemId];
+    return item ? i.durability < maxDurability(item) : false;
+  });
 }
 
 export function toFighter(c: Character): Fighter {

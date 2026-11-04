@@ -83,3 +83,18 @@ describe('statPointsTotal', () => {
     expect(statPointsTotal(1) - statPointsTotal(0)).toBe(3);
   });
 });
+
+describe('заточка и поломка', () => {
+  it('сломанная вещь не даёт ничего, заточка добавляет урон и броню', () => {
+    const plain = deriveStats(baseStats(), 0, ['sword', 'iron-helm']);
+    const sharp = deriveStats(baseStats(), 0, [{ id: 'sword', upgrade: 2 }, { id: 'iron-helm', upgrade: 1 }]);
+    const broken = deriveStats(baseStats(), 0, [{ id: 'sword', broken: true }, { id: 'iron-helm', broken: true }]);
+    const naked = deriveStats(baseStats(), 0, []);
+    expect(sharp.dmgMin).toBe(plain.dmgMin + 2);
+    expect(sharp.dmgMax).toBe(plain.dmgMax + 2);
+    expect(sharp.armor.head).toBe(plain.armor.head + 1);
+    expect(sharp.armor.body).toBe(plain.armor.body); // шлем не защищает корпус — заточка туда не идёт
+    expect(broken.dmgMax).toBe(naked.dmgMax);
+    expect(broken.armor.head).toBe(0);
+  });
+});

@@ -4,7 +4,7 @@ import { Button } from './Button';
 import { ItemIcon } from './ItemIcon';
 import { Txt } from './Txt';
 import { colors, radius, spacing } from '@/ui/theme';
-import { bonusText, requirementsText, SLOT_LABELS, type ItemDef } from '@/game';
+import { bonusText, itemDisplayName, maxDurability, requirementsText, SLOT_LABELS, type InventoryItem, type ItemDef } from '@/game';
 
 interface Action {
   title: string;
@@ -15,6 +15,8 @@ interface Action {
 
 interface Props {
   item: ItemDef;
+  /** Экземпляр из рюкзака — покажем прочность и заточку. */
+  inv?: InventoryItem;
   price?: number;
   priceLabel?: string;
   badge?: string;
@@ -22,16 +24,21 @@ interface Props {
   actions?: Action[];
 }
 
-export function ItemCard({ item, price, priceLabel, badge, warning, actions = [] }: Props) {
+export function ItemCard({ item, inv, price, priceLabel, badge, warning, actions = [] }: Props) {
   const req = requirementsText(item);
   const bonus = bonusText(item);
+  const max = inv ? maxDurability(item) : 0;
+  const broken = !!inv && inv.durability <= 0;
   return (
     <View style={styles.card}>
       <View style={styles.head}>
         <ItemIcon id={item.id} slot={item.slot} size={56} />
         <View style={styles.titleCol}>
-          <Txt bold>{item.name}</Txt>
-          <Txt variant="small">{SLOT_LABELS[item.slot]}</Txt>
+          <Txt bold>{itemDisplayName(item, inv?.upgrade)}</Txt>
+          <Txt variant="small">
+            {SLOT_LABELS[item.slot]}
+            {inv ? (broken ? ' · сломано' : ` · прочность ${inv.durability}/${max}`) : ''}
+          </Txt>
         </View>
         {badge ? (
           <View style={styles.badge}>
@@ -47,7 +54,7 @@ export function ItemCard({ item, price, priceLabel, badge, warning, actions = []
           </View>
         ) : null}
       </View>
-      {bonus ? <Txt variant="muted">{bonus}</Txt> : null}
+      {bonus ? <Txt variant="muted" color={broken ? colors.red : undefined}>{broken ? 'Сломано: бонусов нет, нужен кузнец' : bonus}</Txt> : null}
       {req ? <Txt variant="small">Требуется: {req}</Txt> : null}
       {item.description ? (
         <Txt variant="small" style={styles.description}>

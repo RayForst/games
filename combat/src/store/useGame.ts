@@ -5,6 +5,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import {
   applyRegen,
   canEquip,
+  canUpgrade,
   chooseEnemyMove,
   deriveCharacter,
   describeFinish,
@@ -17,14 +18,21 @@ import {
   isShiftHours,
   levelForExp,
   makeLogLine,
+  maxDurability,
   mineEarnings,
   mineRatePerHour,
   newCharacter,
+  newInventoryItem,
+  normalizeCharacter,
   POINTS_PER_LEVEL,
+  repairCost,
   resolveTurn,
   rewardFor,
   sellPrice,
   toFighter,
+  upgradeCost,
+  UPGRADE_MAX,
+  wearEquipment,
   type Character,
   type Check,
   type FightState,
@@ -75,6 +83,11 @@ export interface GameState {
 
   startMining: (hours: number) => Check;
   collectMining: () => MineResult;
+
+  /** Кузница. */
+  repairItem: (itemUid: string) => MineResult;
+  repairAll: () => MineResult;
+  upgradeItem: (itemUid: string) => Check;
 }
 
 export const useGame = create<GameState>()(
@@ -136,7 +149,7 @@ export const useGame = create<GameState>()(
           character: {
             ...c,
             kredits: c.kredits - item.price,
-            backpack: [...c.backpack, { uid: uid(), itemId }],
+            backpack: [...c.backpack, newInventoryItem(uid(), itemId)],
           },
         });
         return { ok: true };
@@ -154,7 +167,7 @@ export const useGame = create<GameState>()(
           character: {
             ...c,
             equipment,
-            kredits: c.kredits + sellPrice(item),
+            kredits: c.kredits + sellPrice(item, inv.upgrade),
             backpack: c.backpack.filter((i) => i.uid !== itemUid),
           },
         });
@@ -260,6 +273,10 @@ export const useGame = create<GameState>()(
           };
           if (levelsGained > 0) character.hp = deriveCharacter(character).maxHp;
           if (levelsGained > 0) log.push(makeLogLine(f.turn, `Уровень повышен! Теперь ${newLevel} уровень.`, 'system'));
+          // Износ: каждый бой снимает по единице прочности со всего надетого.
+          const worn = wearEquipment(character);
+          character = worn.character;
+          for (const item of worn.broke) log.push(makeLogLine(f.turn, `${item.name}: сломалось. Нужен кузнец.`, 'system'));
         }
 
         set({
@@ -300,12 +317,79 @@ export const useGame = create<GameState>()(
         set({ mining: null, character: { ...character, kredits: character.kredits + earned } });
         return { ok: true, kredits: earned };
       },
+
+      repairItem: (itemUid) => {
+        const c = get().character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        const inv = c.backpack.find((i) => i.uid === itemUid);
+        if (!inv) return { ok: false, reason: 'Предмет не найден' };
+        const item = getItem(inv.itemId);
+        const cost = repairCost(item, inv.durability);
+        if (cost === 0) return { ok: false, reason: 'Вещь цела' };
+        if (c.kredits < cost) return { ok: false, reason: `Нужно ${cost} кр.` };
+        set({
+          character: {
+            ...c,
+            kredits: c.kredits - cost,
+            backpack: c.backpack.map((i) => (i.uid === itemUid ? { ...i, durability: maxDurability(item) } : i)),
+          },
+        });
+        return { ok: true, kredits: cost };
+      },
+
+      repairAll: () => {
+        const c = get().character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        let total = 0;
+        const backpack = c.backpack.map((i) => {
+          const item = getItem(i.itemId);
+          const cost = repairCost(item, i.durability);
+          if (cost === 0) return i;
+          total += cost;
+          return { ...i, durability: maxDurability(item) };
+        });
+        if (total === 0) return { ok: false, reason: 'Чинить нечего' };
+        if (c.kredits < total) return { ok: false, reason: `На всё нужно ${total} кр.` };
+        set({ character: { ...c, kredits: c.kredits - total, backpack } });
+        return { ok: true, kredits: total };
+      },
+
+      upgradeItem: (itemUid) => {
+        const c = get().character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        const inv = c.backpack.find((i) => i.uid === itemUid);
+        if (!inv) return { ok: false, reason: 'Предмет не найден' };
+        const item = getItem(inv.itemId);
+        if (!canUpgrade(item)) return { ok: false, reason: 'Это не точится' };
+        if (inv.upgrade >= UPGRADE_MAX) return { ok: false, reason: 'Дальше точить некуда' };
+        if (inv.durability <= 0) return { ok: false, reason: 'Сначала почини' };
+        const next = inv.upgrade + 1;
+        const cost = upgradeCost(item, next);
+        if (c.kredits < cost) return { ok: false, reason: `Нужно ${cost} кр.` };
+        set({
+          character: {
+            ...c,
+            kredits: c.kredits - cost,
+            backpack: c.backpack.map((i) => (i.uid === itemUid ? { ...i, upgrade: next } : i)),
+          },
+        });
+        return { ok: true };
+      },
     }),
     {
       name: 'combat-save-v1',
+      version: 2,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (s) => ({ character: s.character, fight: s.fight, arena: s.arena, mining: s.mining }),
-      onRehydrateStorage: () => (state) => state?.setHydrated(),
+      // Старые сейвы дописываем недостающими полями (прочность, заточка, будущие фичи).
+      migrate: (persisted) => {
+        const state = persisted as Partial<GameState>;
+        return { ...state, character: state.character ? normalizeCharacter(state.character) : null };
+      },
+      onRehydrateStorage: () => (state) => {
+        if (state?.character) state.character = normalizeCharacter(state.character);
+        state?.setHydrated();
+      },
     },
   ),
 );

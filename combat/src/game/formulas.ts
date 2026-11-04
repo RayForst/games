@@ -1,5 +1,5 @@
 import { ITEMS_BY_ID } from './items';
-import type { ArmorZone, DerivedStats, StatKey, Stats, Zone } from './types';
+import type { ArmorZone, DerivedStats, EquippedPiece, StatKey, Stats, Zone } from './types';
 import { ARMOR_ZONES, STAT_KEYS, ZONE_TO_ARMOR } from './types';
 
 // ─── Константы баланса ──────────────────────────────────────────────────────
@@ -28,8 +28,10 @@ export function baseStats(): Stats {
 /**
  * Считает производные характеристики из базовых + списка надетых предметов.
  * Это единственное место, где живут формулы персонажа.
+ * Вещь можно передать просто id (боты) или с заточкой/поломкой (игрок): сломанная не даёт ничего,
+ * заточка добавляет +1 к урону оружия и +1 к каждой защищаемой зоне брони за уровень.
  */
-export function deriveStats(stats: Stats, level: number, itemIds: string[]): DerivedStats {
+export function deriveStats(stats: Stats, level: number, pieces: (string | EquippedPiece)[]): DerivedStats {
   const eff: Stats = { ...stats };
   let hpBonus = 0;
   let crit = 0;
@@ -39,10 +41,11 @@ export function deriveStats(stats: Stats, level: number, itemIds: string[]): Der
   let damage = UNARMED_DAMAGE;
   const armor = emptyArmor();
 
-  for (const id of itemIds) {
+  for (const piece of pieces) {
+    const { id, upgrade = 0, broken = false } = typeof piece === 'string' ? { id: piece } : piece;
     const item = ITEMS_BY_ID[id];
-    if (!item) continue;
-    if (item.damage) damage = item.damage;
+    if (!item || broken) continue;
+    if (item.damage) damage = [item.damage[0] + upgrade, item.damage[1] + upgrade];
     const b = item.bonus;
     if (!b) continue;
     if (b.stats) for (const k of STAT_KEYS) eff[k] += b.stats[k] ?? 0;
@@ -51,7 +54,7 @@ export function deriveStats(stats: Stats, level: number, itemIds: string[]): Der
     antiCrit += b.antiCrit ?? 0;
     dodge += b.dodge ?? 0;
     antiDodge += b.antiDodge ?? 0;
-    if (b.armor) for (const z of ARMOR_ZONES) armor[z] += b.armor[z] ?? 0;
+    if (b.armor) for (const z of ARMOR_ZONES) if ((b.armor[z] ?? 0) > 0) armor[z] += (b.armor[z] ?? 0) + upgrade;
   }
 
   return {

@@ -68,6 +68,7 @@ export default function BackpackScreen() {
         <ItemCard
           key={inv.uid}
           item={item}
+          inv={inv}
           badge="Надето"
           actions={[{ title: 'Снять', variant: 'secondary', onPress: () => unequip(slot) }]}
         />
@@ -85,11 +86,12 @@ export default function BackpackScreen() {
       ) : null}
       {loose.map(({ inv, item }) => {
         const check = canEquip({ ...character, equipment: { ...character.equipment, [item.slot]: null } }, item);
-        const price = sellPrice(item);
+        const price = sellPrice(item, inv.upgrade);
         return (
           <ItemCard
             key={inv.uid}
             item={item}
+            inv={inv}
             warning={check.ok ? null : check.reason}
             actions={[
               {

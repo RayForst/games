@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { ItemIcon } from './ItemIcon';
 import { Txt } from './Txt';
 import { colors, radius, spacing } from '@/ui/theme';
-import { itemOf, SLOT_LABELS, type Character, type ItemDef, type Slot } from '@/game';
+import { itemDisplayName, itemOf, SLOT_LABELS, type Character, type ItemDef, type Slot } from '@/game';
 
 interface Props {
   character: Character;
@@ -32,7 +32,7 @@ export function PaperDoll({ character, onSlotPress, children }: Props) {
             style={({ pressed }) => [styles.slot, item && styles.filled, pressed && styles.pressed]}>
             <ItemIcon id={item?.id} slot={slot} size={44} bare style={!item && styles.dim} />
             <Txt variant="small" numberOfLines={1} color={item ? colors.text : colors.textDim} style={styles.label}>
-              {item ? item.name : SLOT_LABELS[slot]}
+              {item ? itemDisplayName(item, character.backpack.find((i) => i.uid === character.equipment[slot])?.upgrade) : SLOT_LABELS[slot]}
             </Txt>
           </Pressable>
         );

@@ -128,6 +128,17 @@ export interface InventoryItem {
   /** Уникальный id экземпляра — у игрока может быть два одинаковых ножа. */
   uid: string;
   itemId: string;
+  /** Текущая прочность; 0 — сломано, бонусов не даёт. */
+  durability: number;
+  /** Заточка у кузнеца 0..3: оружию +урон, броне +защита. */
+  upgrade: number;
+}
+
+/** Надетая вещь для расчёта характеристик. Строка — просто id (боты), объект — с заточкой и поломкой. */
+export interface EquippedPiece {
+  id: string;
+  upgrade?: number;
+  broken?: boolean;
 }
 
 export type Stats = Record<StatKey, number>;

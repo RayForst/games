@@ -1,8 +1,22 @@
 import { describe, expect, it } from 'vitest';
 
-import { applyRegen, canEquip, deriveCharacter, HEAL_OPTIONS, healAmount, healCost, healPrice, newCharacter, secondsToFullHp } from './character';
+import {
+  applyRegen,
+  canEquip,
+  deriveCharacter,
+  HEAL_OPTIONS,
+  healAmount,
+  healCost,
+  healPrice,
+  newCharacter,
+  newInventoryItem,
+  normalizeCharacter,
+  secondsToFullHp,
+  wearEquipment,
+} from './character';
+import { canUpgrade, getItem, itemDisplayName, maxDurability, repairCost, sellPrice, upgradeCost } from './items';
+import type { InventoryItem } from './types';
 import { FULL_REGEN_MINUTES } from './formulas';
-import { getItem } from './items';
 import { chooseEnemyMove } from './ai';
 import { generateArena, generateOpponent } from './opponents';
 import { BLOCK_ZONES } from './types';
@@ -109,5 +123,40 @@ describe('зелья лекаря', () => {
     expect(healAmount(hurt, 1)).toBe(2);
     expect(healAmount({ ...c, hp: 0 }, 1)).toBe(max);
     expect(healAmount({ ...c, hp: 0 }, 0.3)).toBe(Math.ceil(max * 0.3));
+  });
+});
+
+describe('прочность и кузница', () => {
+  it('старый сейв получает прочность и заточку по умолчанию', () => {
+    const c = newCharacter('Вася');
+    const legacy = { ...c, backpack: [{ uid: 'a', itemId: 'knife' } as unknown as InventoryItem] };
+    const fixed = normalizeCharacter(legacy);
+    expect(fixed.backpack[0].durability).toBe(maxDurability(getItem('knife')));
+    expect(fixed.backpack[0].upgrade).toBe(0);
+  });
+
+  it('износ снимает прочность только с надетого и сообщает о поломке', () => {
+    const c = newCharacter('Вася');
+    const knife = { ...newInventoryItem('k', 'knife'), durability: 1 };
+    const spare = newInventoryItem('s', 'club');
+    const geared = { ...c, backpack: [knife, spare], equipment: { ...c.equipment, weapon: 'k' } };
+    const { character, broke } = wearEquipment(geared);
+    expect(character.backpack[0].durability).toBe(0);
+    expect(character.backpack[1].durability).toBe(spare.durability);
+    expect(broke.map((i) => i.id)).toEqual(['knife']);
+    expect(deriveCharacter(character).dmgMax).toBe(deriveCharacter(c).dmgMax); // сломанный нож = кулаки
+  });
+
+  it('цены кузнеца', () => {
+    const sword = getItem('sword');
+    expect(repairCost(sword, maxDurability(sword))).toBe(0);
+    expect(repairCost(sword, 0)).toBe(Math.ceil(sword.price * 0.25));
+    expect(repairCost(sword, maxDurability(sword) - 1)).toBeGreaterThanOrEqual(1);
+    expect(upgradeCost(sword, 2)).toBeGreaterThan(upgradeCost(sword, 1));
+    expect(canUpgrade(sword)).toBe(true);
+    expect(canUpgrade(getItem('iron-helm'))).toBe(true);
+    expect(canUpgrade(getItem('leather-gloves'))).toBe(false);
+    expect(sellPrice(sword, 2)).toBeGreaterThan(sellPrice(sword));
+    expect(itemDisplayName(sword, 3)).toBe('Меч +3');
   });
 });

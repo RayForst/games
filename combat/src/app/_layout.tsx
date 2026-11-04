@@ -52,6 +52,7 @@ export default function RootLayout() {
         <Stack.Screen name="shop" />
         <Stack.Screen name="healer" />
         <Stack.Screen name="mine" />
+        <Stack.Screen name="smithy" />
         <Stack.Screen
           name="fight"
           options={{ presentation: 'fullScreenModal', gestureEnabled: false, animation: 'slide_from_bottom' }}
