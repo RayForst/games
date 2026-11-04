@@ -4,6 +4,7 @@ import { ITEMS_BY_ID, isTwoHanded, maxDurability } from './items';
 import { CREATION_FREE_POINTS, FULL_REGEN_MINUTES, baseStats, deriveStats } from './formulas';
 import { emptyLedger, normalizeLedger } from './achievements';
 import { emptyResources, normalizeResources } from './wilds';
+import { emptyCosmetics, normalizeCosmetics } from './cosmetics';
 import type { PerkId } from './perks';
 import { DEFAULT_ORIGIN, homeOf, isValidOrigin, raceStats, switchRaceStats, type Origin, type RaceId, type SideId } from './races';
 import { alignmentPriceMult } from './story';
@@ -52,6 +53,8 @@ export function newCharacter(name: string, stats: Stats = baseStats(), freePoint
     race: origin.race,
     defections: 0,
     home: homeOf(origin.race),
+    seals: 0,
+    cosmetics: emptyCosmetics(),
     alignment: 0,
   };
 }
@@ -193,6 +196,8 @@ export function normalizeCharacter(raw: Character): Character {
     race,
     defections: typeof raw.defections === 'number' ? raw.defections : 0,
     home: raw.home ?? homeOf(race),
+    seals: typeof raw.seals === 'number' ? raw.seals : 0,
+    cosmetics: normalizeCosmetics(raw.cosmetics),
     alignment: typeof raw.alignment === 'number' ? raw.alignment : 0,
   };
 }

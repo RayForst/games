@@ -1,6 +1,7 @@
 // Базовые типы игры. Всё, что здесь, — чистые данные, без React.
 
 import type { CapitalId, RaceId, SideId } from './races';
+import type { Cosmetics } from './cosmetics';
 
 export type StatKey = 'strength' | 'dexterity' | 'intuition' | 'endurance';
 
@@ -230,6 +231,10 @@ export interface Character {
   defections: number;
   /** Родной город — столица расы (`CAPITALS`). Стартуют все в Городе, это только происхождение. */
   home: CapitalId;
+  /** Печати князя — валюта Лавки князя (косметика). На бой не влияют. */
+  seals: number;
+  /** Косметика: купленное и надетое, см. `cosmetics.ts`. */
+  cosmetics: Cosmetics;
   /** Склонность −100 (тёмная) … +100 (светлая): выборы в сюжете и дорожные события (story.ts). */
   alignment: number;
 }
