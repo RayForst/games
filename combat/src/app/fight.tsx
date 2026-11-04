@@ -127,7 +127,7 @@ function ResultCard({
   leaveTitle,
 }: {
   status: 'won' | 'lost' | 'draw';
-  reward: { exp: number; kredits: number; levelsGained: number; rating?: number; title?: string } | null;
+  reward: { exp: number; kredits: number; levelsGained: number; rating?: number; title?: string; loot?: string } | null;
   onLeave: () => void;
   onNext?: () => void;
   leaveTitle: string;
@@ -148,6 +148,11 @@ function ResultCard({
       {reward?.title ? (
         <Txt center variant="gold">
           Титул: «{reward.title}»
+        </Txt>
+      ) : null}
+      {reward?.loot ? (
+        <Txt center color={colors.green}>
+          Трофей: {reward.loot} — в рюкзаке
         </Txt>
       ) : null}
       {reward && reward.levelsGained > 0 ? (

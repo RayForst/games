@@ -269,6 +269,8 @@ export interface Reward {
   rating?: number;
   /** Титул, если бой принёс его (финал турнира). */
   title?: string;
+  /** Трофей — название вещи, снятой с соперника. */
+  loot?: string;
 }
 
 export interface LogLine {

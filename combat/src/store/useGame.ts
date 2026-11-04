@@ -45,6 +45,7 @@ import {
   resolveTurn,
   rewardFor,
   rollInjury,
+  rollLoot,
   injuryText,
   sellPrice,
   toFighter,
@@ -226,6 +227,16 @@ export const useGame = create<GameState>()(
           } else {
             log.push(makeLogLine(turn, 'Турнир окончен. Приходи завтра.', 'system'));
             set({ tournament: { ...t, status: 'lost' } });
+          }
+        }
+        // Трофей: с побеждённого иногда удаётся снять вещь.
+        if (status === 'won') {
+          const loot = rollLoot(f.opponent, rng, uid());
+          if (loot) {
+            const def = getItem(loot.itemId);
+            character = { ...character, backpack: [...character.backpack, loot] };
+            reward = { ...reward, loot: def.name };
+            log.push(makeLogLine(turn, `Трофей: ${def.name}. Снял с ${f.opponent.name}, теперь в рюкзаке.`, 'system'));
           }
         }
         // Задания пивной.

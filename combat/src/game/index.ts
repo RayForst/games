@@ -12,3 +12,4 @@ export * from './perks';
 export * from './quests';
 export * from './tournament';
 export * from './achievements';
+export * from './loot';
