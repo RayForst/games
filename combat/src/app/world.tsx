@@ -17,6 +17,7 @@ import { formatDuration } from '@/ui/format';
 import { colors, radius, spacing } from '@/ui/theme';
 
 const NODE = 30;
+const LABEL_W = 140;
 
 /** Карта мира: локации, дороги, маркер игрока. Пока без картинки — схема на SVG, чтобы заложить механику. */
 export default function WorldScreen() {
@@ -119,8 +120,10 @@ export default function WorldScreen() {
               onPress={() => setSelected(l.id)}
               accessibilityRole="button"
               accessibilityLabel={`Место: ${l.name}`}
-              style={[styles.node, { left: p.x - NODE, top: p.y - NODE }]}>
-              <GiIcon name={l.icon} size={28} color={open ? colors.gold : colors.textDim} />
+              style={[styles.node, { left: p.x - LABEL_W / 2, top: p.y - NODE }]}>
+              <View style={styles.nodeIcon}>
+                <GiIcon name={l.icon} size={28} color={open ? colors.gold : colors.textDim} />
+              </View>
               <Txt variant="small" bold color={open ? colors.text : colors.textDim} style={styles.nodeLabel} numberOfLines={1}>
                 {open ? l.name : `${l.name} · ${l.minLevel} ур.`}
               </Txt>
@@ -215,18 +218,18 @@ function Terrain({ w, h }: { w: number; h: number }) {
 
 const styles = StyleSheet.create({
   map: { alignSelf: 'center', borderRadius: radius.lg, overflow: 'hidden' },
-  node: { position: 'absolute', width: NODE * 2, height: NODE * 2, alignItems: 'center', justifyContent: 'center' },
+  node: { position: 'absolute', width: LABEL_W, alignItems: 'center' },
+  nodeIcon: { width: NODE * 2, height: NODE * 2, alignItems: 'center', justifyContent: 'center' },
   nodeLabel: {
-    position: 'absolute',
-    top: NODE * 2 + 2,
-    left: -36,
-    width: NODE * 2 + 72,
-    textAlign: 'center',
+    marginTop: 2,
+    maxWidth: LABEL_W,
     fontSize: 11,
     lineHeight: 14,
-    paddingHorizontal: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
     borderRadius: 4,
     backgroundColor: 'rgba(20, 16, 12, 0.8)',
     overflow: 'hidden',
+    textAlign: 'center',
   },
 });
