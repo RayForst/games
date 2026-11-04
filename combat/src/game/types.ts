@@ -1,6 +1,8 @@
 // Базовые типы игры. Всё, что здесь, — чистые данные, без React.
 
 import type { CapitalId, RaceId, SideId } from './races';
+import type { Chests } from './chests';
+import type { Cosmetics } from './cosmetics';
 
 export type StatKey = 'strength' | 'dexterity' | 'intuition' | 'endurance';
 
@@ -230,6 +232,12 @@ export interface Character {
   defections: number;
   /** Родной город — столица расы (`CAPITALS`). Стартуют все в Городе, это только происхождение. */
   home: CapitalId;
+  /** Нераскрытые сундуки по видам (см. `chests.ts`). */
+  chests: Chests;
+  /** Печати князя — валюта Лавки князя (косметика). На бой не влияют. */
+  seals: number;
+  /** Косметика: купленное и надетое, см. `cosmetics.ts`. */
+  cosmetics: Cosmetics;
 }
 
 export interface Ledger {

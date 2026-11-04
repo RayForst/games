@@ -22,3 +22,7 @@ export * from './guild';
 export * from './tutorial';
 export * from './races';
 export * from './war';
+export * from './events';
+export * from './chests';
+export * from './daily';
+export * from './cosmetics';

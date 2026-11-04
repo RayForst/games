@@ -35,6 +35,8 @@ export interface ChatAuthor {
   role?: Role;
   /** Сторона автора — цветная метка перед именем. Логику чата не меняет. */
   side?: SideId;
+  /** Косметика из Лавки князя: цвет имени и эмблема. Логику чата не меняет. */
+  cosmetics?: { nameColor?: string; emblem?: string };
 }
 
 export interface ChatMessage {

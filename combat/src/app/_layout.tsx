@@ -60,6 +60,8 @@ export default function RootLayout() {
         <Stack.Screen name="chat" />
         <Stack.Screen name="guild" />
         <Stack.Screen name="admin" />
+        <Stack.Screen name="daily" />
+        <Stack.Screen name="boutique" />
         <Stack.Screen
           name="fight"
           options={{ presentation: 'fullScreenModal', gestureEnabled: false, animation: 'slide_from_bottom' }}
