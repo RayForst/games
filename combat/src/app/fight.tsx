@@ -34,13 +34,13 @@ export default function FightScreen() {
     Haptics.notificationAsync(type).catch(() => {});
   }, [status]);
 
-  // Откуда пришли, туда и вернёмся: арена или замок. Стор помнит это и после того, как бой закрыт.
+  // Откуда пришли, туда и вернёмся: арена, замок, место на карте или гильдейский стол. Стор помнит это и после того, как бой закрыт.
   const lastContext = useGame((s) => s.lastFightContext);
 
   // Боя нет (закончили или открыли экран напрямую) — уходим назад. Единственный путь навигации отсюда.
   // dismissTo закрывает модалку и возвращает к уже открытым экранам, а не создаёт их вторую копию.
   useEffect(() => {
-    if (!fight) router.dismissTo(lastContext === 'tournament' ? '/castle' : lastContext === 'forest' ? '/(tabs)/city' : '/arena');
+    if (!fight) router.dismissTo(lastContext === 'tournament' ? '/castle' : lastContext === 'forest' ? '/(tabs)/city' : lastContext === 'guild' ? '/guild' : '/arena');
   }, [fight, lastContext]);
 
   // Крит по кому угодно — тяжёлая вибрация. Хук стоит до раннего выхода.

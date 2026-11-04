@@ -67,6 +67,17 @@ const WANT = {
   wolf: ['GiWolfHead'],
   boar: ['GiBoarTusks', 'GiBoar'],
   bandit: ['GiHoodedAssassin', 'GiRogue', 'GiCowled'],
+  // гильдии: эмблемы и служебное
+  crown: ['GiCrown', 'GiQueenCrown'],
+  skull: ['GiSkullCrossedBones', 'GiDeathSkull'],
+  fist: ['GiFist', 'GiPunch'],
+  raven: ['GiRaven', 'GiCrow'],
+  dagger: ['GiPlainDagger', 'GiDaggers', 'GiStilettoSword'],
+  flame: ['GiFlame', 'GiSmallFire'],
+  guild: ['GiFamilyHouse', 'GiHeraldicSun', 'GiBanner'],
+  chat: ['GiConversation', 'GiTalk', 'GiDiscussion'],
+  staff: ['GiWizardStaff', 'GiCrystalWand', 'GiMagicSwirl'],
+  key: ['GiKey', 'GiHouseKeys'],
 };
 
 const src = await readFile(path.join(root, 'node_modules/react-icons/gi/index.mjs'), 'utf8');

@@ -290,8 +290,8 @@ export interface LogLine {
 }
 
 export interface FightState {
-  /** Откуда бой: арена, турнир в замке или засада в лесу. */
-  context?: 'arena' | 'tournament' | 'forest';
+  /** Откуда бой: арена, турнир в замке, засада в лесу или гильдейская стычка. */
+  context?: 'arena' | 'tournament' | 'forest' | 'guild';
   /** Чья арена: городская или Брода (там соперники сильнее, награда больше). */
   venue?: 'city' | 'brod';
   opponent: Opponent;

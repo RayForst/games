@@ -18,6 +18,7 @@ import {
   claimableAchievements,
   PERKS_BY_ID,
   rankFor,
+  ROLE_LABELS,
   type PerkId,
   healCost,
   secondsToFullHp,
@@ -46,6 +47,8 @@ export default function CharacterScreen() {
   const heal = useGame((s) => s.heal);
   const choosePerk = useGame((s) => s.choosePerk);
   const unequip = useGame((s) => s.unequip);
+  const guild = useGame((s) => s.guild);
+  const account = useGame((s) => s.account);
   const now = useNow();
 
   if (!character) return null;
@@ -83,6 +86,7 @@ export default function CharacterScreen() {
       <View style={styles.header}>
         <View style={styles.flex}>
           <Txt variant="title" numberOfLines={1}>
+            {guild ? `[${guild.tag}] ` : ''}
             {character.name}
           </Txt>
           <Txt variant="muted">
@@ -206,12 +210,19 @@ export default function CharacterScreen() {
           <Ionicons name="chevron-forward" size={18} color={colors.textDim} />
         )}
       </Pressable>
+
+      <Pressable onPress={() => router.push('/admin')} accessibilityRole="button" accessibilityLabel="Служебный вход" style={styles.service}>
+        <Txt variant="small" center color={account.gmUnlocked ? colors.red : colors.textDim}>
+          {account.gmUnlocked ? `Режим мастера: ${ROLE_LABELS[account.role]}` : 'Служебный вход'}
+        </Txt>
+      </Pressable>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  service: { paddingVertical: spacing.sm },
   header: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.md, paddingTop: spacing.sm },
   record: { alignItems: 'flex-end', flexShrink: 0 },
   recordNumbers: { fontSize: 17, lineHeight: 22 },

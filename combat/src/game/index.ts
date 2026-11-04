@@ -16,3 +16,6 @@ export * from './loot';
 export * from './world';
 export * from './wilds';
 export * from './rivals';
+export * from './roles';
+export * from './chat';
+export * from './guild';

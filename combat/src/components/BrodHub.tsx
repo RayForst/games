@@ -8,7 +8,7 @@ import { GiIcon } from './GiIcon';
 import { Kredits } from './Kredits';
 import { Screen } from './Screen';
 import { Txt } from './Txt';
-import { dayKey, LOCATIONS_BY_ID, MARKET_MULT, marketPrice, RESOURCES, routeBetween } from '@/game';
+import { dayKey, LOCATIONS_BY_ID, MARKET_MULT, marketPrice, RESOURCES, routeBetween, unreadCount } from '@/game';
 import { useFlash } from '@/hooks/useFlash';
 import { useGame } from '@/store/useGame';
 import { colors, spacing } from '@/ui/theme';
@@ -21,6 +21,8 @@ export function BrodHub() {
   const dismissRoadNews = useGame((s) => s.dismissRoadNews);
   const sellResource = useGame((s) => s.sellResource);
   const startTravel = useGame((s) => s.startTravel);
+  const unread = useGame((s) => unreadCount(s.chat, s.chatSeenAt));
+  const guild = useGame((s) => s.guild);
   const [flash, show] = useFlash();
 
   if (!character) return null;
@@ -41,10 +43,20 @@ export function BrodHub() {
         </View>
         <Kredits value={character.kredits} />
       </View>
-      <Pressable onPress={() => router.push('/world')} accessibilityRole="button" accessibilityLabel="Карта мира" style={styles.mapLink}>
-        <GiIcon name="road" size={18} />
-        <Txt variant="gold">Карта мира</Txt>
-      </Pressable>
+      <View style={styles.links}>
+        <Pressable onPress={() => router.push('/world')} accessibilityRole="button" accessibilityLabel="Карта мира" style={styles.mapLink}>
+          <GiIcon name="road" size={18} />
+          <Txt variant="gold">Карта мира</Txt>
+        </Pressable>
+        <Pressable onPress={() => router.push('/chat')} accessibilityRole="button" accessibilityLabel="Чат" style={styles.mapLink}>
+          <GiIcon name="chat" size={18} />
+          <Txt variant="gold">Чат{unread > 0 ? ` · ${unread}` : ''}</Txt>
+        </Pressable>
+        <Pressable onPress={() => router.push('/guild')} accessibilityRole="button" accessibilityLabel="Гильдии" style={styles.mapLink}>
+          <GiIcon name="guild" size={18} />
+          <Txt variant="gold">{guild ? `[${guild.tag}]` : 'Гильдии'}</Txt>
+        </Pressable>
+      </View>
 
       {roadNews ? (
         <Pressable onPress={dismissRoadNews} accessibilityRole="button" accessibilityLabel="Дорожные вести">
@@ -105,6 +117,7 @@ export function BrodHub() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, paddingTop: spacing.sm },
+  links: { flexDirection: 'row', gap: spacing.lg, flexWrap: 'wrap' },
   mapLink: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start' },
   news: { borderColor: colors.gold },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },

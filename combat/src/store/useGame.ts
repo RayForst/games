@@ -105,6 +105,58 @@ import {
   type Opponent as OpponentType,
   type WildId,
   travelDone,
+  // чат
+  ambientLine,
+  appendMessage,
+  cleanText,
+  deliverPending,
+  fightNews,
+  fightRemark,
+  isMuted,
+  nextAmbientAt,
+  normalizeChat,
+  npcReplies,
+  NPC_VOICES,
+  validateMessage,
+  WORLD_AUTHOR,
+  emptyChat,
+  type ChannelId,
+  type ChatAuthor,
+  type ChatState,
+  // роли
+  can,
+  canSwitchRole,
+  checkGmWord,
+  newAccount,
+  type Account,
+  type Role,
+  // гильдии
+  addGuildEvent,
+  addMember,
+  canFoundGuild,
+  canManage,
+  canRecruitRival,
+  canUpgradeGuild,
+  dailyGuildUpdate,
+  GUILD_FOUND_COST,
+  guildLevelCost,
+  guildPerks,
+  guildRatingDelta,
+  isLeader,
+  joinCheck,
+  newGuild,
+  normalizeGuilds,
+  recruitCost,
+  removeMember,
+  setRank,
+  skirmishOpponent,
+  skirmishPrize,
+  validateGuildName,
+  validateGuildTag,
+  type Guild,
+  type GuildEmblem,
+  type GuildRank,
+  expForLevel,
 } from '@/game';
 
 export interface MineResult extends Check {
@@ -112,6 +164,9 @@ export interface MineResult extends Check {
 }
 
 const rng = Math.random;
+
+/** Стычек с чужими гильдиями в день. */
+export const SKIRMISHES_PER_DAY = 3;
 
 function uid(): string {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
@@ -128,7 +183,7 @@ export interface GameState {
   /** Турнир в замке (сегодняшний). */
   tournament: Tournament | null;
   /** Откуда был последний бой — туда возвращается экран боя. */
-  lastFightContext: 'arena' | 'tournament' | 'forest';
+  lastFightContext: 'arena' | 'tournament' | 'forest' | 'guild';
   /** Путь между локациями. */
   travel: Travel | null;
   /** Сбор в лесу. */
@@ -137,6 +192,20 @@ export interface GameState {
   pendingHaul: { resource: ResourceId | 'kredits'; amount: number } | null;
   /** Что случилось по дороге — показать по прибытии. */
   roadNews: string | null;
+  /** Служебная учётка: роль и открыт ли служебный вход. */
+  account: Account;
+  /** Чат: лента, отложенные ответы, заткнутые. */
+  chat: ChatState;
+  /** Когда игрок последний раз открывал чат — для счётчика непрочитанного. */
+  chatSeenAt: number;
+  /** Гильдия игрока (своя или местных, куда вступил). */
+  guild: Guild | null;
+  /** Гильдии местных, с которыми соревнуемся и дерёмся. */
+  npcGuilds: Guild[];
+  /** Идущая стычка: с какой гильдией. */
+  skirmish: { guildId: string } | null;
+  /** Стычек сегодня. */
+  skirmishes: { day: string; count: number } | null;
   hydrated: boolean;
 
   setHydrated: () => void;
@@ -196,6 +265,47 @@ export interface GameState {
   /** Сдать реликвии князю: вдвое дороже лавки и рейтинг. */
   sellRelics: () => MineResult;
   dismissRoadNews: () => void;
+
+  /** Чат. */
+  sendChat: (channel: ChannelId, text: string) => Check;
+  markChatSeen: () => void;
+  /** Смотрящий: удалить сообщение, заткнуть или вернуть голос автору. */
+  deleteChatMessage: (id: string) => Check;
+  muteAuthor: (authorId: string) => Check;
+  unmuteAuthor: (authorId: string) => Check;
+  /** Мастер: сказать от имени мира. */
+  gmBroadcast: (channel: ChannelId, text: string) => Check;
+
+  /** Гильдии. */
+  foundGuild: (name: string, tag: string, emblem: GuildEmblem, motto?: string) => Check;
+  joinGuild: (guildId: string) => Check;
+  leaveGuild: () => Check;
+  disbandGuild: () => Check;
+  setGuildMotto: (motto: string) => Check;
+  /** Позвать именного соперника: за стол платит игрок. */
+  inviteRival: (rivalId: string) => MineResult;
+  kickMember: (memberId: string) => Check;
+  setMemberRank: (memberId: string, rank: GuildRank) => Check;
+  donateGuild: (amount: number) => Check;
+  upgradeGuild: () => Check;
+  /** Стычка с бойцом чужой гильдии. */
+  startSkirmish: (guildId: string) => Check;
+
+  /** Служебный вход и роли. */
+  unlockGm: (word: string) => Check;
+  lockGm: () => void;
+  setRole: (role: Role) => Check;
+  /** Мастер игры: выдать, вылечить, перенести, завершить таймеры, новый день. */
+  gmGive: (what: 'kredits' | 'exp' | 'resources', amount: number) => Check;
+  gmSetLevel: (level: number) => Check;
+  gmHeal: () => Check;
+  gmGiveItem: (itemId: string) => Check;
+  gmTeleport: (to: LocationId) => Check;
+  gmFinishTimers: () => Check;
+  gmNewDay: () => Check;
+  gmEditGuild: (guildId: string, patch: Partial<Pick<Guild, 'name' | 'tag' | 'motto' | 'level' | 'treasury' | 'rating'>>) => Check;
+  gmDisbandGuild: (guildId: string) => Check;
+  gmResetSave: () => Check;
 }
 
 export interface GatherResult extends Check {
@@ -224,6 +334,13 @@ export const useGame = create<GameState>()(
         }
         // «Грамотей» даёт больше опыта.
         base.exp = Math.round(base.exp * deriveCharacter(c).expMult);
+        // Гильдия со 2-го уровня добавляет опыта, с 3-го — кредитов.
+        const guildNow = get().guild;
+        if (guildNow) {
+          const gp = guildPerks(guildNow.level);
+          base.exp = Math.round(base.exp * gp.expMult);
+          base.kredits = Math.round(base.kredits * gp.kreditsMult);
+        }
         const exp = c.exp + base.exp;
         const newLevel = Math.max(c.level, levelForExp(exp));
         const levelsGained = newLevel - c.level;
@@ -355,8 +472,75 @@ export const useGame = create<GameState>()(
           }
         }
 
+        // Гильдия: слава за каждый бой члена, стычка — вчетверо и с призом в казну.
+        if (guildNow) {
+          const skirmish = f.context === 'guild' ? get().skirmish : null;
+          const enemyGuild = skirmish ? get().npcGuilds.find((g) => g.id === skirmish.guildId) : null;
+          let g: Guild = { ...guildNow, rating: Math.max(0, guildNow.rating + guildRatingDelta(status, !!skirmish)) };
+          if (skirmish && enemyGuild) {
+            const prize = skirmishPrize(status, enemyGuild.level);
+            g = { ...g, treasury: g.treasury + prize.treasury };
+            if (prize.kredits > 0) {
+              character = { ...character, kredits: character.kredits + prize.kredits, ledger: { ...character.ledger, kreditsEarned: character.ledger.kreditsEarned + prize.kredits } };
+              reward = { ...reward, kredits: reward.kredits + prize.kredits };
+            }
+            g = addGuildEvent(
+              g,
+              status === 'won'
+                ? `${c.name} побил ${f.opponent.name} из «${enemyGuild.name}»: +${prize.treasury} кр. в казну.`
+                : status === 'draw'
+                  ? `${c.name} разошёлся вничью с ${f.opponent.name} из «${enemyGuild.name}».`
+                  : `${c.name} уступил ${f.opponent.name} из «${enemyGuild.name}».`,
+            );
+            log.push(makeLogLine(turn, status === 'won' ? `Стычка выиграна: ${prize.kredits} кр. тебе, ${prize.treasury} кр. в казну гильдии.` : status === 'draw' ? `Стычка вничью: ${prize.treasury} кр. в казну за старание.` : 'Стычка проиграна. Гильдия запомнит.', 'system'));
+            // Чужая гильдия тоже считает славу.
+            set({
+              skirmish: null,
+              npcGuilds: get().npcGuilds.map((x) => (x.id === enemyGuild.id ? { ...x, rating: Math.max(0, x.rating + guildRatingDelta(status === 'won' ? 'lost' : status === 'lost' ? 'won' : 'draw', true)) } : x)),
+            });
+          }
+          set({ guild: g });
+        }
+        // Сводка боя уходит в канал «Арена», иногда с комментарием завсегдатая.
+        {
+          const venue = f.context === 'tournament' ? 'tournament' : f.context === 'forest' ? 'wild' : (f.venue ?? 'city');
+          const now = Date.now();
+          let chat = appendMessage(get().chat, { id: uid(), channel: 'arena', at: now, author: WORLD_AUTHOR, text: fightNews(c.name, f.opponent.name, status, turn, venue), kind: 'system' });
+          if (rng() < 0.3) {
+            const voice = NPC_VOICES[Math.floor(rng() * NPC_VOICES.length)];
+            chat = { ...chat, pending: [...chat.pending, { at: now + 4_000 + Math.floor(rng() * 8_000), channel: 'arena', author: { id: `npc:${voice.id}`, name: voice.name }, text: fightRemark(c.name, status, rng) }] };
+          }
+          set({ chat });
+        }
+
       return { character, reward, log };
       };
+
+      /** Автор-игрок для чата: имя с тегом гильдии и служебной ролью. */
+      const me = (c: Character): ChatAuthor => ({ id: 'player', name: c.name, tag: get().guild?.tag ?? null, role: get().account.role });
+
+      /** Прибавить опыт с ростом уровня (уровень не падает), очками и окном умений. */
+      const withExp = (c: Character, amount: number): Character => {
+        const exp = c.exp + amount;
+        const level = Math.max(c.level, levelForExp(exp));
+        const gained = level - c.level;
+        const picks = perkPicksBetween(c.level, level);
+        return {
+          ...c,
+          exp,
+          level,
+          freePoints: c.freePoints + gained * POINTS_PER_LEVEL,
+          perkPicks: c.perkPicks + picks,
+          perkChoices: picks > 0 ? (c.perkChoices ?? offerPerks(c.perks as PerkId[], rng)) : c.perkChoices,
+        };
+      };
+
+      const worldSays = (channel: ChannelId, text: string) => {
+        set({ chat: appendMessage(get().chat, { id: uid(), channel, at: Date.now(), author: WORLD_AUTHOR, text, kind: 'system' }) });
+      };
+
+      const need = (permission: Parameters<typeof can>[1]): Check =>
+        can(get().account.role, permission) ? { ok: true } : { ok: false, reason: 'Нет прав. Нужен служебный вход.' };
 
       /** Зал: в Городе именной соперник первым, в Броде все на уровень выше и без знакомых лиц. */
       const newArena = (c: Character): Opponent[] =>
@@ -374,16 +558,41 @@ export const useGame = create<GameState>()(
       gathering: null,
       pendingHaul: null,
       roadNews: null,
+      account: newAccount(),
+      chat: emptyChat(),
+      chatSeenAt: 0,
+      guild: null,
+      npcGuilds: normalizeGuilds(undefined),
+      skirmish: null,
+      skirmishes: null,
       hydrated: false,
 
       setHydrated: () => set({ hydrated: true }),
 
       createCharacter: (name, stats, freePoints) => {
         const character = newCharacter(name, stats, freePoints);
-        set({ character, fight: null, mining: null, quests: null, tournament: null, travel: null, gathering: null, pendingHaul: null, arena: newArena(character) });
+        set({
+          character,
+          fight: null,
+          mining: null,
+          quests: null,
+          tournament: null,
+          travel: null,
+          gathering: null,
+          pendingHaul: null,
+          arena: newArena(character),
+          chat: emptyChat(),
+          chatSeenAt: 0,
+          guild: null,
+          npcGuilds: normalizeGuilds(undefined),
+          skirmish: null,
+          skirmishes: null,
+        });
+        get().sendChat('tavern', 'Здарова всем. Я тут новенький.');
       },
 
-      resetGame: () => set({ character: null, fight: null, mining: null, quests: null, tournament: null, travel: null, gathering: null, pendingHaul: null, arena: [] }),
+      resetGame: () =>
+        set({ character: null, fight: null, mining: null, quests: null, tournament: null, travel: null, gathering: null, pendingHaul: null, arena: [], chat: emptyChat(), chatSeenAt: 0, guild: null, npcGuilds: normalizeGuilds(undefined), skirmish: null, skirmishes: null }),
 
       ensureQuests: () => {
         const { character, quests } = get();
@@ -473,6 +682,18 @@ export const useGame = create<GameState>()(
           set({ travel: null, roadNews: event?.text ?? null, arena: generateArena(next.level + (t.to === 'brod' ? 1 : 0), rng) });
         }
         if (next !== c) set({ character: next });
+        // Чат: созревшие ответы и болтовня завсегдатаев без повода.
+        const now = Date.now();
+        let chat = deliverPending(get().chat, now, uid);
+        if (now >= chat.nextAmbientAt) {
+          chat = { ...chat, pending: [...chat.pending, ambientLine(rng, now)], nextAmbientAt: nextAmbientAt(rng, now) };
+        }
+        if (chat !== get().chat) set({ chat });
+        // Гильдии: дневные взносы и дрейф таблицы.
+        const day = dayKey(now);
+        const g = get().guild;
+        if (g && g.lastDay !== day) set({ guild: dailyGuildUpdate(g, day, rng, now) });
+        if (get().npcGuilds.some((x) => x.lastDay !== day)) set({ npcGuilds: get().npcGuilds.map((x) => dailyGuildUpdate(x, day, rng, now)) });
       },
 
       cureInjury: (pay = 'kredits') => {
@@ -947,6 +1168,398 @@ export const useGame = create<GameState>()(
         return { ok: true, kredits: total };
       },
 
+      // --- Чат ---------------------------------------------------------------------------------
+
+      sendChat: (channel, text) => {
+        const state = get();
+        const c = state.character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        const v = validateMessage(text);
+        if (!v.ok) return v;
+        if (channel === 'guild' && !state.guild) return { ok: false, reason: 'Ты не в гильдии' };
+        if (isMuted(state.chat, 'player')) return { ok: false, reason: 'Тебя заткнули. Смотрящий решит, когда хватит.' };
+        const now = Date.now();
+        const clean = cleanText(text);
+        const role = state.account.role;
+        let chat = appendMessage(state.chat, { id: uid(), channel, at: now, author: me(c), text: clean, kind: role === 'player' ? 'player' : 'staff' });
+        // В гильдейском канале отвечают только свои — именные соперники, которых ты позвал.
+        const voices = channel === 'guild' ? NPC_VOICES.filter((vc) => state.guild?.members.some((m) => m.rivalId === vc.id)) : NPC_VOICES;
+        chat = { ...chat, pending: [...chat.pending, ...npcReplies(clean, channel, rng, now, voices)] };
+        set({ chat, chatSeenAt: now });
+        return { ok: true };
+      },
+
+      markChatSeen: () => set({ chatSeenAt: Date.now() }),
+
+      deleteChatMessage: (id) => {
+        const p = need('chat.moderate');
+        if (!p.ok) return p;
+        const chat = get().chat;
+        if (!chat.messages.some((m) => m.id === id)) return { ok: false, reason: 'Сообщения нет' };
+        set({ chat: { ...chat, messages: chat.messages.map((m) => (m.id === id ? { ...m, deleted: true } : m)) } });
+        return { ok: true };
+      },
+
+      muteAuthor: (authorId) => {
+        const p = need('chat.moderate');
+        if (!p.ok) return p;
+        const chat = get().chat;
+        if (chat.muted.includes(authorId)) return { ok: false, reason: 'Уже молчит' };
+        // Заткнутый завсегдатай и правда замолкает: его отложенные ответы снимаем.
+        set({ chat: { ...chat, muted: [...chat.muted, authorId], pending: chat.pending.filter((x) => x.author.id !== authorId) } });
+        return { ok: true };
+      },
+
+      unmuteAuthor: (authorId) => {
+        const p = need('chat.moderate');
+        if (!p.ok) return p;
+        const chat = get().chat;
+        if (!chat.muted.includes(authorId)) return { ok: false, reason: 'Он и не молчал' };
+        set({ chat: { ...chat, muted: chat.muted.filter((x) => x !== authorId) } });
+        return { ok: true };
+      },
+
+      gmBroadcast: (channel, text) => {
+        const p = need('chat.broadcast');
+        if (!p.ok) return p;
+        const v = validateMessage(text);
+        if (!v.ok) return v;
+        worldSays(channel, cleanText(text));
+        return { ok: true };
+      },
+
+      // --- Гильдии -----------------------------------------------------------------------------
+
+      foundGuild: (name, tag, emblem, motto = '') => {
+        const { character: c, guild, npcGuilds } = get();
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        if (guild) return { ok: false, reason: 'Ты уже в гильдии' };
+        const chk = canFoundGuild(c);
+        if (!chk.ok) return chk;
+        const n = validateGuildName(name, npcGuilds.map((g) => g.name));
+        if (!n.ok) return n;
+        const t = validateGuildTag(tag, npcGuilds.map((g) => g.tag));
+        if (!t.ok) return t;
+        const g = newGuild({ id: uid(), name, tag, emblem, motto, founder: { id: 'player', name: c.name, level: c.level } });
+        set({
+          guild: g,
+          character: { ...c, kredits: c.kredits - GUILD_FOUND_COST, ledger: { ...c.ledger, kreditsSpent: c.ledger.kreditsSpent + GUILD_FOUND_COST } },
+        });
+        worldSays('tavern', `В городе новая гильдия: «${g.name}» [${g.tag}]. Основал ${c.name}.`);
+        worldSays('guild', `Гильдия «${g.name}» основана. Это ваш стол: чужие не слышат.`);
+        return { ok: true };
+      },
+
+      joinGuild: (guildId) => {
+        const { character: c, guild, npcGuilds } = get();
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        if (guild) return { ok: false, reason: 'Ты уже в гильдии' };
+        const target = npcGuilds.find((g) => g.id === guildId);
+        if (!target) return { ok: false, reason: 'Такой гильдии нет' };
+        const chk = joinCheck(c, target);
+        if (!chk.ok) return chk;
+        const r = addMember(target, { id: 'player', name: c.name, level: c.level, player: true });
+        if (!r.ok) return { ok: false, reason: r.reason };
+        set({ guild: r.guild, npcGuilds: npcGuilds.filter((g) => g.id !== guildId) });
+        worldSays('guild', `${c.name} принят в «${target.name}». Глава — ${target.members.find((m) => m.rank === 'leader')?.name ?? 'неизвестно кто'}.`);
+        return { ok: true };
+      },
+
+      leaveGuild: () => {
+        const { character: c, guild, npcGuilds } = get();
+        if (!c || !guild) return { ok: false, reason: 'Ты не в гильдии' };
+        if (isLeader(guild)) return { ok: false, reason: 'Глава не уходит. Распусти гильдию.' };
+        const r = removeMember(guild, 'player', 'leave');
+        if (!r.ok) return { ok: false, reason: r.reason };
+        // Гильдия местных возвращается в таблицу без тебя.
+        set({ guild: null, npcGuilds: r.guild.npc ? [...npcGuilds, r.guild] : npcGuilds });
+        return { ok: true };
+      },
+
+      disbandGuild: () => {
+        const { character: c, guild } = get();
+        if (!c || !guild) return { ok: false, reason: 'Ты не в гильдии' };
+        if (!isLeader(guild)) return { ok: false, reason: 'Распускает только глава' };
+        set({ guild: null, skirmish: null });
+        worldSays('tavern', `Гильдия «${guild.name}» [${guild.tag}] распущена. ${c.name} пьёт один.`);
+        return { ok: true };
+      },
+
+      setGuildMotto: (motto) => {
+        const guild = get().guild;
+        if (!guild) return { ok: false, reason: 'Ты не в гильдии' };
+        if (!canManage(guild)) return { ok: false, reason: 'Девиз пишут глава и десятники' };
+        set({ guild: { ...guild, motto: cleanText(motto).slice(0, 60) } });
+        return { ok: true };
+      },
+
+      inviteRival: (rivalId) => {
+        const { character: c, guild } = get();
+        if (!c || !guild) return { ok: false, reason: 'Ты не в гильдии' };
+        if (!canManage(guild)) return { ok: false, reason: 'Зовут глава и десятники' };
+        const def = RIVALS_BY_ID[rivalId];
+        if (!def) return { ok: false, reason: 'Такого нет' };
+        const chk = canRecruitRival(c, rivalId);
+        if (!chk.ok) return chk;
+        const level = Math.max(0, c.level + def.levelOffset);
+        const cost = recruitCost(level);
+        if (c.kredits < cost) return { ok: false, reason: `Накрыть стол — ${cost} кр.` };
+        const r = addMember(guild, { id: `npc:${rivalId}`, name: def.name, level, rivalId });
+        if (!r.ok) return { ok: false, reason: r.reason };
+        set({ guild: r.guild, character: { ...c, kredits: c.kredits - cost, ledger: { ...c.ledger, kreditsSpent: c.ledger.kreditsSpent + cost } } });
+        worldSays('guild', `${def.name} теперь с нами. Стол накрыл ${c.name}: ${cost} кр.`);
+        return { ok: true, kredits: cost };
+      },
+
+      kickMember: (memberId) => {
+        const guild = get().guild;
+        if (!guild) return { ok: false, reason: 'Ты не в гильдии' };
+        if (!canManage(guild)) return { ok: false, reason: 'Выгоняют глава и десятники' };
+        if (memberId === 'player') return { ok: false, reason: 'Себя не выгонишь' };
+        const target = guild.members.find((m) => m.id === memberId);
+        if (target?.rank === 'officer' && !isLeader(guild)) return { ok: false, reason: 'Десятника выгоняет глава' };
+        const r = removeMember(guild, memberId, 'kick');
+        if (!r.ok) return { ok: false, reason: r.reason };
+        set({ guild: r.guild });
+        return { ok: true };
+      },
+
+      setMemberRank: (memberId, rank) => {
+        const guild = get().guild;
+        if (!guild) return { ok: false, reason: 'Ты не в гильдии' };
+        if (!isLeader(guild)) return { ok: false, reason: 'Ранги раздаёт глава' };
+        const r = setRank(guild, memberId, rank);
+        if (!r.ok) return { ok: false, reason: r.reason };
+        set({ guild: r.guild });
+        return { ok: true };
+      },
+
+      donateGuild: (amount) => {
+        const { character: c, guild } = get();
+        if (!c || !guild) return { ok: false, reason: 'Ты не в гильдии' };
+        const sum = Math.floor(amount);
+        if (sum <= 0) return { ok: false, reason: 'Сколько-сколько?' };
+        if (c.kredits < sum) return { ok: false, reason: 'Столько нет' };
+        set({
+          guild: addGuildEvent({ ...guild, treasury: guild.treasury + sum }, `${c.name} внёс ${sum} кр.`),
+          character: { ...c, kredits: c.kredits - sum, ledger: { ...c.ledger, kreditsSpent: c.ledger.kreditsSpent + sum } },
+        });
+        return { ok: true };
+      },
+
+      upgradeGuild: () => {
+        const guild = get().guild;
+        if (!guild) return { ok: false, reason: 'Ты не в гильдии' };
+        if (!isLeader(guild)) return { ok: false, reason: 'Уровень поднимает глава' };
+        const chk = canUpgradeGuild(guild);
+        if (!chk.ok) return chk;
+        const cost = guildLevelCost(guild.level);
+        const g = addGuildEvent({ ...guild, treasury: guild.treasury - cost, level: guild.level + 1 }, `Гильдия выросла до ${guild.level + 1} уровня за ${cost} кр.`);
+        set({ guild: g });
+        worldSays('tavern', `«${g.name}» [${g.tag}] теперь ${g.level} уровня. Стол в пивной стал шире.`);
+        return { ok: true };
+      },
+
+      startSkirmish: (guildId) => {
+        const state = get();
+        const c = state.character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        if (!state.guild) return { ok: false, reason: 'Стычки — дело гильдий. Вступи или основай.' };
+        if (state.fight?.status === 'active') return { ok: false, reason: 'Бой уже идёт' };
+        if (state.mining) return { ok: false, reason: 'Сначала забери заработок' };
+        if (!isTown(c.location) || state.travel) return { ok: false, reason: 'Стычки устраивают в городах' };
+        const enemy = state.npcGuilds.find((g) => g.id === guildId);
+        if (!enemy) return { ok: false, reason: 'Такой гильдии нет' };
+        const day = dayKey();
+        const today = state.skirmishes && state.skirmishes.day === day ? state.skirmishes.count : 0;
+        if (today >= SKIRMISHES_PER_DAY) return { ok: false, reason: `На сегодня хватит: ${SKIRMISHES_PER_DAY} стычки в день` };
+        const fresh = applyRegen(c);
+        if (fresh.hp < 1) return { ok: false, reason: 'Нет сил драться. Подожди или сходи к лекарю.' };
+        const opponent = skirmishOpponent(enemy, c.level, rng);
+        const fight: FightState = {
+          context: 'guild',
+          venue: c.location === 'brod' ? 'brod' : 'city',
+          opponent,
+          playerHp: fresh.hp,
+          enemyHp: opponent.derived.maxHp,
+          turn: 1,
+          status: 'active',
+          log: [
+            makeLogLine(0, `Стычка: «${state.guild.name}» против «${enemy.name}». ${fresh.name} выходит на ${opponent.name}.`, 'system'),
+            makeLogLine(0, `${opponent.name}: «${enemy.motto}»`, 'enemy'),
+          ],
+          playerMoves: [],
+          lastEnemyMove: null,
+          reward: null,
+          startedAt: Date.now(),
+        };
+        set({ character: fresh, fight, lastFightContext: 'guild', skirmish: { guildId }, skirmishes: { day, count: today + 1 } });
+        return { ok: true };
+      },
+
+      // --- Служебный вход ----------------------------------------------------------------------
+
+      unlockGm: (word) => {
+        const r = checkGmWord(word);
+        if (!r.ok) return r;
+        const acc = get().account;
+        set({ account: { ...acc, gmUnlocked: true, role: acc.role === 'player' ? 'gm' : acc.role } });
+        return { ok: true };
+      },
+
+      lockGm: () => set({ account: newAccount() }),
+
+      setRole: (role) => {
+        const acc = get().account;
+        const r = canSwitchRole(acc, role);
+        if (!r.ok) return r;
+        set({ account: { ...acc, role } });
+        return { ok: true };
+      },
+
+      gmGive: (what, amount) => {
+        const p = need('player.grant');
+        if (!p.ok) return p;
+        const c = get().character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        const n = Math.round(amount);
+        if (!Number.isFinite(n) || n === 0) return { ok: false, reason: 'Сколько?' };
+        if (what === 'kredits') set({ character: { ...c, kredits: Math.max(0, c.kredits + n) } });
+        else if (what === 'exp') set({ character: withExp(c, Math.max(0, n)) });
+        else {
+          const resources = { ...c.resources };
+          for (const k of Object.keys(resources) as (keyof typeof resources)[]) resources[k] = Math.max(0, resources[k] + n);
+          set({ character: { ...c, resources } });
+        }
+        return { ok: true };
+      },
+
+      gmSetLevel: (level) => {
+        const p = need('player.grant');
+        if (!p.ok) return p;
+        const c = get().character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        const lvl = Math.max(0, Math.min(30, Math.round(level)));
+        if (lvl <= c.level) return { ok: false, reason: 'Уровень не понижаем: сломает умения и очки' };
+        const next = withExp(c, expForLevel(lvl) - c.exp);
+        set({ character: { ...next, hp: deriveCharacter(next).maxHp, hpUpdatedAt: Date.now() }, arena: newArena(next) });
+        return { ok: true };
+      },
+
+      gmHeal: () => {
+        const p = need('player.grant');
+        if (!p.ok) return p;
+        const c = get().character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        const healthy = { ...c, injury: null };
+        set({ character: { ...healthy, hp: deriveCharacter(healthy).maxHp, hpUpdatedAt: Date.now() } });
+        return { ok: true };
+      },
+
+      gmGiveItem: (itemId) => {
+        const p = need('player.grant');
+        if (!p.ok) return p;
+        const c = get().character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        const item = getItem(itemId);
+        if (!item) return { ok: false, reason: 'Такой вещи нет' };
+        set({ character: { ...c, backpack: [...c.backpack, newInventoryItem(uid(), itemId)] } });
+        return { ok: true };
+      },
+
+      gmTeleport: (to) => {
+        const p = need('world.control');
+        if (!p.ok) return p;
+        const c = get().character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        if (get().fight?.status === 'active') return { ok: false, reason: 'Сначала закончи бой' };
+        const next = { ...c, location: to };
+        set({ character: next, travel: null, gathering: null, mining: null, pendingHaul: null, roadNews: null, arena: isTown(to) ? newArena(next) : get().arena });
+        return { ok: true };
+      },
+
+      gmFinishTimers: () => {
+        const p = need('world.control');
+        if (!p.ok) return p;
+        const { mining, gathering, travel } = get();
+        if (!mining && !gathering && !travel) return { ok: false, reason: 'Таймеров нет' };
+        const now = Date.now();
+        set({
+          mining: mining ? { ...mining, startedAt: now - mining.hours * 3_600_000 - 1000 } : null,
+          gathering: gathering ? { ...gathering, startedAt: now - gathering.minutes * 60_000 - 1000 } : null,
+          travel: travel ? { ...travel, startedAt: now - travel.minutes * 60_000 - 1000 } : null,
+        });
+        get().tick();
+        return { ok: true };
+      },
+
+      gmNewDay: () => {
+        const p = need('world.control');
+        if (!p.ok) return p;
+        const c = get().character;
+        set({
+          quests: null,
+          tournament: null,
+          skirmishes: null,
+          character: c ? { ...c, lastTournamentDay: null } : c,
+          guild: get().guild ? { ...get().guild!, lastDay: null } : null,
+          npcGuilds: get().npcGuilds.map((g) => ({ ...g, lastDay: null })),
+        });
+        get().tick();
+        return { ok: true };
+      },
+
+      gmEditGuild: (guildId, patch) => {
+        const p = need('guild.manageAny');
+        if (!p.ok) return p;
+        const clean: typeof patch = {};
+        if (patch.name !== undefined) {
+          const v = validateGuildName(patch.name);
+          if (!v.ok) return v;
+          clean.name = patch.name.trim();
+        }
+        if (patch.tag !== undefined) {
+          const v = validateGuildTag(patch.tag);
+          if (!v.ok) return v;
+          clean.tag = patch.tag.trim().toUpperCase();
+        }
+        if (patch.motto !== undefined) clean.motto = cleanText(patch.motto).slice(0, 60);
+        if (patch.level !== undefined) clean.level = Math.max(1, Math.min(5, Math.round(patch.level)));
+        if (patch.treasury !== undefined) clean.treasury = Math.max(0, Math.round(patch.treasury));
+        if (patch.rating !== undefined) clean.rating = Math.max(0, Math.round(patch.rating));
+        const g = get().guild;
+        if (g && g.id === guildId) {
+          set({ guild: addGuildEvent({ ...g, ...clean }, 'Мастер игры поправил гильдию.') });
+          return { ok: true };
+        }
+        if (!get().npcGuilds.some((x) => x.id === guildId)) return { ok: false, reason: 'Такой гильдии нет' };
+        set({ npcGuilds: get().npcGuilds.map((x) => (x.id === guildId ? { ...x, ...clean } : x)) });
+        return { ok: true };
+      },
+
+      gmDisbandGuild: (guildId) => {
+        const p = need('guild.manageAny');
+        if (!p.ok) return p;
+        const g = get().guild;
+        if (g && g.id === guildId) {
+          set({ guild: null, skirmish: null });
+          worldSays('tavern', `Мастер игры распустил «${g.name}» [${g.tag}].`);
+          return { ok: true };
+        }
+        const npc = get().npcGuilds.find((x) => x.id === guildId);
+        if (!npc) return { ok: false, reason: 'Такой гильдии нет' };
+        set({ npcGuilds: get().npcGuilds.filter((x) => x.id !== guildId) });
+        worldSays('tavern', `Мастер игры распустил «${npc.name}» [${npc.tag}].`);
+        return { ok: true };
+      },
+
+      gmResetSave: () => {
+        const p = need('save.reset');
+        if (!p.ok) return p;
+        get().resetGame();
+        return { ok: true };
+      },
+
       upgradeItem: (itemUid, pay = 'kredits') => {
         const c = get().character;
         if (!c) return { ok: false, reason: 'Нет персонажа' };
@@ -989,6 +1602,13 @@ export const useGame = create<GameState>()(
         gathering: s.gathering,
         pendingHaul: s.pendingHaul,
         roadNews: s.roadNews,
+        account: s.account,
+        chat: s.chat,
+        chatSeenAt: s.chatSeenAt,
+        guild: s.guild,
+        npcGuilds: s.npcGuilds,
+        skirmish: s.skirmish,
+        skirmishes: s.skirmishes,
       }),
       // Старые сейвы дописываем недостающими полями (прочность, заточка, будущие фичи).
       migrate: (persisted) => {
@@ -996,8 +1616,12 @@ export const useGame = create<GameState>()(
         return { ...state, character: state.character ? normalizeCharacter(state.character) : null };
       },
       onRehydrateStorage: () => (state) => {
-        if (state?.character) state.character = normalizeCharacter(state.character);
-        state?.setHydrated();
+        if (!state) return;
+        if (state.character) state.character = normalizeCharacter(state.character);
+        state.chat = normalizeChat(state.chat);
+        state.npcGuilds = normalizeGuilds(state.npcGuilds);
+        state.account = state.account ?? newAccount();
+        state.setHydrated();
       },
     },
   ),

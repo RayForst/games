@@ -11,7 +11,7 @@ import { GiIcon } from '@/components/GiIcon';
 import { TravelHub } from '@/components/TravelHub';
 import { WildsHub } from '@/components/WildsHub';
 import { Txt } from '@/components/Txt';
-import { activeInjury, BUILDINGS_BY_ID, CITY_START, dayKey, deriveCharacter, healCost, isWild, mineIsDone, mineSecondsLeft, questDone, wornItems, type BuildingId } from '@/game';
+import { activeInjury, BUILDINGS_BY_ID, CITY_START, dayKey, deriveCharacter, healCost, isWild, mineIsDone, mineSecondsLeft, questDone, unreadCount, wornItems, type BuildingId } from '@/game';
 import { useNow } from '@/hooks/useNow';
 import { useGame } from '@/store/useGame';
 import { formatDuration, plural } from '@/ui/format';
@@ -51,6 +51,7 @@ function CityScreen() {
   const tournament = useGame((s) => s.tournament);
   const roadNews = useGame((s) => s.roadNews);
   const dismissRoadNews = useGame((s) => s.dismissRoadNews);
+  const unread = useGame((s) => unreadCount(s.chat, s.chatSeenAt));
   const now = useNow();
   const insets = useSafeAreaInsets();
   const [selected, setSelected] = useState<BuildingId>(CITY_START);
@@ -118,12 +119,20 @@ function CityScreen() {
           <Txt variant="title" style={styles.shadow}>
             Город
           </Txt>
-          <Pressable onPress={() => router.push('/world')} accessibilityRole="button" accessibilityLabel="Карта мира" style={styles.mapLink}>
-            <GiIcon name="road" size={16} />
-            <Txt variant="small" color={colors.gold} style={styles.shadow}>
-              Карта мира
-            </Txt>
-          </Pressable>
+          <View style={styles.links}>
+            <Pressable onPress={() => router.push('/world')} accessibilityRole="button" accessibilityLabel="Карта мира" style={styles.mapLink}>
+              <GiIcon name="road" size={16} />
+              <Txt variant="small" color={colors.gold} style={styles.shadow}>
+                Карта мира
+              </Txt>
+            </Pressable>
+            <Pressable onPress={() => router.push('/chat')} accessibilityRole="button" accessibilityLabel="Чат" style={styles.mapLink}>
+              <GiIcon name="chat" size={16} />
+              <Txt variant="small" color={colors.gold} style={styles.shadow}>
+                Чат{unread > 0 ? ` · ${unread}` : ''}
+              </Txt>
+            </Pressable>
+          </View>
         </View>
         <View style={styles.headerRight}>
           <Txt bold numberOfLines={1} style={styles.shadow}>
@@ -178,6 +187,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   headerRight: { alignItems: 'flex-end', flexShrink: 1 },
+  links: { flexDirection: 'row', gap: spacing.md },
   mapLink: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start' },
   shadow: { textShadowColor: 'rgba(0, 0, 0, 0.9)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
   bottom: {
