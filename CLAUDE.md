@@ -76,7 +76,7 @@
   ресурсы и рынок `marketPrice`, крафт (`POTION_HERBS`, `woodForRepair`), дорожные события `rollRoadEvent`.
   Стор: `gathering`, `pendingHaul`, `roadNews`; компонент `WildsHub` общий для всех; бой с контекстом `'forest'`
   (так называется и для других диких земель) возвращает в таб места. Локации открываются по `minLevel` в `world.ts`.
-- Брод (`location === 'brod'`): `BrodHub`; арена с `venue: 'brod'` (уровень +1, награда ×1.3/×1.2 в `settle`), рынок
+- Брод (`location === 'brod'`): `BrodHub`; арена с `venue: 'brod'` (уровень +1, награда ×1.2/×1.2 в `settle`), рынок
   `marketPrice(..., 'brod')`, караван — вторая работа `Mining.job = 'caravan'` (`jobRatePerHour`, засада `CARAVAN_AMBUSH`
   с `pendingHaul.resource = 'kredits'`). Экран `caravan.tsx` и `mine.tsx` через общий `JobPanel`.
 - Иконки-заглушки: `scripts/gi-icons.mjs` → `src/ui/gi.generated.ts` (Game Icons, CC BY 3.0, через react-icons),
@@ -111,6 +111,9 @@
   пояснения первых событий `firstSeen`, серия попаданий `hitStreak`), стор `tutorial`, действия `advanceTutorial`/`skipTutorial`;
   компонент `Hint screen="…"` ставить в поток экрана, не поверх кнопок. Подсветка столбцов в бою — проп `highlight` у `ZonePicker`.
   Новый шаг — запись в `TUTORIAL_STEPS` и ветка в `stepDone`; новое пояснение — ключ в `SeenEvent`/`SEEN_TEXTS` и `explainOnce` в сторе.
+- Баланс: симуляция `scripts/balance.mts` (`npm run balance -- --n=1000`, флаги `--level`, `--short`, `--seed`) — архетипы,
+  щит/двуручник, Город/Брод, доходы всех источников, комплект и ремонт. Цели и таблица было/стало — раздел «Баланс»
+  в `ROADMAP.md`; после любой правки чисел в `items.ts`/`leveling.ts`/`opponents.ts`/`mine.ts`/`wilds.ts` прогонять.
 - Завершение боя — один хелпер `settle()` внутри стора (награда, уровень, умения, износ, рейтинг, турнир, трофей,
   задания, травма). Любая новая «после боя» логика добавляется туда.
 - Сейвы: `persist.version` и `normalizeCharacter()` дописывают новые поля старым сохранениям — обновлять при каждом

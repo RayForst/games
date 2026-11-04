@@ -197,7 +197,7 @@ function hash(s: string): number {
 }
 
 /** Надбавка рынка по городу: в Броде платят больше, туда дальше везти. */
-export const MARKET_MULT: Record<'city' | 'brod', number> = { city: 1, brod: 1.4 };
+export const MARKET_MULT: Record<'city' | 'brod', number> = { city: 1, brod: 1.25 };
 
 /** Цена скупки на день: база × 0.7…1.3 × надбавка города, одинаковая весь день. */
 export function marketPrice(resource: ResourceId, day: string, town: 'city' | 'brod' = 'city'): number {

@@ -17,7 +17,7 @@ export interface Mining {
 }
 
 /** Караван платит больше шахты, но на обратном пути бывает засада. */
-export const CARAVAN_MULT = 2.5;
+export const CARAVAN_MULT = 1.25;
 export const CARAVAN_AMBUSH = 0.35;
 
 export function jobRatePerHour(job: JobId, derived: DerivedStats): number {
