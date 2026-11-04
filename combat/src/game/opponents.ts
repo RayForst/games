@@ -119,10 +119,12 @@ export function generateOpponent(level: number, rng: Rng, usedNames: Set<string>
  */
 export function generateArena(playerLevel: number, rng: Rng, first?: Opponent): Opponent[] {
   const base = Math.min(1, 0.4 + playerLevel * 0.2);
+  // С 3-го уровня равные соперники одеты полностью — иначе игрок в лучшем шмоте выигрывает 9 боёв из 10.
+  const equal = playerLevel >= 3 ? 1 : 0.8;
   const tiers: { level: number; gear: number }[] = [
     { level: playerLevel - 1, gear: base * 0.4 },
-    { level: playerLevel, gear: base * 0.8 },
-    { level: playerLevel, gear: base * 0.8 },
+    { level: playerLevel, gear: base * equal },
+    { level: playerLevel, gear: base * equal },
     { level: playerLevel + 1, gear: base },
   ];
   const used = new Set<string>(first ? [first.name] : []);

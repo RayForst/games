@@ -13,9 +13,9 @@ export interface Mining {
 
 const HOUR_MS = 3_600_000;
 
-/** Кредитов в час: сила машет киркой, выносливость держит темп. */
+/** Кредитов в час: сила машет киркой, выносливость держит темп. Поднято после замеров (см. ROADMAP). */
 export function mineRatePerHour(derived: DerivedStats): number {
-  return 4 + derived.stats.strength + Math.floor(derived.stats.endurance / 2) + derived.mineBonus;
+  return 8 + derived.stats.strength * 2 + derived.stats.endurance + derived.mineBonus;
 }
 
 export function isShiftHours(h: number): h is ShiftHours {

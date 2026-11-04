@@ -157,7 +157,7 @@ describe('прочность и кузница', () => {
   it('цены кузнеца', () => {
     const sword = getItem('sword');
     expect(repairCost(sword, maxDurability(sword))).toBe(0);
-    expect(repairCost(sword, 0)).toBe(Math.ceil(sword.price * 0.25));
+    expect(repairCost(sword, 0)).toBe(Math.ceil(sword.price * 0.15));
     expect(repairCost(sword, maxDurability(sword) - 1)).toBeGreaterThanOrEqual(1);
     expect(upgradeCost(sword, 2)).toBeGreaterThan(upgradeCost(sword, 1));
     expect(canUpgrade(sword)).toBe(true);
