@@ -3,6 +3,7 @@ import { SLOTS, STAT_KEYS, STAT_LABELS } from './types';
 import { ITEMS_BY_ID, maxDurability } from './items';
 import { CREATION_FREE_POINTS, FULL_REGEN_MINUTES, baseStats, deriveStats } from './formulas';
 import { emptyLedger, normalizeLedger } from './achievements';
+import { emptyResources, normalizeResources } from './forest';
 import type { PerkId } from './perks';
 
 export function emptyEquipment(): Record<Slot, string | null> {
@@ -38,6 +39,8 @@ export function newCharacter(name: string, stats: Stats = baseStats(), freePoint
     lastTournamentDay: null,
     ledger: emptyLedger(),
     achievements: [],
+    location: 'city',
+    resources: emptyResources(),
   };
 }
 
@@ -154,6 +157,8 @@ export function normalizeCharacter(raw: Character): Character {
     lastTournamentDay: raw.lastTournamentDay ?? null,
     ledger: normalizeLedger(raw.ledger),
     achievements: raw.achievements ?? [],
+    location: raw.location ?? 'city',
+    resources: normalizeResources(raw.resources),
   };
 }
 

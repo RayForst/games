@@ -1,11 +1,14 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
 import { CityMap } from '@/components/CityMap';
+import { ForestHub } from '@/components/ForestHub';
+import { GiIcon } from '@/components/GiIcon';
+import { TravelHub } from '@/components/TravelHub';
 import { Txt } from '@/components/Txt';
 import { activeInjury, BUILDINGS_BY_ID, CITY_START, dayKey, deriveCharacter, healCost, mineIsDone, mineSecondsLeft, questDone, wornItems, type BuildingId } from '@/game';
 import { useNow } from '@/hooks/useNow';
@@ -28,8 +31,17 @@ const SHORT_SCENE = 700;
 const SCRIM = 'rgba(20, 16, 12, 0)';
 const SCRIM_DARK = 'rgba(20, 16, 12, 0.85)';
 
-/** Хаб игры: карта города на всю сцену, поверх неё шапка и панель выбранного заведения. */
-export default function CityScreen() {
+/** Таб «место»: город, лес или дорога — смотря где персонаж. */
+export default function PlaceScreen() {
+  const location = useGame((s) => s.character?.location ?? 'city');
+  const traveling = useGame((s) => !!s.travel);
+  if (traveling) return <TravelHub />;
+  if (location === 'forest') return <ForestHub />;
+  return <CityScreen />;
+}
+
+/** Хаб города: карта на всю сцену, поверх неё шапка и панель выбранного заведения. */
+function CityScreen() {
   const character = useGame((s) => s.character);
   const arena = useGame((s) => s.arena);
   const mining = useGame((s) => s.mining);
@@ -102,6 +114,12 @@ export default function CityScreen() {
           <Txt variant="title" style={styles.shadow}>
             Город
           </Txt>
+          <Pressable onPress={() => router.push('/world')} accessibilityRole="button" accessibilityLabel="Карта мира" style={styles.mapLink}>
+            <GiIcon name="road" size={16} />
+            <Txt variant="small" color={colors.gold} style={styles.shadow}>
+              Карта мира
+            </Txt>
+          </Pressable>
         </View>
         <View style={styles.headerRight}>
           <Txt bold numberOfLines={1} style={styles.shadow}>
@@ -148,6 +166,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   headerRight: { alignItems: 'flex-end', flexShrink: 1 },
+  mapLink: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start' },
   shadow: { textShadowColor: 'rgba(0, 0, 0, 0.9)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
   bottom: {
     position: 'absolute',

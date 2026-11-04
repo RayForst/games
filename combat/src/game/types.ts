@@ -190,6 +190,10 @@ export interface Character {
   ledger: Ledger;
   /** Забранные достижения. */
   achievements: string[];
+  /** Где персонаж сейчас на карте мира. */
+  location: 'city' | 'forest' | 'swamp' | 'ruins' | 'pass';
+  /** Ресурсы из леса: травы, дрова, шкуры. */
+  resources: Record<'herbs' | 'wood' | 'pelts', number>;
 }
 
 export interface Ledger {
@@ -282,8 +286,8 @@ export interface LogLine {
 }
 
 export interface FightState {
-  /** Откуда бой: арена или турнир в замке. */
-  context?: 'arena' | 'tournament';
+  /** Откуда бой: арена, турнир в замке или засада в лесу. */
+  context?: 'arena' | 'tournament' | 'forest';
   opponent: Opponent;
   playerHp: number;
   enemyHp: number;

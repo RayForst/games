@@ -40,7 +40,7 @@ export default function FightScreen() {
   // Боя нет (закончили или открыли экран напрямую) — уходим назад. Единственный путь навигации отсюда.
   // dismissTo закрывает модалку и возвращает к уже открытым экранам, а не создаёт их вторую копию.
   useEffect(() => {
-    if (!fight) router.dismissTo(lastContext === 'tournament' ? '/castle' : '/arena');
+    if (!fight) router.dismissTo(lastContext === 'tournament' ? '/castle' : lastContext === 'forest' ? '/(tabs)/city' : '/arena');
   }, [fight, lastContext]);
 
   // Крит по кому угодно — тяжёлая вибрация. Хук стоит до раннего выхода.
@@ -85,7 +85,7 @@ export default function FightScreen() {
       <View style={styles.vsRow}>
         <View style={styles.vsLine} />
         <Txt variant="small" style={styles.vs}>
-          {inTournament ? `ТУРНИР ${Math.min((tournament?.stage ?? 0) + (fight.status === 'won' ? 0 : 1), TOURNAMENT_ROUNDS)}/${TOURNAMENT_ROUNDS} · ` : ''}
+          {inTournament ? `ТУРНИР ${Math.min((tournament?.stage ?? 0) + (fight.status === 'won' ? 0 : 1), TOURNAMENT_ROUNDS)}/${TOURNAMENT_ROUNDS} · ` : fight.context === 'forest' ? 'ЗАСАДА · ' : ''}
           {fight.status === 'active' ? `РАУНД ${fight.turn}` : 'БОЙ ОКОНЧЕН'}
         </Txt>
         <View style={styles.vsLine} />
@@ -109,7 +109,7 @@ export default function FightScreen() {
           <Button title="Сдаться" onPress={giveUp} variant="ghost" small style={styles.surrender} />
         </>
       ) : (
-        <ResultCard status={fight.status} reward={fight.reward} onLeave={leave} onNext={tournamentGoesOn ? nextFight : undefined} leaveTitle={inTournament ? 'В замок' : 'Вернуться в зал'} />
+        <ResultCard status={fight.status} reward={fight.reward} onLeave={leave} onNext={tournamentGoesOn ? nextFight : undefined} leaveTitle={inTournament ? 'В замок' : fight.context === 'forest' ? 'В лес' : 'Вернуться в зал'} />
       )}
 
       <Card title="Ход боя">

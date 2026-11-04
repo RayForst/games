@@ -6,10 +6,11 @@ import { ItemCard } from '@/components/ItemCard';
 import { Kredits } from '@/components/Kredits';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
-import { canEquip, getItem, isEquipped, sellPrice, SLOTS } from '@/game';
+import { canEquip, getItem, isEquipped, RESOURCES, sellPrice, SLOTS } from '@/game';
+import { GiIcon } from '@/components/GiIcon';
 import { useFlash } from '@/hooks/useFlash';
 import { useGame } from '@/store/useGame';
-import { spacing } from '@/ui/theme';
+import { colors, spacing } from '@/ui/theme';
 
 export default function BackpackScreen() {
   const character = useGame((s) => s.character);
@@ -55,6 +56,19 @@ export default function BackpackScreen() {
       </View>
 
       <Flash text={flash} />
+
+      {RESOURCES.some((r) => character.resources[r.id] > 0) ? (
+        <Card title="Ресурсы">
+          {RESOURCES.map((r) => (
+            <View key={r.id} style={styles.resourceRow}>
+              <GiIcon name={r.icon} size={20} color={colors.textMuted} />
+              <Txt style={styles.flex}>{r.name}</Txt>
+              <Txt bold>{character.resources[r.id]} шт.</Txt>
+            </View>
+          ))}
+          <Txt variant="small">Скупают в лавке по дневной цене.</Txt>
+        </Card>
+      ) : null}
 
       <Txt variant="heading">Надето</Txt>
       {equipped.length === 0 ? (
@@ -116,4 +130,5 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.md, paddingTop: spacing.sm },
   kredits: { fontSize: 20 },
   sectionTitle: { marginTop: spacing.sm },
+  resourceRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
 });

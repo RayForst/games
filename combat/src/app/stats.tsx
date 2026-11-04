@@ -158,6 +158,9 @@ export default function StatsScreen() {
       </Card>
 
       <View style={styles.flex} />
+      <Txt variant="small" center color={colors.textDim}>
+        Иконки-заглушки: Game Icons (game-icons.net), CC BY 3.0. Полный список авторов в CREDITS.md.
+      </Txt>
       <Button title="Начать заново" variant="ghost" onPress={onReset} />
     </Screen>
   );

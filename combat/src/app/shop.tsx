@@ -8,16 +8,20 @@ import { ItemCard } from '@/components/ItemCard';
 import { Kredits } from '@/components/Kredits';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
-import { canEquip, ITEMS, SLOT_LABELS, SLOTS, type Slot } from '@/game';
+import { canEquip, dayKey, ITEMS, marketPrice, RESOURCES, SLOT_LABELS, SLOTS, type Slot } from '@/game';
+import { GiIcon } from '@/components/GiIcon';
+import { Button } from '@/components/Button';
+import { Card } from '@/components/Card';
 import { useFlash } from '@/hooks/useFlash';
 import { useGame } from '@/store/useGame';
-import { spacing } from '@/ui/theme';
+import { colors, spacing } from '@/ui/theme';
 
 type Filter = 'all' | Slot;
 
 export default function ShopScreen() {
   const character = useGame((s) => s.character);
   const buyItem = useGame((s) => s.buyItem);
+  const sellResource = useGame((s) => s.sellResource);
   const [filter, setFilter] = useState<Filter>('all');
   const [flash, show] = useFlash();
 
@@ -47,6 +51,34 @@ export default function ShopScreen() {
       </ScrollView>
 
       <Flash text={flash} />
+
+      <Card title="Скупка" right={<Txt variant="small">цены на сегодня</Txt>}>
+        {RESOURCES.map((r) => {
+          const have = character.resources[r.id];
+          const price = marketPrice(r.id, dayKey());
+          return (
+            <View key={r.id} style={styles.resourceRow}>
+              <GiIcon name={r.icon} size={22} color={colors.textMuted} />
+              <View style={styles.flex}>
+                <Txt bold>{r.name}</Txt>
+                <Txt variant="small">
+                  {price} кр./шт. · у тебя {have}
+                </Txt>
+              </View>
+              <Button
+                small
+                variant="secondary"
+                title={have > 0 ? `Продать · ${have * price} кр.` : 'Пусто'}
+                disabled={have === 0}
+                onPress={() => {
+                  const res = sellResource(r.id);
+                  show(res.ok ? `+${res.kredits} кр. за ${r.name.toLowerCase()}` : (res.reason ?? 'Не получилось'));
+                }}
+              />
+            </View>
+          );
+        })}
+      </Card>
 
       {items.map((item) => {
         const check = canEquip(character, item);
@@ -79,4 +111,5 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.md, paddingTop: spacing.sm },
   kredits: { fontSize: 20 },
   chips: { gap: spacing.sm, paddingVertical: spacing.xs },
+  resourceRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
 });

@@ -9,6 +9,7 @@ import {
   applyRegen,
   canEnterTournament,
   canEquip,
+  canTravel,
   canUpgrade,
   createTournament,
   cureCost,
@@ -18,6 +19,11 @@ import {
   deriveCharacter,
   describeFinish,
   describeStrike,
+  forestOpponent,
+  gatherRatePerHour,
+  gatherYield,
+  haulAfterAmbush,
+  isGatherMinutes,
   generateArena,
   getItem,
   heavier,
@@ -28,6 +34,7 @@ import {
   ledgerAfterFight,
   levelForExp,
   makeLogLine,
+  marketPrice,
   maxDurability,
   mineEarnings,
   mineElapsedMs,
@@ -46,6 +53,9 @@ import {
   rewardFor,
   rollInjury,
   rollLoot,
+  rollAmbush,
+  RESOURCES_BY_ID,
+  ACTIVITIES_BY_ID,
   injuryText,
   sellPrice,
   toFighter,
@@ -70,6 +80,13 @@ import {
   type StatKey,
   type Stats,
   type Tournament,
+  type Travel,
+  type Gathering,
+  type LocationId,
+  type ActivityId,
+  type ResourceId,
+  type Opponent as OpponentType,
+  travelDone,
 } from '@/game';
 
 export interface MineResult extends Check {
@@ -93,7 +110,13 @@ export interface GameState {
   /** Турнир в замке (сегодняшний). */
   tournament: Tournament | null;
   /** Откуда был последний бой — туда возвращается экран боя. */
-  lastFightContext: 'arena' | 'tournament';
+  lastFightContext: 'arena' | 'tournament' | 'forest';
+  /** Путь между локациями. */
+  travel: Travel | null;
+  /** Сбор в лесу. */
+  gathering: Gathering | null;
+  /** Улов, за который идёт бой с засадой. */
+  pendingHaul: { resource: ResourceId; amount: number } | null;
   hydrated: boolean;
 
   setHydrated: () => void;
@@ -140,6 +163,20 @@ export interface GameState {
 
   /** Забрать награду за выполненное достижение. */
   claimAchievement: (id: string) => MineResult;
+
+  /** Карта мира. */
+  startTravel: (to: LocationId) => Check;
+  /** Лес. */
+  startGathering: (activity: ActivityId, minutes: number) => Check;
+  collectGathering: () => GatherResult;
+  sellResource: (resource: ResourceId, amount?: number) => MineResult;
+}
+
+export interface GatherResult extends Check {
+  resource?: ResourceId;
+  amount?: number;
+  /** Засада: начат бой, улов решится по его итогу. */
+  ambush?: boolean;
 }
 
 export const useGame = create<GameState>()(
@@ -229,6 +266,22 @@ export const useGame = create<GameState>()(
             set({ tournament: { ...t, status: 'lost' } });
           }
         }
+        // Засада в лесу: улов зависит от исхода.
+        const haul = get().pendingHaul;
+        if (f.context === 'forest' && haul) {
+          const amount = haulAfterAmbush(haul.amount, status === 'won');
+          character = { ...character, resources: { ...character.resources, [haul.resource]: character.resources[haul.resource] + amount } };
+          log.push(
+            makeLogLine(
+              turn,
+              status === 'won'
+                ? `Отбился. ${RESOURCES_BY_ID[haul.resource].name.toLowerCase()}: ${amount} шт., с добавкой.`
+                : `Половину улова пришлось бросить. ${RESOURCES_BY_ID[haul.resource].name}: ${amount} шт.`,
+              'system',
+            ),
+          );
+          set({ pendingHaul: null });
+        }
         // Трофей: с побеждённого иногда удаётся снять вещь.
         if (status === 'won') {
           const loot = rollLoot(f.opponent, rng, uid());
@@ -264,16 +317,19 @@ export const useGame = create<GameState>()(
       quests: null,
       tournament: null,
       lastFightContext: 'arena',
+      travel: null,
+      gathering: null,
+      pendingHaul: null,
       hydrated: false,
 
       setHydrated: () => set({ hydrated: true }),
 
       createCharacter: (name, stats, freePoints) => {
         const character = newCharacter(name, stats, freePoints);
-        set({ character, fight: null, mining: null, quests: null, tournament: null, arena: generateArena(character.level, rng) });
+        set({ character, fight: null, mining: null, quests: null, tournament: null, travel: null, gathering: null, pendingHaul: null, arena: generateArena(character.level, rng) });
       },
 
-      resetGame: () => set({ character: null, fight: null, mining: null, quests: null, tournament: null, arena: [] }),
+      resetGame: () => set({ character: null, fight: null, mining: null, quests: null, tournament: null, travel: null, gathering: null, pendingHaul: null, arena: [] }),
 
       ensureQuests: () => {
         const { character, quests } = get();
@@ -351,6 +407,12 @@ export const useGame = create<GameState>()(
         let next = applyRegen(c);
         // Травма прошла сама — убираем, чтобы экраны перестали её показывать.
         if (next.injury && !activeInjury(next)) next = { ...next, injury: null };
+        // Дорога пройдена — персонаж на месте.
+        const t = get().travel;
+        if (t && travelDone(t, Date.now())) {
+          next = { ...next, location: t.to };
+          set({ travel: null });
+        }
         if (next !== c) set({ character: next });
       },
 
@@ -451,6 +513,7 @@ export const useGame = create<GameState>()(
         if (!c) return { ok: false, reason: 'Нет персонажа' };
         if (state.fight?.status === 'active') return { ok: false, reason: 'Бой уже идёт' };
         if (state.mining) return { ok: false, reason: 'Ты в шахте. Сначала забери заработок.' };
+        if (c.location !== 'city' || state.travel) return { ok: false, reason: 'Арена в городе. Сначала вернись.' };
         const opponent = state.arena.find((o) => o.id === opponentId);
         if (!opponent) return { ok: false, reason: 'Соперник ушёл' };
         const fresh = applyRegen(c);
@@ -549,6 +612,7 @@ export const useGame = create<GameState>()(
         if (state.fight?.status === 'active') return { ok: false, reason: 'Сначала закончи бой' };
         const check = canEnterTournament(c, !!state.mining);
         if (!check.ok) return check;
+        if (c.location !== 'city' || state.travel) return { ok: false, reason: 'Замок рядом с городом. Сначала вернись.' };
         const tournament = createTournament(c.level, rng);
         set({ tournament, character: { ...c, lastTournamentDay: tournament.day } });
         return get().startTournamentFight();
@@ -582,6 +646,89 @@ export const useGame = create<GameState>()(
         return { ok: true };
       },
 
+      startTravel: (to) => {
+        const state = get();
+        const c = state.character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        const check = canTravel(c, to, {
+          mining: !!state.mining,
+          gathering: !!state.gathering,
+          traveling: !!state.travel,
+          fighting: state.fight?.status === 'active',
+        });
+        if (!check.ok || !check.route) return { ok: false, reason: check.reason };
+        set({ travel: { from: c.location, to, startedAt: Date.now(), minutes: check.route.minutes } });
+        return { ok: true };
+      },
+
+      startGathering: (activity, minutes) => {
+        const state = get();
+        const c = state.character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        if (c.location !== 'forest' || state.travel) return { ok: false, reason: 'Собирать можно только в лесу' };
+        if (state.gathering) return { ok: false, reason: 'Ты уже занят' };
+        if (state.fight?.status === 'active') return { ok: false, reason: 'Сначала закончи бой' };
+        if (!ACTIVITIES_BY_ID[activity]) return { ok: false, reason: 'Такого занятия нет' };
+        if (!isGatherMinutes(minutes)) return { ok: false, reason: 'Такой смены нет' };
+        set({ gathering: { activity, startedAt: Date.now(), minutes } });
+        return { ok: true };
+      },
+
+      collectGathering: () => {
+        const state = get();
+        const c = state.character;
+        const g = state.gathering;
+        if (!c || !g) return { ok: false, reason: 'Ты ничего не собирал' };
+        if (state.fight?.status === 'active') return { ok: false, reason: 'Сначала закончи бой' };
+        const def = ACTIVITIES_BY_ID[g.activity];
+        const amount = gatherYield(g, gatherRatePerHour(g.activity, deriveCharacter(c)), Date.now());
+        // Засада: улов ставится на кон, начинается бой.
+        if (amount > 0 && rollAmbush(rng)) {
+          const opponent: OpponentType = forestOpponent(c.level, rng);
+          const fresh = applyRegen(c);
+          const fight: FightState = {
+            context: 'forest',
+            opponent,
+            playerHp: Math.max(1, fresh.hp),
+            enemyHp: opponent.derived.maxHp,
+            turn: 1,
+            status: 'active',
+            log: [makeLogLine(0, `Засада! ${opponent.name} выскакивает на тропу. На кону ${amount} шт.: ${def.name.toLowerCase().replace('собирать ', '').replace('рубить ', '').replace('охотиться', 'шкуры')}.`, 'system')],
+            playerMoves: [],
+            lastEnemyMove: null,
+            reward: null,
+            startedAt: Date.now(),
+          };
+          set({ gathering: null, pendingHaul: { resource: def.resource, amount }, fight, character: fresh, lastFightContext: 'forest' });
+          return { ok: true, resource: def.resource, amount, ambush: true };
+        }
+        set({
+          gathering: null,
+          character: { ...c, resources: { ...c.resources, [def.resource]: c.resources[def.resource] + amount } },
+        });
+        return { ok: true, resource: def.resource, amount };
+      },
+
+      sellResource: (resource, amount) => {
+        const c = get().character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        if (c.location !== 'city') return { ok: false, reason: 'Скупка в городской лавке' };
+        const have = c.resources[resource] ?? 0;
+        const qty = Math.min(have, amount ?? have);
+        if (qty <= 0) return { ok: false, reason: 'Нечего продавать' };
+        const price = marketPrice(resource, dayKey());
+        const total = qty * price;
+        set({
+          character: {
+            ...c,
+            kredits: c.kredits + total,
+            resources: { ...c.resources, [resource]: have - qty },
+            ledger: { ...c.ledger, kreditsEarned: c.ledger.kreditsEarned + total },
+          },
+        });
+        return { ok: true, kredits: total };
+      },
+
       claimAchievement: (id) => {
         const c = get().character;
         if (!c) return { ok: false, reason: 'Нет персонажа' };
@@ -605,6 +752,7 @@ export const useGame = create<GameState>()(
         if (!state.character) return { ok: false, reason: 'Нет персонажа' };
         if (state.fight?.status === 'active') return { ok: false, reason: 'Сначала закончи бой' };
         if (state.mining) return { ok: false, reason: 'Ты уже в шахте' };
+        if (state.character.location !== 'city' || state.travel) return { ok: false, reason: 'Шахта в городе. Сначала вернись.' };
         if (!isShiftHours(hours)) return { ok: false, reason: 'Такой смены нет' };
         set({ mining: { startedAt: Date.now(), hours } });
         return { ok: true };
@@ -700,6 +848,9 @@ export const useGame = create<GameState>()(
         quests: s.quests,
         tournament: s.tournament,
         lastFightContext: s.lastFightContext,
+        travel: s.travel,
+        gathering: s.gathering,
+        pendingHaul: s.pendingHaul,
       }),
       // Старые сейвы дописываем недостающими полями (прочность, заточка, будущие фичи).
       migrate: (persisted) => {
