@@ -8,8 +8,10 @@ import {
   deliverPending,
   emptyChat,
   fightNews,
+  fightRemark,
   matchTopic,
   normalizeChat,
+  NPC_VOICES,
   npcReplies,
   unreadCount,
   validateMessage,
@@ -98,6 +100,20 @@ describe('chat', () => {
     expect(fightNews('Я', 'Толян', 'won', 3, 'brod')).toContain('3 хода.');
     expect(fightNews('Я', 'Толян', 'lost', 12, 'city')).toContain('12 ходов.');
     expect(fightNews('Я', 'Толян', 'draw', 5, 'tournament')).toContain('Замок');
+  });
+
+  it('у каждого завсегдатая есть что сказать без повода и по делу', () => {
+    expect(NPC_VOICES.length).toBeGreaterThanOrEqual(12);
+    expect(new Set(NPC_VOICES.map((v) => v.id)).size).toBe(NPC_VOICES.length);
+    for (const v of NPC_VOICES) {
+      expect(v.ambient.length).toBeGreaterThanOrEqual(6);
+      expect(v.replies.default?.length ?? 0).toBeGreaterThanOrEqual(2);
+      expect(v.replies.greet?.length ?? 0).toBeGreaterThanOrEqual(1);
+    }
+    expect(fightRemark('Я', 'won', () => 0)).toMatch(/^Я\? /);
+    const seen = new Set<string>();
+    for (let i = 0; i < 50; i += 1) seen.add(fightRemark('Я', 'lost', Math.random));
+    expect(seen.size).toBeGreaterThan(5);
   });
 
   it('нормализует кривой сейв', () => {

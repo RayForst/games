@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { applyQuestEvent, dailyRumors, dayKey, generateBoard, questDone, questReward, questTitle } from './quests';
+import { applyQuestEvent, dailyRumors, dayKey, generateBoard, QUEST_TEMPLATES, questDone, questReward, questTitle, RUMORS } from './quests';
 
 describe('задания', () => {
   const now = new Date(2026, 10, 4, 12).getTime();
@@ -29,6 +29,16 @@ describe('задания', () => {
     const q = generateBoard(() => 0, now).quests[0];
     expect(questReward(q, 3).kredits).toBeGreaterThan(questReward(q, 0).kredits);
     expect(questReward(q, 0).exp).toBeGreaterThan(0);
+  });
+
+  it('шаблонов и слухов хватает на долгую игру', () => {
+    expect(QUEST_TEMPLATES.length).toBeGreaterThanOrEqual(20);
+    expect(new Set(QUEST_TEMPLATES.map((t) => t.id)).size).toBe(QUEST_TEMPLATES.length);
+    for (const t of QUEST_TEMPLATES) for (const n of t.targets) expect(t.title(n)).not.toMatch(/undefined|NaN/);
+    expect(QUEST_TEMPLATES[0].title(1)).toContain('1 раз');
+    expect(QUEST_TEMPLATES[0].title(3)).toContain('3 раза');
+    expect(RUMORS.length).toBeGreaterThanOrEqual(40);
+    expect(new Set(RUMORS).size).toBe(RUMORS.length);
   });
 
   it('слухи стабильны в пределах дня', () => {

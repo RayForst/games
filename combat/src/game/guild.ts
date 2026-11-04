@@ -243,6 +243,9 @@ export function skirmishOpponent(g: Guild, playerLevel: number, rng: () => numbe
 
 const npcMember = (id: string, name: string, level: number, rank: GuildRank = 'member'): GuildMember => ({ id: `npc:${id}`, name, rank, level, joinedAt: 0 });
 
+/** Строка летописи гильдии местных: даты у них условные, «до начала времён». */
+const chronicle = (...lines: string[]): GuildEvent[] => lines.map((text, i) => ({ at: i, text }));
+
 /** Гильдии местных. Живут в сейве: растут, копят, дрейфуют по таблице. */
 export const NPC_GUILDS: Guild[] = [
   {
@@ -256,7 +259,11 @@ export const NPC_GUILDS: Guild[] = [
     rating: 160,
     members: [npcMember('syava', 'Кабан Сява', 4, 'leader'), npcMember('stepan', 'Рыжий Степан', 3, 'officer'), npcMember('lyokha', 'Кривой Лёха', 2), npcMember('efim', 'Палач Ефим', 4)],
     createdAt: 0,
-    log: [],
+    log: chronicle(
+      'Кабан Сява собрал дворовых с паперти и назвал Псами. Собака была настоящая, сдохла в первую зиму.',
+      'Стычка с Цехом за левую половину пивной. Проиграли, но стол оставили за собой: Марфа пожалела.',
+      'Палач Ефим вступил после того, как его выгнали из замка. За что — Псы не спрашивают.',
+    ),
     npc: true,
     lastDay: null,
   },
@@ -271,7 +278,11 @@ export const NPC_GUILDS: Guild[] = [
     rating: 340,
     members: [npcMember('molot', 'Молот', 6, 'leader'), npcMember('prokhor', 'Дядя Прохор', 5, 'officer'), npcMember('zhila', 'Жила', 4), npcMember('rzhavy', 'Ржавый', 3), npcMember('tesak', 'Тесак', 5)],
     createdAt: 0,
-    log: [],
+    log: chronicle(
+      'Основан мясниками и кузнецами ещё до чумы: цеховой устав, цеховая казна, цеховой тесак на стене.',
+      'Чуму пережили всем составом. Говорят, потому что мясо ели своё. Говорят мясники.',
+      'Молот взял главенство, уложив Дядю Прохора на арене. Прохор — десятник, зла не держит, помнит всё.',
+    ),
     npc: true,
     lastDay: null,
   },
@@ -286,7 +297,44 @@ export const NPC_GUILDS: Guild[] = [
     rating: 80,
     members: [npcMember('shepot', 'Шёпот', 3, 'leader'), npcMember('bely', 'Белый', 2), npcMember('igla', 'Игла', 2)],
     createdAt: 0,
-    log: [],
+    log: chronicle('Основаны. Кем и когда — не записано.', 'Писарь Гришка пытался вести летопись Тихих. Перо нашли. Гришку тоже, живого.'),
+    npc: true,
+    lastDay: null,
+  },
+  {
+    id: 'ferrymen',
+    name: 'Перевозчики',
+    tag: 'ПЛОТ',
+    emblem: 'raven',
+    motto: 'Река всё спишет.',
+    level: 2,
+    treasury: 450,
+    rating: 140,
+    members: [npcMember('yashka', 'Лодочник Яшка', 4, 'leader'), npcMember('somina', 'Сомина', 3, 'officer'), npcMember('bagor', 'Багор', 3), npcMember('plotva', 'Плотва', 2)],
+    createdAt: 0,
+    log: chronicle(
+      'Лодочники с переправы и те, кто носит через болото то, чего в лавке не спросишь, сошлись за одним столом.',
+      'Стража искала у Перевозчиков контрабанду. Нашла лодку. Лодку конфисковала, утром лодка стояла на месте.',
+      'Багор побил двух Псов за место у причала. Псы говорят — трёх, и что это они побили.',
+    ),
+    npc: true,
+    lastDay: null,
+  },
+  {
+    id: 'greyfriars',
+    name: 'Серые Братья',
+    tag: 'СБР',
+    emblem: 'flame',
+    motto: 'Не убий. Но покалечь.',
+    level: 1,
+    treasury: 90,
+    rating: 110,
+    members: [npcMember('onufry', 'Брат Онуфрий', 3, 'leader'), npcMember('avvakum', 'Брат Аввакум', 3), npcMember('rasstriga', 'Монах-расстрига', 2)],
+    createdAt: 0,
+    log: chronicle(
+      'Уцелевшие из сгоревшего монастыря в руинах. Устав сохранили, казну — нет, настоятеля — не искали.',
+      'Брат Онуфрий благословил арену. Хозяин, говорят, не возражал. Хозяина, как всегда, никто не видел.',
+    ),
     npc: true,
     lastDay: null,
   },

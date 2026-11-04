@@ -14,7 +14,7 @@ describe('умения', () => {
   });
 
   it('предложение не повторяет взятое и не повторяется внутри себя', () => {
-    const owned = PERKS.slice(0, 8).map((p) => p.id);
+    const owned = PERKS.slice(0, PERKS.length - 2).map((p) => p.id);
     const offer = offerPerks(owned, Math.random);
     expect(offer).toHaveLength(2);
     for (const id of offer) expect(owned).not.toContain(id);
@@ -33,5 +33,22 @@ describe('умения', () => {
     expect(d.expMult).toBeCloseTo(1.15);
     expect(d.regenMult).toBeCloseTo(1.5);
     expect(plain.expMult).toBe(1);
+    const extra = deriveStats(baseStats(), 0, [], ['cat-step', 'long-arm', 'bull-neck', 'oak-legs', 'cold-blood', 'brawler', 'tough-hide', 'light-sleeper', 'coal-lungs', 'tavern-regular', 'rat-cunning']);
+    expect(extra.antiCrit).toBe(plain.antiCrit + 5);
+    expect(extra.antiDodge).toBe(plain.antiDodge + 3);
+    expect(extra.armor.body).toBe(plain.armor.body + 3);
+    expect(extra.armor.legs).toBe(plain.armor.legs + 2);
+    expect(extra.crit).toBe(plain.crit + 4);
+    expect(extra.dodge).toBe(plain.dodge);
+    expect(extra.dmgMax).toBe(plain.dmgMax + 2);
+    expect(extra.mineBonus).toBe(2);
+    expect(extra.regenMult).toBeCloseTo(1.25);
+    expect(extra.expMult).toBeCloseTo(1.08);
+    expect(extra.healMult).toBeCloseTo(0.9);
+  });
+
+  it('умений хватает на все окна выбора с запасом', () => {
+    expect(PERKS.length).toBeGreaterThanOrEqual(PERK_LEVELS.length * 3);
+    expect(new Set(PERKS.map((p) => p.id)).size).toBe(PERKS.length);
   });
 });
