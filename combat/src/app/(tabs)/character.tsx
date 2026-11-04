@@ -11,6 +11,7 @@ import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
 import {
   activeInjury,
+  alignmentName,
   deriveCharacter,
   originText,
   expForLevel,
@@ -99,6 +100,9 @@ export default function CharacterScreen() {
           <Txt variant="small" color={colors.gold}>
             {rankFor(character.rating)} · рейтинг {character.rating}
             {character.titles.length > 0 ? ` · ${character.titles[character.titles.length - 1]}` : ''}
+          </Txt>
+          <Txt variant="small" color={character.alignment >= 20 ? colors.green : character.alignment <= -20 ? colors.red : colors.textMuted}>
+            Склонность: {alignmentName(character.alignment)} ({character.alignment > 0 ? '+' : ''}{character.alignment})
           </Txt>
         </View>
         <View style={styles.record}>

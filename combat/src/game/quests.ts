@@ -1,6 +1,23 @@
 // Пивная: три ежедневных задания и слухи. Прогресс копится из событий стора (бой, шахта, покупка…).
 
-export type QuestEvent = 'fightWin' | 'fightPlay' | 'fightWinStronger' | 'mineHours' | 'buyItem' | 'repair' | 'heal' | 'sharpen' | 'gather' | 'sellResources';
+export type QuestEvent =
+  | 'fightWin'
+  | 'fightPlay'
+  | 'fightWinStronger'
+  | 'mineHours'
+  | 'buyItem'
+  | 'repair'
+  | 'heal'
+  | 'sharpen'
+  | 'gather'
+  | 'sellResources'
+  // Сюжет (story.ts): победа над именным (detail — id), победа над стороной (detail — сторона),
+  // ходка с караваном, прибытие в локацию (detail — id), вступление в гильдию. Доска пивной их не использует.
+  | 'rivalWin'
+  | 'sideWin'
+  | 'caravan'
+  | 'arrive'
+  | 'guildJoin';
 
 export interface QuestTemplate {
   id: string;

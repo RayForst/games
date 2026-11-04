@@ -6,6 +6,7 @@ import { emptyLedger, normalizeLedger } from './achievements';
 import { emptyResources, normalizeResources } from './wilds';
 import type { PerkId } from './perks';
 import { DEFAULT_ORIGIN, homeOf, isValidOrigin, raceStats, switchRaceStats, type Origin, type RaceId, type SideId } from './races';
+import { alignmentPriceMult } from './story';
 
 export function emptyEquipment(): Record<Slot, string | null> {
   return Object.fromEntries(SLOTS.map((s) => [s, null])) as Record<Slot, string | null>;
@@ -51,6 +52,7 @@ export function newCharacter(name: string, stats: Stats = baseStats(), freePoint
     race: origin.race,
     defections: 0,
     home: homeOf(origin.race),
+    alignment: 0,
   };
 }
 
@@ -131,7 +133,7 @@ export function heavier(a: Injury | null, b: Injury | null): Injury | null {
 
 /** Цена лечения травмы у лекаря: растёт с уровнем. */
 export function cureCost(c: Character, injury: Injury): number {
-  return Math.ceil(INJURY_INFO[injury.kind].cureBase * (1 + c.level * 0.4) * deriveCharacter(c).healMult);
+  return Math.ceil(INJURY_INFO[injury.kind].cureBase * (1 + c.level * 0.4) * deriveCharacter(c).healMult * alignmentPriceMult(c.alignment ?? 0, 'healer'));
 }
 
 export function injuryText(injury: Injury): string {
@@ -191,6 +193,7 @@ export function normalizeCharacter(raw: Character): Character {
     race,
     defections: typeof raw.defections === 'number' ? raw.defections : 0,
     home: raw.home ?? homeOf(race),
+    alignment: typeof raw.alignment === 'number' ? raw.alignment : 0,
   };
 }
 
@@ -338,9 +341,9 @@ export const HEAL_OPTIONS: HealOption[] = [
   { id: 'large', name: 'Большое зелье', fraction: 1, icon: 'potion-large', flavor: 'Как новенький.' },
 ];
 
-/** Цена зелья: доля от полного лечения с учётом умения «Торгаш», не меньше 1 кредита. */
+/** Цена зелья: доля от полного лечения с учётом умения «Торгаш» и склонности (светлым дешевле), не меньше 1 кредита. */
 export function healPrice(c: Character, fraction: number): number {
-  return Math.max(1, Math.ceil(healCost(c) * Math.min(1, Math.max(0, fraction)) * deriveCharacter(c).healMult));
+  return Math.max(1, Math.ceil(healCost(c) * Math.min(1, Math.max(0, fraction)) * deriveCharacter(c).healMult * alignmentPriceMult(c.alignment ?? 0, 'healer')));
 }
 
 /** Сколько hp даст зелье с учётом потолка. */

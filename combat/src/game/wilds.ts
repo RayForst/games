@@ -271,6 +271,8 @@ export interface RoadEvent {
   text: string;
   kredits?: number;
   resource?: { id: ResourceId; amount: number };
+  /** Сдвиг склонности (story.ts): обыскать мертвеца — к тёмной, вернуть кошель — к светлой. */
+  alignment?: number;
 }
 
 type RoadEventMaker = (level: number, rng: () => number) => RoadEvent;
@@ -285,15 +287,19 @@ export const ROAD_EVENTS: RoadEventMaker[] = [
   // Кредиты в плюс
   (level, rng) => {
     const kredits = money(level, rng, 5, 10);
-    return { text: `На обочине кошель. Хозяина не видно, спрашивать некого: +${kredits} кр.`, kredits };
+    return { text: `На обочине кошель. Хозяина не видно, спрашивать некого: +${kredits} кр.`, kredits, alignment: -1 };
+  },
+  (level, rng) => {
+    const kredits = money(level, rng, 3, 6);
+    return { text: `Кошель с купеческой меткой. Донёс до постоялого двора, отдал. Купец, не веря, отсыпал половину: +${kredits} кр.`, kredits, alignment: 2 };
   },
   (level, rng) => {
     const kredits = money(level, rng, 4, 8);
-    return { text: `Купец застрял колесом в колее. Плечо подставил, монету получил: +${kredits} кр.`, kredits };
+    return { text: `Купец застрял колесом в колее. Плечо подставил, монету получил: +${kredits} кр.`, kredits, alignment: 1 };
   },
   (level, rng) => {
     const kredits = money(level, rng, 6, 10);
-    return { text: `У дороги лежит мертвец. Волки его уже обыскали, но не там, где нужно: +${kredits} кр.`, kredits };
+    return { text: `У дороги лежит мертвец. Волки его уже обыскали, но не там, где нужно: +${kredits} кр.`, kredits, alignment: -2 };
   },
   (level, rng) => {
     const kredits = money(level, rng, 3, 6);
@@ -301,11 +307,15 @@ export const ROAD_EVENTS: RoadEventMaker[] = [
   },
   (level, rng) => {
     const kredits = money(level, rng, 5, 8);
-    return { text: `Паломники приняли тебя за охрану и заплатили за «сопровождение» до развилки: +${kredits} кр.`, kredits };
+    return { text: `Паломники приняли тебя за охрану и заплатили за «сопровождение» до развилки: +${kredits} кр.`, kredits, alignment: -1 };
   },
   (level, rng) => {
     const kredits = money(level, rng, 8, 12);
-    return { text: `Под мостом чья-то заначка в тряпице. Тряпица сгнила, заначка — нет: +${kredits} кр.`, kredits };
+    return { text: `Под мостом чья-то заначка в тряпице. Тряпица сгнила, заначка — нет: +${kredits} кр.`, kredits, alignment: -1 };
+  },
+  (level, rng) => {
+    const kredits = money(level, rng, 2, 5);
+    return { text: `Пьяный у обочины спит с кошелём наружу. Теперь кошель внутри. Твоего кармана: +${kredits} кр.`, kredits, alignment: -3 };
   },
   // Ресурсы
   (_level, rng) => {
@@ -320,11 +330,11 @@ export const ROAD_EVENTS: RoadEventMaker[] = [
   },
   (_level, rng) => {
     const amount = 3 + Math.floor(rng() * 4);
-    return { text: `Знахарка на обочине сушит травы и просит отогнать собак. Отогнал, получил: +${amount} шт., травы.`, resource: { id: 'herbs', amount } };
+    return { text: `Знахарка на обочине сушит травы и просит отогнать собак. Отогнал, получил: +${amount} шт., травы.`, resource: { id: 'herbs', amount }, alignment: 1 };
   },
   (_level, rng) => {
     const amount = 1 + Math.floor(rng() * 2);
-    return { text: `В силках у тропы заяц. Силки не твои, заяц теперь твой: +${amount} шт., шкуры.`, resource: { id: 'pelts', amount } };
+    return { text: `В силках у тропы заяц. Силки не твои, заяц теперь твой: +${amount} шт., шкуры.`, resource: { id: 'pelts', amount }, alignment: -1 };
   },
   (_level, rng) => {
     const amount = 1 + Math.floor(rng() * 2);
@@ -346,6 +356,7 @@ export const ROAD_EVENTS: RoadEventMaker[] = [
   () => ({ text: 'Столб с княжеским указом: за головы разбойников с перевала платят. Указу лет пять, разбойники целы.' }),
   () => ({ text: 'На привале у костра сидели двое в плащах. Говорили о Тени. Замолчали, когда ты подошёл.' }),
   () => ({ text: 'Монах на дороге благословил тебя и попросил кредит. Ты дал благословение в ответ.' }),
+  () => ({ text: 'Старуха с вязанкой упала на спуске. Донёс хворост до её хибары. Благодарности — ни слова, похлёбки — миска.', alignment: 1 }),
   // Кредиты в минус
   (_level, rng) => {
     const kredits = -(3 + Math.floor(rng() * 6));

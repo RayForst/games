@@ -1,4 +1,5 @@
 import type { DerivedStats } from './types';
+import { ALIGNMENT_PERK_AT } from './story';
 
 // Умения: на определённых уровнях игрок выбирает одно из трёх случайных. Эффекты живут здесь,
 // применяются в deriveStats после предметов.
@@ -24,12 +25,16 @@ export type PerkId =
   | 'light-sleeper'
   | 'coal-lungs'
   | 'tavern-regular'
-  | 'rat-cunning';
+  | 'rat-cunning'
+  | 'clear-conscience'
+  | 'black-heart';
 
 export interface PerkDef {
   id: PerkId;
   name: string;
   description: string;
+  /** Умение склонности: предлагается только Святоше (light, ≥ +60) или Чёрному (dark, ≤ −60). */
+  alignment?: 'light' | 'dark';
   apply: (d: DerivedStats) => void;
 }
 
@@ -124,6 +129,27 @@ export const PERKS: PerkDef[] = [
       d.crit += 2;
     },
   },
+  // Склонность (story.ts): по одному умению для крайностей.
+  {
+    id: 'clear-conscience',
+    name: 'Чистая совесть',
+    description: 'Святоша: +8 % здоровья, лекарь берёт на 20 % меньше',
+    alignment: 'light',
+    apply: (d) => {
+      d.maxHp += Math.ceil(d.maxHp * 0.08);
+      d.healMult *= 0.8;
+    },
+  },
+  {
+    id: 'black-heart',
+    name: 'Чёрное сердце',
+    description: 'Чёрный: +4 % крита и +2 к максимальному урону',
+    alignment: 'dark',
+    apply: (d) => {
+      d.crit += 4;
+      d.dmgMax += 2;
+    },
+  },
 ];
 
 export const PERKS_BY_ID = Object.fromEntries(PERKS.map((p) => [p.id, p])) as Record<PerkId, PerkDef>;
@@ -133,9 +159,16 @@ export function perkPicksBetween(from: number, to: number): number {
   return PERK_LEVELS.filter((l) => l > from && l <= to).length;
 }
 
-/** Три случайных умения из тех, что ещё не взяты. */
-export function offerPerks(owned: PerkId[], rng: () => number, count = 3): PerkId[] {
-  const pool = PERKS.map((p) => p.id).filter((id) => !owned.includes(id));
+/** Доступно ли умение при этой склонности: обычные — всегда, умения склонности — на краях шкалы. */
+export function perkAllowed(p: PerkDef, alignment = 0): boolean {
+  if (p.alignment === 'light') return alignment >= ALIGNMENT_PERK_AT;
+  if (p.alignment === 'dark') return alignment <= -ALIGNMENT_PERK_AT;
+  return true;
+}
+
+/** Три случайных умения из тех, что ещё не взяты; умения склонности — только по склонности. */
+export function offerPerks(owned: PerkId[], rng: () => number, count = 3, alignment = 0): PerkId[] {
+  const pool = PERKS.filter((p) => !owned.includes(p.id) && perkAllowed(p, alignment)).map((p) => p.id);
   const picked: PerkId[] = [];
   while (picked.length < count && pool.length > 0) {
     const i = Math.floor(rng() * pool.length);

@@ -11,7 +11,7 @@ import { GiIcon } from '@/components/GiIcon';
 import { Kredits } from '@/components/Kredits';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
-import { BUILDINGS_BY_ID, dailyRumors, questDone, questReward, questTitle, unreadCount } from '@/game';
+import { alignmentName, BUILDINGS_BY_ID, chainFinished, dailyRumors, questDone, questReward, questTitle, sortedProgress, STORY_BY_ID, storyAttention, storyStep, unreadCount } from '@/game';
 import { useFlash } from '@/hooks/useFlash';
 import { useGame } from '@/store/useGame';
 import { playSfx } from '@/ui/sfx';
@@ -26,16 +26,33 @@ export default function TavernScreen() {
   const claimQuest = useGame((s) => s.claimQuest);
   const unread = useGame((s) => unreadCount(s.chat, s.chatSeenAt));
   const guild = useGame((s) => s.guild);
+  const story = useGame((s) => s.story);
+  const ensureStory = useGame((s) => s.ensureStory);
   const [flash, show] = useFlash(2500);
 
   // Доска на сегодня создаётся при входе (и пересоздаётся, если наступил новый день).
   useEffect(() => {
     ensureQuests();
+    // Сюжет: открыть доступные линии и закрыть шаги по состоянию.
+    ensureStory();
     // Обучение: визит в пивную — последний шаг.
     advanceTutorial({ tavernVisited: true });
-  }, [ensureQuests, advanceTutorial]);
+  }, [ensureQuests, ensureStory, advanceTutorial]);
 
   if (!character) return null;
+
+  // «Дела»: первая линия, требующая внимания (развилка или награда), иначе первая идущая.
+  const attention = storyAttention(story);
+  const active = sortedProgress(story).filter((p) => !p.claimed);
+  const top = active[0];
+  const topStep = top ? storyStep(top) : null;
+  const topLine = !top
+    ? 'Пока никому до тебя нет дела. Подерись — заметят.'
+    : chainFinished(top)
+      ? `«${STORY_BY_ID[top.id].title}»: пройдено, награда ждёт.`
+      : top.awaiting
+        ? `«${STORY_BY_ID[top.id].title}»: развилка, нужен твой выбор.`
+        : `«${STORY_BY_ID[top.id].title}»: ${topStep?.task ?? ''}`;
 
   const onClaim = (id: string) => {
     const r = claimQuest(id);
@@ -76,6 +93,12 @@ export default function TavernScreen() {
             </View>
           );
         })}
+      </Card>
+
+      <Card title="Дела" right={<Txt variant="small" color={attention > 0 ? colors.gold : colors.textMuted}>{attention > 0 ? `ждут: ${attention}` : `линий: ${active.length}`}</Txt>}>
+        <Txt variant="muted">{topLine}</Txt>
+        <Txt variant="small">За глаза тебя зовут «{alignmentName(character.alignment)}».</Txt>
+        <Button small variant={attention > 0 ? 'primary' : 'secondary'} title="К делам" onPress={() => router.push('/story')} />
       </Card>
 
       <View style={styles.doors}>

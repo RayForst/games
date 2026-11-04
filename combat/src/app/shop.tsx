@@ -9,7 +9,7 @@ import { ItemCard } from '@/components/ItemCard';
 import { Kredits } from '@/components/Kredits';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
-import { canEquip, dayKey, ITEM_SLOT_LABELS, ITEM_SLOTS, ITEMS, marketPrice, prepareEquip, RESOURCES, type ItemSlot } from '@/game';
+import { canEquip, dayKey, ITEM_SLOT_LABELS, ITEM_SLOTS, ITEMS, marketPrice, prepareEquip, RESOURCES, type ItemSlot, shopPrice } from '@/game';
 import { GiIcon } from '@/components/GiIcon';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
@@ -90,12 +90,14 @@ export default function ShopScreen() {
 
       {items.map((item) => {
         const check = canEquip(prepareEquip(character, item).character, item);
-        const affordable = character.kredits >= item.price;
+        // Цена по склонности: ломбардщик с гнилыми — свой (story.ts).
+        const price = shopPrice(character, item);
+        const affordable = character.kredits >= price;
         return (
           <ItemCard
             key={item.id}
             item={item}
-            price={item.price}
+            price={price}
             warning={!check.ok ? `Пока не наденешь: ${check.reason?.toLowerCase()}` : null}
             actions={[
               {

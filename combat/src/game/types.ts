@@ -230,6 +230,8 @@ export interface Character {
   defections: number;
   /** Родной город — столица расы (`CAPITALS`). Стартуют все в Городе, это только происхождение. */
   home: CapitalId;
+  /** Склонность −100 (тёмная) … +100 (светлая): выборы в сюжете и дорожные события (story.ts). */
+  alignment: number;
 }
 
 export interface Ledger {

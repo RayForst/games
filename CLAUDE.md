@@ -115,6 +115,12 @@
 - Баланс: симуляция `scripts/balance.mts` (`npm run balance -- --n=1000`, флаги `--level`, `--short`, `--seed`) — архетипы,
   щит/двуручник, Город/Брод, доходы всех источников, комплект и ремонт. Цели и таблица было/стало — раздел «Баланс»
   в `ROADMAP.md`; после любой правки чисел в `items.ts`/`leveling.ts`/`opponents.ts`/`mine.ts`/`wilds.ts` прогонять.
+- Сюжет и склонность: `story.ts` (линии `STORY_CHAINS`, движок `applyStoryEvent`/`chooseStoryOption`/`claimStoryReward`,
+  склонность `alignmentName`/`alignmentTone`/`alignmentPriceMult`/`shopPrice`), стор `story`, блок `// --- Сюжет и склонность ---`
+  (`storyApply` на локальном персонаже внутри `settle()`, действия `ensureStory`/`chooseStory`/`claimStory`), `track(event, amount, detail)`
+  с деталью (id именного, сторона, локация, арена). Экран `story.tsx` («Дела» из пивной). Поле `character.alignment`; реплики
+  именных `byAlignment` в `rivals.ts`, умения склонности в `perks.ts` (`perkAllowed`), сдвиг у дорожных событий `RoadEvent.alignment`.
+  Новая линия — запись в `STORY_CHAINS`; новое условие — ветка в `stepMet`; новое событие — `QuestEvent` и вызов `track()`.
 - Завершение боя — один хелпер `settle()` внутри стора (награда, уровень, умения, износ, рейтинг, турнир, трофей,
   задания, травма). Любая новая «после боя» логика добавляется туда.
 - Сейвы: `persist.version` и `normalizeCharacter()` дописывают новые поля старым сохранениям — обновлять при каждом
