@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Animated, Easing, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 
 import { Portrait } from './Portrait';
+import type { RaceId } from '@/game/races';
 import { colors, radius } from '@/ui/theme';
 
 interface Props {
@@ -11,13 +12,15 @@ interface Props {
   hpRatio: number;
   /** Активная травма — повязка через лоб. */
   injured?: boolean;
+  /** Раса персонажа — черты лица в портрете. */
+  race?: RaceId;
 }
 
 /**
  * Аватар персонажа: пьедестал под лучом света и процедурный портрет (голова и плечи).
  * Портрет собирается из черт по имени (`ui/portrait.ts`), картинок нет.
  */
-export function Avatar({ seed, hpRatio, injured }: Props) {
+export function Avatar({ seed, hpRatio, injured, race }: Props) {
   // Медленное «дыхание», чтобы персонаж выглядел живым, а не иконкой.
   const [breath] = useState(() => new Animated.Value(0));
   // Портрет растёт вместе с рамкой: на большом экране кукла высокая, бюст не должен теряться внизу.
@@ -49,7 +52,7 @@ export function Avatar({ seed, hpRatio, injured }: Props) {
       <View style={[styles.floor, { width: size * 0.7, height: size * 0.08 }]} />
       {box.width > 0 ? (
         <Animated.View style={[styles.figure, { transform: [{ scale }] }]}>
-          <Portrait seed={seed} size={size} hpRatio={hpRatio} injured={injured} />
+          <Portrait seed={seed} race={race} size={size} hpRatio={hpRatio} injured={injured} />
         </Animated.View>
       ) : null}
     </View>

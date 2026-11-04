@@ -4,6 +4,7 @@ import { Animated, Easing, StyleSheet, View } from 'react-native';
 import { Bar } from './Bar';
 import { Portrait } from './Portrait';
 import { Txt } from './Txt';
+import type { RaceId } from '@/game/races';
 import { colors, radius, spacing } from '@/ui/theme';
 import type { DerivedStats, Strike } from '@/game';
 
@@ -21,6 +22,8 @@ interface Props {
   rivalId?: string;
   /** Травма — повязка на портрете. */
   injured?: boolean;
+  /** Раса бойца — черты лица в портрете. */
+  race?: RaceId;
 }
 
 function popText(s: Strike): { text: string; color: string; big: boolean } {
@@ -52,7 +55,7 @@ function flashColor(s: Strike): string {
   }
 }
 
-export function FighterCard({ name, level, hp, derived, side, lastStrike, strikeKey, rivalId, injured }: Props) {
+export function FighterCard({ name, level, hp, derived, side, lastStrike, strikeKey, rivalId, injured, race }: Props) {
   const enemy = side === 'enemy';
   // Одна анимация на раунд: 0 — удар только что случился, 1 — всё растаяло.
   const [anim] = useState(() => new Animated.Value(1));
@@ -89,7 +92,7 @@ export function FighterCard({ name, level, hp, derived, side, lastStrike, strike
       />
       <View style={styles.body}>
         <View style={styles.portrait}>
-          <Portrait seed={name} rivalId={rivalId} size={PORTRAIT} hpRatio={hp / derived.maxHp} injured={injured} backdrop tight />
+          <Portrait seed={name} rivalId={rivalId} race={race} size={PORTRAIT} hpRatio={hp / derived.maxHp} injured={injured} backdrop tight />
         </View>
         <View style={styles.info}>
           <View style={styles.row}>

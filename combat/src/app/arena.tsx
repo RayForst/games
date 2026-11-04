@@ -82,7 +82,7 @@ export default function ArenaScreen() {
           <Card key={o.id}>
             <View style={styles.rowBetween}>
               <View style={styles.portrait}>
-                <Portrait seed={o.name} rivalId={o.rivalId} size={PORTRAIT} backdrop tight />
+                <Portrait seed={o.name} rivalId={o.rivalId} race={o.race} size={PORTRAIT} backdrop tight />
               </View>
               <View style={styles.flex}>
                 <Txt variant="heading">{o.name}</Txt>

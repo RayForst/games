@@ -146,6 +146,7 @@ export default function FightScreen() {
         lastStrike={enemyStrike}
         strikeKey={fight.turn}
         injured={!!activeInjury(character, now)}
+        race={character.race}
       />
       <View style={styles.vsRow}>
         <View style={styles.vsLine} />
@@ -162,7 +163,7 @@ export default function FightScreen() {
         ) : null}
         <View style={styles.vsLine} />
       </View>
-      <FighterCard name={o.name} level={o.level} hp={fight.enemyHp} derived={o.derived} side="enemy" lastStrike={playerStrike} strikeKey={fight.turn} rivalId={o.rivalId} />
+      <FighterCard name={o.name} level={o.level} hp={fight.enemyHp} derived={o.derived} side="enemy" lastStrike={playerStrike} strikeKey={fight.turn} rivalId={o.rivalId} race={o.race} />
 
       {fight.status === 'active' ? (
         <>
