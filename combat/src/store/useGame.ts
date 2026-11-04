@@ -67,6 +67,17 @@ import {
   newCharacter,
   newInventoryItem,
   normalizeCharacter,
+  // косметика
+  authorCosmetics,
+  buyCosmetic as buyCosmeticPure,
+  canBuyCosmetic,
+  equipCosmetic as equipCosmeticPure,
+  unequipCosmetic as unequipCosmeticPure,
+  sealPackPrice,
+  SEAL_PACKS,
+  sealsForAchievement,
+  SEALS_FOR_TOURNAMENT,
+  type CosmeticKind,
   offerPerks,
   perkPicksBetween,
   POINTS_PER_LEVEL,
@@ -193,6 +204,8 @@ import {
 
 export interface MineResult extends Check {
   kredits?: number;
+  /** Печати князя, если событие их даёт (достижения). */
+  seals?: number;
 }
 
 const rng = Math.random;
@@ -350,6 +363,16 @@ export interface GameState {
 
   setSound: (on: boolean) => void;
 
+  // --- Косметика (Лавка князя) ---
+  buyCosmetic: (id: string) => Check;
+  equipCosmetic: (id: string) => Check;
+  unequipCosmetic: (kind: CosmeticKind) => Check;
+  /** Обмен кредитов на печати по курсу лавки (пачки из `SEAL_PACKS`). */
+  buySeals: (seals: number) => Check;
+  /** Начислить печати за событие вне лавки (ежедневки: 7-й день входа). */
+  grantSeals: (amount: number) => Check;
+  gmGiveSeals: (amount: number) => Check;
+
   /** Обучение: закрыть сделанные шаги (force — кнопка «Понял»), пропустить целиком. */
   advanceTutorial: (extras?: Pick<TutorialSnapshot, 'attackChosen' | 'blockChosen' | 'tavernVisited'>, force?: boolean) => void;
   skipTutorial: () => void;
@@ -469,6 +492,7 @@ export const useGame = create<GameState>()(
                 level: lvl2,
                 freePoints: character.freePoints + gained2 * POINTS_PER_LEVEL,
                 kredits: character.kredits + prize.kredits,
+                seals: character.seals + SEALS_FOR_TOURNAMENT,
                 titles: character.titles.includes(prize.title) ? character.titles : [...character.titles, prize.title],
                 ledger: {
                   ...character.ledger,
@@ -477,7 +501,7 @@ export const useGame = create<GameState>()(
                 },
               };
               reward = { ...reward, exp: reward.exp + prize.exp, kredits: reward.kredits + prize.kredits, title: prize.title };
-              log.push(makeLogLine(turn, `Турнир выигран! Князь жалует ${prize.kredits} кр. и титул «${prize.title}».`, 'system'));
+              log.push(makeLogLine(turn, `Турнир выигран! Князь жалует ${prize.kredits} кр., титул «${prize.title}» и ${SEALS_FOR_TOURNAMENT} печатей для лавки.`, 'system'));
               set({ tournament: { ...t, stage, status: 'won' } });
             } else {
               log.push(makeLogLine(turn, `Бой ${stage} из ${TOURNAMENT_ROUNDS} за тобой. Следующий ждёт.`, 'system'));
@@ -592,7 +616,7 @@ export const useGame = create<GameState>()(
       };
 
       /** Автор-игрок для чата: имя с тегом гильдии и служебной ролью. */
-      const me = (c: Character): ChatAuthor => ({ id: 'player', name: c.name, tag: get().guild?.tag ?? null, role: get().account.role, side: c.side });
+      const me = (c: Character): ChatAuthor => ({ id: 'player', name: c.name, tag: get().guild?.tag ?? null, role: get().account.role, side: c.side, cosmetics: authorCosmetics(c) });
 
       /** Прибавить опыт с ростом уровня (уровень не падает), очками и окном умений. */
       const withExp = (c: Character, amount: number): Character => {
@@ -1179,15 +1203,17 @@ export const useGame = create<GameState>()(
         if (!a) return { ok: false, reason: 'Такого достижения нет' };
         if (c.achievements.includes(id)) return { ok: false, reason: 'Уже забрал' };
         if (!a.check(c)) return { ok: false, reason: 'Ещё не выполнено' };
+        const seals = sealsForAchievement(a);
         set({
           character: {
             ...c,
             kredits: c.kredits + a.reward,
+            seals: c.seals + seals,
             achievements: [...c.achievements, id],
             ledger: { ...c.ledger, kreditsEarned: c.ledger.kreditsEarned + a.reward },
           },
         });
-        return { ok: true, kredits: a.reward };
+        return { ok: true, kredits: a.reward, seals };
       },
 
       startMining: (hours, job = 'mine') => {
@@ -1741,6 +1767,57 @@ export const useGame = create<GameState>()(
         set({ character: { ...c, kredits: c.kredits - cost, backpack } });
         get().track('sharpen');
         return { ok: true };
+      },
+
+      // --- Косметика ---
+      buyCosmetic: (id) => {
+        const c = get().character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        const r = canBuyCosmetic(c, id);
+        if (!r.ok) return r;
+        set({ character: buyCosmeticPure(c, id) });
+        return { ok: true };
+      },
+
+      equipCosmetic: (id) => {
+        const c = get().character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        if (!c.cosmetics.owned.includes(id)) return { ok: false, reason: 'Сначала купи' };
+        set({ character: equipCosmeticPure(c, id) });
+        return { ok: true };
+      },
+
+      unequipCosmetic: (kind) => {
+        const c = get().character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        if (!c.cosmetics.equipped[kind]) return { ok: false, reason: 'Нечего снимать' };
+        set({ character: unequipCosmeticPure(c, kind) });
+        return { ok: true };
+      },
+
+      buySeals: (seals) => {
+        const c = get().character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        if (!SEAL_PACKS.some((p) => p.seals === seals)) return { ok: false, reason: 'Такой пачки нет' };
+        const price = sealPackPrice(seals);
+        if (c.kredits < price) return { ok: false, reason: `Нужно ${price} кр.` };
+        set({ character: { ...c, kredits: c.kredits - price, seals: c.seals + seals, ledger: { ...c.ledger, kreditsSpent: c.ledger.kreditsSpent + price } } });
+        return { ok: true };
+      },
+
+      grantSeals: (amount) => {
+        const c = get().character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        const n = Math.round(amount);
+        if (!Number.isFinite(n) || n <= 0) return { ok: false, reason: 'Сколько?' };
+        set({ character: { ...c, seals: c.seals + n } });
+        return { ok: true };
+      },
+
+      gmGiveSeals: (amount) => {
+        const p = need('player.grant');
+        if (!p.ok) return p;
+        return get().grantSeals(amount);
       },
       };
     },

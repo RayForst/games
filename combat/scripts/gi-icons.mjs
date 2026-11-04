@@ -106,6 +106,21 @@ const WANT = {
   chat: ['GiConversation', 'GiTalk', 'GiDiscussion'],
   staff: ['GiWizardStaff', 'GiCrystalWand', 'GiMagicSwirl'],
   key: ['GiKey', 'GiHouseKeys'],
+  // косметика и Лавка князя
+  seal: ['GiWaxSeal', 'GiStamper'],
+  boutique: ['GiCrownCoin', 'GiShop'],
+  frame: ['GiMirrorMirror'],
+  paint: ['GiPaintBrush', 'GiPalette'],
+  quill: ['GiScrollQuill', 'GiQuillInk'],
+  banner: ['GiFlyingFlag'],
+  curtain: ['GiTheaterCurtains', 'GiRolledCloth'],
+  laurels: ['GiLaurelCrown', 'GiLaurels'],
+  lion: ['GiLion'],
+  eagle: ['GiEagleHead'],
+  dragon: ['GiDragonHead', 'GiSpikedDragonHead'],
+  bear: ['GiBearHead'],
+  rose: ['GiRose'],
+  'crowned-skull': ['GiCrownedSkull'],
 };
 
 const src = await readFile(path.join(root, 'node_modules/react-icons/gi/index.mjs'), 'utf8');

@@ -9,7 +9,7 @@ import { Flash } from '@/components/Flash';
 import { Screen } from '@/components/Screen';
 import { StatRow } from '@/components/StatRow';
 import { Txt } from '@/components/Txt';
-import { ACHIEVEMENTS, ARMOR_ZONE_LABELS, ARMOR_ZONES, deriveCharacter, PERKS_BY_ID, rankFor, STAT_HINTS, STAT_KEYS, STAT_LABELS, type PerkId } from '@/game';
+import { sealsText, ACHIEVEMENTS, ARMOR_ZONE_LABELS, ARMOR_ZONES, deriveCharacter, PERKS_BY_ID, rankFor, STAT_HINTS, STAT_KEYS, STAT_LABELS, type PerkId } from '@/game';
 import { useFlash } from '@/hooks/useFlash';
 import { useGame } from '@/store/useGame';
 import { playSfx } from '@/ui/sfx';
@@ -32,7 +32,7 @@ export default function StatsScreen() {
   const onClaim = (id: string) => {
     const r = claimAchievement(id);
     if (r.ok) playSfx('achievement');
-    show(r.ok ? `+${r.kredits} кр. за достижение` : (r.reason ?? 'Не получилось'));
+    show(r.ok ? `+${r.kredits} кр. и ${sealsText(r.seals ?? 0)} за достижение` : (r.reason ?? 'Не получилось'));
   };
 
   const close = () => {
@@ -126,6 +126,7 @@ export default function StatsScreen() {
         <Row label="Шахта" value={`${l.mineEarned} кр.`} />
         <Row label="Куплено вещей" value={`${l.itemsBought}`} />
         <Row label="Турниров выиграно" value={`${l.tournamentsWon}`} />
+        <Row label="Печати князя" value={`${character.seals} · куплено в лавке ${character.cosmetics.owned.length}`} />
         {character.titles.length > 0 ? <Row label="Титулы" value={character.titles.join(', ')} /> : null}
       </Card>
 
