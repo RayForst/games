@@ -194,6 +194,8 @@ export interface Character {
   location: 'city' | 'forest' | 'swamp' | 'ruins' | 'pass';
   /** Ресурсы из диких земель. */
   resources: Record<'herbs' | 'wood' | 'pelts' | 'bogwort' | 'relics' | 'ore', number>;
+  /** Счёт против именных соперников: id → победы/поражения игрока. */
+  rivals: Record<string, { wins: number; losses: number }>;
 }
 
 export interface Ledger {
@@ -263,6 +265,8 @@ export interface Opponent {
   derived: DerivedStats;
   /** Короткое описание для списка соперников. */
   flavor: string;
+  /** Именной соперник (см. rivals.ts). */
+  rivalId?: string;
 }
 
 export interface Reward {

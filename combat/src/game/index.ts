@@ -15,3 +15,4 @@ export * from './achievements';
 export * from './loot';
 export * from './world';
 export * from './wilds';
+export * from './rivals';

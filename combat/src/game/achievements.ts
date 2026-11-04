@@ -59,6 +59,14 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'veteran', name: 'Ветеран', description: 'Рейтинг 150', reward: 60, check: (c) => c.rating >= 150, progress: (c) => [Math.min(c.rating, 150), 150] },
   { id: 'crit-50', name: 'Критовик', description: '50 критических ударов', reward: 30, check: (c) => c.ledger.crits >= 50, progress: (c) => [Math.min(c.ledger.crits, 50), 50] },
   { id: 'survivor', name: 'Живучий', description: 'Переживи 1000 урона', reward: 30, check: (c) => c.ledger.damageTaken >= 1000, progress: (c) => [Math.min(c.ledger.damageTaken, 1000), 1000] },
+  {
+    id: 'old-scores',
+    name: 'Старые счёты',
+    description: 'Побей одного именного соперника 5 раз',
+    reward: 50,
+    check: (c) => Object.values(c.rivals).some((r) => r.wins >= 5),
+    progress: (c) => [Math.min(Math.max(0, ...Object.values(c.rivals).map((r) => r.wins)), 5), 5],
+  },
 ];
 
 export const ACHIEVEMENTS_BY_ID = Object.fromEntries(ACHIEVEMENTS.map((a) => [a.id, a])) as Record<string, AchievementDef>;

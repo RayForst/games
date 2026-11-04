@@ -61,6 +61,8 @@
 - Умения: `perks.ts`, эффекты через `applyPerks` в `deriveStats`; выбор на экране персонажа (`perkChoices`).
 - Пивная: `quests.ts`, доска в сторе `quests`, события через `track()`; слухи `dailyRumors`.
 - Замок: `tournament.ts`, стор `tournament`, рейтинг `rating`/`rankFor`; экран `castle.tsx`.
+- Именные соперники: `rivals.ts` (определения, реплики, выбор `pickRival`), первый слот зала через `newArena()` в сторе,
+  счёт в `character.rivals`. Болотник лечит травмы (`INJURY_BOGWORT`).
 - Трофеи: `loot.ts`. Статистика и достижения: `achievements.ts`, `character.ledger`, экран `stats.tsx`.
 - Карта мира: `world.ts` (локации, дороги, `canTravel`), стор `travel`, прибытие в `tick()`; экран `world.tsx` (SVG-схема).
   Таб `(tabs)/city` рендерит город, `ForestHub` или `TravelHub` по `character.location` и `travel`.

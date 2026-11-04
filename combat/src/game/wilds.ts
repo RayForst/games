@@ -225,6 +225,9 @@ export function haulAfterAmbush(amount: number, won: boolean): number {
 /** Зелья лекаря за травы: малое / среднее / большое. */
 export const POTION_HERBS: Record<'small' | 'medium' | 'large', number> = { small: 3, medium: 6, large: 10 };
 
+/** Лекарь снимает травму за болотник. */
+export const INJURY_BOGWORT = 3;
+
 /** Ремонт у Макара за дрова: одно полено закрывает столько кредитов ремонта. */
 export const WOOD_REPAIR_VALUE = 3;
 

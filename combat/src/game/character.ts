@@ -41,6 +41,7 @@ export function newCharacter(name: string, stats: Stats = baseStats(), freePoint
     achievements: [],
     location: 'city',
     resources: emptyResources(),
+    rivals: {},
   };
 }
 
@@ -159,6 +160,7 @@ export function normalizeCharacter(raw: Character): Character {
     achievements: raw.achievements ?? [],
     location: raw.location ?? 'city',
     resources: normalizeResources(raw.resources),
+    rivals: raw.rivals ?? {},
   };
 }
 

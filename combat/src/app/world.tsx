@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
-import Svg, { Circle, Line, Rect } from 'react-native-svg';
+import Svg, { Circle, Ellipse, Line, Path, Polygon, Rect } from 'react-native-svg';
 
 import { BackBar } from '@/components/BackBar';
 import { Bar } from '@/components/Bar';
@@ -69,6 +69,7 @@ export default function WorldScreen() {
       <View style={[styles.map, { width: W, height: H }]}>
         <Svg width={W} height={H}>
           <Rect x={0} y={0} width={W} height={H} rx={radius.lg} fill={colors.bgElevated} />
+          <Terrain w={W} h={H} />
           {LOCATIONS.flatMap((l) =>
             LOCATIONS.filter((m) => m.id > l.id)
               .map((m) => ({ m, r: routeBetween(l.id, m.id) }))
@@ -158,8 +159,74 @@ export default function WorldScreen() {
   );
 }
 
+/**
+ * Декоративный рельеф: река через карту, холмы у города, ели у леса, камыш у болота,
+ * горы у перевала, стены у руин. Чистая геометрия, никаких картинок.
+ */
+function Terrain({ w, h }: { w: number; h: number }) {
+  const p = (x: number, y: number) => `${(x * w).toFixed(1)},${(y * h).toFixed(1)}`;
+  const trees = [
+    [0.08, 0.14], [0.14, 0.1], [0.3, 0.12], [0.1, 0.42], [0.3, 0.4], [0.36, 0.22], [0.2, 0.5], [0.05, 0.28],
+  ];
+  const reeds = [0.7, 0.74, 0.78, 0.86, 0.9, 0.94];
+  return (
+    <>
+      {/* река: с севера на юг, огибает город */}
+      <Path
+        d={`M ${p(0.62, 0)} C ${p(0.55, 0.2)} ${p(0.72, 0.35)} ${p(0.64, 0.5)} S ${p(0.5, 0.75)} ${p(0.58, 1)}`}
+        stroke="#2a3a4a"
+        strokeWidth={14}
+        fill="none"
+        strokeLinecap="round"
+      />
+      <Path
+        d={`M ${p(0.62, 0)} C ${p(0.55, 0.2)} ${p(0.72, 0.35)} ${p(0.64, 0.5)} S ${p(0.5, 0.75)} ${p(0.58, 1)}`}
+        stroke="#3c5570"
+        strokeWidth={5}
+        fill="none"
+        strokeLinecap="round"
+        strokeDasharray="2 10"
+      />
+      {/* мост у города */}
+      <Rect x={w * 0.58} y={h * 0.5} width={w * 0.1} height={6} fill={colors.goldDim} rx={2} />
+      {/* холмы вокруг города */}
+      <Ellipse cx={w * 0.42} cy={h * 0.66} rx={w * 0.12} ry={h * 0.035} fill="#2a2118" />
+      <Ellipse cx={w * 0.55} cy={h * 0.7} rx={w * 0.1} ry={h * 0.03} fill="#241c15" />
+      {/* ели у леса */}
+      {trees.map(([x, y], i) => (
+        <Polygon key={i} points={`${p(x, y - 0.045)} ${p(x - 0.022, y)} ${p(x + 0.022, y)}`} fill="#1f2b1c" stroke="#2f4428" strokeWidth={1} />
+      ))}
+      {/* камыш у болота */}
+      {reeds.map((x, i) => (
+        <Line key={i} x1={w * x} y1={h * 0.12} x2={w * (x + 0.005)} y2={h * (0.12 - 0.05)} stroke="#4a5a30" strokeWidth={2} strokeLinecap="round" />
+      ))}
+      <Ellipse cx={w * 0.8} cy={h * 0.14} rx={w * 0.14} ry={h * 0.03} fill="#1b2416" opacity={0.8} />
+      {/* горы у перевала */}
+      <Polygon points={`${p(0.05, 0.98)} ${p(0.14, 0.72)} ${p(0.23, 0.98)}`} fill="#2c2a2a" stroke="#4a4646" strokeWidth={1} />
+      <Polygon points={`${p(0.16, 0.98)} ${p(0.27, 0.68)} ${p(0.38, 0.98)}`} fill="#332f2f" stroke="#4a4646" strokeWidth={1} />
+      <Polygon points={`${p(0.235, 0.72)} ${p(0.27, 0.68)} ${p(0.305, 0.72)}`} fill="#8a8a8a" />
+      {/* стены руин */}
+      <Rect x={w * 0.68} y={h * 0.9} width={w * 0.05} height={h * 0.035} fill="#3a3330" />
+      <Rect x={w * 0.86} y={h * 0.88} width={w * 0.03} height={h * 0.055} fill="#3a3330" />
+      <Rect x={w * 0.74} y={h * 0.93} width={w * 0.14} height={h * 0.012} fill="#2e2926" />
+    </>
+  );
+}
+
 const styles = StyleSheet.create({
   map: { alignSelf: 'center', borderRadius: radius.lg, overflow: 'hidden' },
   node: { position: 'absolute', width: NODE * 2, height: NODE * 2, alignItems: 'center', justifyContent: 'center' },
-  nodeLabel: { position: 'absolute', top: NODE * 2 + 2, width: 96, textAlign: 'center', fontSize: 11, lineHeight: 14 },
+  nodeLabel: {
+    position: 'absolute',
+    top: NODE * 2 + 2,
+    left: -36,
+    width: NODE * 2 + 72,
+    textAlign: 'center',
+    fontSize: 11,
+    lineHeight: 14,
+    paddingHorizontal: 4,
+    borderRadius: 4,
+    backgroundColor: 'rgba(20, 16, 12, 0.8)',
+    overflow: 'hidden',
+  },
 });

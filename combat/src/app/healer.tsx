@@ -8,7 +8,7 @@ import { Flash } from '@/components/Flash';
 import { Kredits } from '@/components/Kredits';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
-import { activeInjury, BUILDINGS_BY_ID, cureCost, deriveCharacter, HEAL_OPTIONS, healAmount, healPrice, injurySecondsLeft, injuryText, POTION_HERBS, secondsToFullHp } from '@/game';
+import { activeInjury, BUILDINGS_BY_ID, cureCost, deriveCharacter, HEAL_OPTIONS, healAmount, healPrice, INJURY_BOGWORT, injurySecondsLeft, injuryText, POTION_HERBS, secondsToFullHp } from '@/game';
 import { GiIcon } from '@/components/GiIcon';
 import { useFlash } from '@/hooks/useFlash';
 import { useNow } from '@/hooks/useNow';
@@ -33,8 +33,8 @@ export default function HealerScreen() {
   const injury = activeInjury(character, now);
   const cure = injury ? cureCost(character, injury) : 0;
 
-  const onCure = () => {
-    const r = cureInjury();
+  const onCure = (pay: 'kredits' | 'bogwort' = 'kredits') => {
+    const r = cureInjury(pay);
     if (!r.ok) {
       Alert.alert('Лекарь', r.reason ?? 'Не получилось');
       return;
@@ -70,7 +70,14 @@ export default function HealerScreen() {
         <Card title="Травма" right={<Txt variant="small">ещё {formatDuration(injurySecondsLeft(injury, now))}</Txt>}>
           <Txt color={colors.red}>{injuryText(injury)}</Txt>
           <Txt variant="small">Пройдёт сама, но драться с ней хуже. Лекарь вправит сразу.</Txt>
-          <Button title={`Вылечить травму · ${cure} кр.`} onPress={onCure} disabled={character.kredits < cure} />
+          <Button title={`Вылечить травму · ${cure} кр.`} onPress={() => onCure('kredits')} disabled={character.kredits < cure} />
+          <Button
+            small
+            variant="ghost"
+            title={`Или за ${INJURY_BOGWORT} болотника (есть ${character.resources.bogwort})`}
+            onPress={() => onCure('bogwort')}
+            disabled={character.resources.bogwort < INJURY_BOGWORT}
+          />
         </Card>
       ) : null}
 

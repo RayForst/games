@@ -30,7 +30,9 @@ const FLAVOR = [
   'Пережил чуму. Теперь ничего не боится.',
 ];
 
-type Archetype = { name: string; weights: Record<StatKey, number> };
+export type ArchetypeName = 'воин' | 'ловкач' | 'критовик' | 'танк' | 'универсал';
+
+type Archetype = { name: ArchetypeName; weights: Record<StatKey, number> };
 
 const ARCHETYPES: Archetype[] = [
   { name: 'воин', weights: { strength: 4, dexterity: 1, intuition: 1, endurance: 3 } },
@@ -88,9 +90,9 @@ function rollGear(level: number, stats: Stats, gearScale: number, rng: Rng): str
   return ids;
 }
 
-export function generateOpponent(level: number, rng: Rng, usedNames: Set<string> = new Set(), gearScale = 1): Opponent {
+export function generateOpponent(level: number, rng: Rng, usedNames: Set<string> = new Set(), gearScale = 1, archetype?: ArchetypeName): Opponent {
   const lvl = Math.max(0, level);
-  const arch = pick(rng, ARCHETYPES);
+  const arch = ARCHETYPES.find((a) => a.name === archetype) ?? pick(rng, ARCHETYPES);
   const stats = rollStats(lvl, arch, rng);
   const itemIds = rollGear(lvl, stats, Math.max(0, Math.min(1, gearScale)), rng);
   let name = pick(rng, NAMES);
@@ -115,7 +117,7 @@ export function generateOpponent(level: number, rng: Rng, usedNames: Set<string>
  * Список соперников в зале: один слабее (почти без вещей), двое равных, один сильнее (одет).
  * На нулевом уровне у игрока ещё нет шмота, поэтому боты там тоже ходят полуголыми.
  */
-export function generateArena(playerLevel: number, rng: Rng): Opponent[] {
+export function generateArena(playerLevel: number, rng: Rng, first?: Opponent): Opponent[] {
   const base = Math.min(1, 0.4 + playerLevel * 0.2);
   const tiers: { level: number; gear: number }[] = [
     { level: playerLevel - 1, gear: base * 0.4 },
@@ -123,6 +125,8 @@ export function generateArena(playerLevel: number, rng: Rng): Opponent[] {
     { level: playerLevel, gear: base * 0.8 },
     { level: playerLevel + 1, gear: base },
   ];
-  const used = new Set<string>();
-  return tiers.map((t) => generateOpponent(Math.max(0, t.level), rng, used, t.gear));
+  const used = new Set<string>(first ? [first.name] : []);
+  const rest = tiers.map((t) => generateOpponent(Math.max(0, t.level), rng, used, t.gear));
+  // Именной соперник занимает первое место, вытесняя одного случайного.
+  return first ? [first, ...rest.slice(1)] : rest;
 }

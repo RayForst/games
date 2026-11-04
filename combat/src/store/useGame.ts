@@ -25,6 +25,12 @@ import {
   isGatherMinutes,
   isWild,
   POTION_HERBS,
+  INJURY_BOGWORT,
+  pickRival,
+  rivalLine,
+  rivalOpponent,
+  RIVALS_BY_ID,
+  rivalTaunt,
   oreForUpgrade,
   RELIC_RATING,
   relicPriceAtCastle,
@@ -140,8 +146,8 @@ export interface GameState {
   tick: () => void;
   /** Лечение у лекаря: доля максимального hp (зелья 0.3 / 0.6 / 1), за кредиты или за травы. */
   heal: (fraction?: number, pay?: 'kredits' | 'herbs') => Check;
-  /** Снять травму у лекаря. */
-  cureInjury: () => MineResult;
+  /** Снять травму у лекаря: за кредиты или за болотник. */
+  cureInjury: (pay?: 'kredits' | 'bogwort') => MineResult;
 
   buyItem: (itemId: string) => Check;
   sellItem: (itemUid: string) => Check;
@@ -299,6 +305,16 @@ export const useGame = create<GameState>()(
           );
           set({ pendingHaul: null });
         }
+        // Именной соперник: счёт и реплика после боя.
+        const rival = f.opponent.rivalId ? RIVALS_BY_ID[f.opponent.rivalId] : null;
+        if (rival && status !== 'draw') {
+          const rec = character.rivals[rival.id] ?? { wins: 0, losses: 0 };
+          character = {
+            ...character,
+            rivals: { ...character.rivals, [rival.id]: { wins: rec.wins + (status === 'won' ? 1 : 0), losses: rec.losses + (status === 'lost' ? 1 : 0) } },
+          };
+          log.push(makeLogLine(turn, rivalLine(rival, status === 'won', rng), 'system'));
+        }
         // Трофей: с побеждённого иногда удаётся снять вещь.
         if (status === 'won') {
           const loot = rollLoot(f.opponent, rng, uid());
@@ -323,8 +339,12 @@ export const useGame = create<GameState>()(
             log.push(makeLogLine(turn, `${injuryText(rolled)}. Пройдёт сама или вылечит лекарь.`, 'system'));
           }
         }
-        return { character, reward, log };
+
+      return { character, reward, log };
       };
+
+      /** Зал: именной соперник первым, остальные случайные. */
+      const newArena = (c: Character): Opponent[] => generateArena(c.level, rng, rivalOpponent(pickRival(c, rng), c.level, rng));
 
       return {
       character: null,
@@ -344,7 +364,7 @@ export const useGame = create<GameState>()(
 
       createCharacter: (name, stats, freePoints) => {
         const character = newCharacter(name, stats, freePoints);
-        set({ character, fight: null, mining: null, quests: null, tournament: null, travel: null, gathering: null, pendingHaul: null, arena: generateArena(character.level, rng) });
+        set({ character, fight: null, mining: null, quests: null, tournament: null, travel: null, gathering: null, pendingHaul: null, arena: newArena(character) });
       },
 
       resetGame: () => set({ character: null, fight: null, mining: null, quests: null, tournament: null, travel: null, gathering: null, pendingHaul: null, arena: [] }),
@@ -439,11 +459,16 @@ export const useGame = create<GameState>()(
         if (next !== c) set({ character: next });
       },
 
-      cureInjury: () => {
+      cureInjury: (pay = 'kredits') => {
         const c = get().character;
         if (!c) return { ok: false, reason: 'Нет персонажа' };
         const injury = activeInjury(c);
         if (!injury) return { ok: false, reason: 'Травм нет' };
+        if (pay === 'bogwort') {
+          if (c.resources.bogwort < INJURY_BOGWORT) return { ok: false, reason: `Нужно ${INJURY_BOGWORT} болотника` };
+          set({ character: { ...c, injury: null, resources: { ...c.resources, bogwort: c.resources.bogwort - INJURY_BOGWORT } } });
+          return { ok: true, kredits: 0 };
+        }
         const cost = cureCost(c, injury);
         if (c.kredits < cost) return { ok: false, reason: `Нужно ${cost} кр.` };
         set({ character: { ...c, injury: null, kredits: c.kredits - cost } });
@@ -533,7 +558,7 @@ export const useGame = create<GameState>()(
       refreshArena: () => {
         const c = get().character;
         if (!c) return;
-        set({ arena: generateArena(c.level, rng) });
+        set({ arena: newArena(c) });
       },
 
       startFight: (opponentId) => {
@@ -557,6 +582,9 @@ export const useGame = create<GameState>()(
           status: 'active',
           log: [
             makeLogLine(0, `${fresh.name} против ${opponent.name}. Бой начался!`, 'system'),
+            ...(opponent.rivalId && RIVALS_BY_ID[opponent.rivalId]
+              ? [makeLogLine(0, `${opponent.name}: «${rivalTaunt(RIVALS_BY_ID[opponent.rivalId], rng)}»`, 'enemy')]
+              : []),
             ...(activeInjury(fresh) ? [makeLogLine(0, `${fresh.name} дерётся с травмой: ${injuryText(activeInjury(fresh)!).toLowerCase()}.`, 'system')] : []),
           ],
           playerMoves: [],
@@ -631,7 +659,7 @@ export const useGame = create<GameState>()(
 
       endFight: () => {
         const c = get().character;
-        set({ fight: null, arena: c ? generateArena(c.level, rng) : [] });
+        set({ fight: null, arena: c ? newArena(c) : [] });
       },
 
       startTournament: () => {

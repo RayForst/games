@@ -8,7 +8,7 @@ import { Card } from '@/components/Card';
 import { Kredits } from '@/components/Kredits';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
-import { deriveCharacter, type Opponent } from '@/game';
+import { deriveCharacter, rivalRecord, type Opponent } from '@/game';
 import { useGame } from '@/store/useGame';
 import { colors, spacing } from '@/ui/theme';
 
@@ -80,9 +80,16 @@ export default function ArenaScreen() {
                   {o.flavor}
                 </Txt>
               </View>
-              <Txt bold color={stronger ? colors.red : weaker ? colors.green : colors.text}>
-                {o.level} ур.
-              </Txt>
+              <View style={styles.levelCol}>
+                <Txt bold color={stronger ? colors.red : weaker ? colors.green : colors.text}>
+                  {o.level} ур.
+                </Txt>
+                {o.rivalId ? (
+                  <Txt variant="small" color={colors.gold}>
+                    счёт {rivalRecord(character, o.rivalId).wins}:{rivalRecord(character, o.rivalId).losses}
+                  </Txt>
+                ) : null}
+              </View>
             </View>
             <Txt variant="muted">
               hp {o.derived.maxHp} · урон {o.derived.dmgMin}–{o.derived.dmgMax} · крит {o.derived.crit}% · уворот {o.derived.dodge}%
@@ -106,4 +113,5 @@ const styles = StyleSheet.create({
   header: { paddingTop: spacing.sm, gap: 2 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.md },
   flavor: { fontStyle: 'italic' },
+  levelCol: { alignItems: 'flex-end' },
 });
