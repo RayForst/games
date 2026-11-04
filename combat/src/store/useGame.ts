@@ -4,10 +4,13 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import {
   activeInjury,
+  applyQuestEvent,
   applyRegen,
   canEquip,
   canUpgrade,
   cureCost,
+  dayKey,
+  generateBoard,
   chooseEnemyMove,
   deriveCharacter,
   describeFinish,
@@ -23,6 +26,7 @@ import {
   makeLogLine,
   maxDurability,
   mineEarnings,
+  mineElapsedMs,
   mineRatePerHour,
   newCharacter,
   newInventoryItem,
@@ -30,6 +34,8 @@ import {
   offerPerks,
   perkPicksBetween,
   POINTS_PER_LEVEL,
+  questDone,
+  questReward,
   repairCost,
   resolveTurn,
   rewardFor,
@@ -47,6 +53,8 @@ import {
   type Move,
   type Opponent,
   type PerkId,
+  type QuestBoard,
+  type QuestEvent,
   type Slot,
   type StatKey,
   type Stats,
@@ -68,6 +76,8 @@ export interface GameState {
   arena: Opponent[];
   /** Текущая смена в шахте. */
   mining: Mining | null;
+  /** Доска заданий пивной на сегодня. */
+  quests: QuestBoard | null;
   hydrated: boolean;
 
   setHydrated: () => void;
@@ -100,6 +110,11 @@ export interface GameState {
   repairItem: (itemUid: string) => MineResult;
   repairAll: () => MineResult;
   upgradeItem: (itemUid: string) => Check;
+
+  /** Пивная: доска на сегодня (пересоздаётся на новый день), прогресс и награда. */
+  ensureQuests: () => QuestBoard | null;
+  track: (event: QuestEvent, amount?: number) => void;
+  claimQuest: (questId: string) => MineResult;
 }
 
 export const useGame = create<GameState>()(
@@ -109,16 +124,59 @@ export const useGame = create<GameState>()(
       fight: null,
       arena: [],
       mining: null,
+      quests: null,
       hydrated: false,
 
       setHydrated: () => set({ hydrated: true }),
 
       createCharacter: (name, stats, freePoints) => {
         const character = newCharacter(name, stats, freePoints);
-        set({ character, fight: null, mining: null, arena: generateArena(character.level, rng) });
+        set({ character, fight: null, mining: null, quests: null, arena: generateArena(character.level, rng) });
       },
 
-      resetGame: () => set({ character: null, fight: null, mining: null, arena: [] }),
+      resetGame: () => set({ character: null, fight: null, mining: null, quests: null, arena: [] }),
+
+      ensureQuests: () => {
+        const { character, quests } = get();
+        if (!character) return null;
+        if (quests && quests.day === dayKey()) return quests;
+        const board = generateBoard(rng);
+        set({ quests: board });
+        return board;
+      },
+
+      track: (event, amount = 1) => {
+        const board = get().ensureQuests();
+        if (!board) return;
+        const next = applyQuestEvent(board, event, amount);
+        if (next !== board) set({ quests: next });
+      },
+
+      claimQuest: (questId) => {
+        const c = get().character;
+        const board = get().ensureQuests();
+        if (!c || !board) return { ok: false, reason: 'Нет персонажа' };
+        const q = board.quests.find((x) => x.id === questId);
+        if (!q) return { ok: false, reason: 'Задания нет' };
+        if (q.claimed) return { ok: false, reason: 'Уже забрал' };
+        if (!questDone(q)) return { ok: false, reason: 'Ещё не выполнено' };
+        const reward = questReward(q, c.level);
+        const exp = c.exp + reward.exp;
+        const newLevel = levelForExp(exp);
+        const levelsGained = newLevel - c.level;
+        const character: Character = {
+          ...c,
+          kredits: c.kredits + reward.kredits,
+          exp,
+          level: newLevel,
+          freePoints: c.freePoints + levelsGained * POINTS_PER_LEVEL,
+        };
+        set({
+          character,
+          quests: { ...board, quests: board.quests.map((x) => (x.id === questId ? { ...x, claimed: true } : x)) },
+        });
+        return { ok: true, kredits: reward.kredits };
+      },
 
       addStat: (stat) => {
         const c = get().character;
@@ -176,6 +234,7 @@ export const useGame = create<GameState>()(
         if (c.kredits < cost) return { ok: false, reason: `Нужно ${cost} кр.` };
         const hp = Math.min(maxHp, c.hp + healAmount(c, fraction));
         set({ character: { ...c, hp, kredits: c.kredits - cost, hpUpdatedAt: Date.now() } });
+        get().track('heal');
         return { ok: true };
       },
 
@@ -191,6 +250,7 @@ export const useGame = create<GameState>()(
             backpack: [...c.backpack, newInventoryItem(uid(), itemId)],
           },
         });
+        get().track('buyItem');
         return { ok: true };
       },
 
@@ -331,6 +391,10 @@ export const useGame = create<GameState>()(
           const worn = wearEquipment(character);
           character = worn.character;
           for (const item of worn.broke) log.push(makeLogLine(f.turn, `${item.name}: сломалось. Нужен кузнец.`, 'system'));
+          // Задания пивной.
+          get().track('fightPlay');
+          if (result.status === 'won') get().track('fightWin');
+          if (result.status === 'won' && f.opponent.level > c.level) get().track('fightWinStronger');
           // Травма: проигрыш и ничья могут оставить след. Тяжёлая вытесняет лёгкую.
           const rolled = rollInjury(result.status, rng);
           if (rolled) {
@@ -379,6 +443,7 @@ export const useGame = create<GameState>()(
         if (!mining || !character) return { ok: false, reason: 'Ты не в шахте' };
         const earned = mineEarnings(mining, mineRatePerHour(deriveCharacter(character)), Date.now());
         set({ mining: null, character: { ...character, kredits: character.kredits + earned } });
+        get().track('mineHours', Math.floor(mineElapsedMs(mining, Date.now()) / 3_600_000));
         return { ok: true, kredits: earned };
       },
 
@@ -398,6 +463,7 @@ export const useGame = create<GameState>()(
             backpack: c.backpack.map((i) => (i.uid === itemUid ? { ...i, durability: maxDurability(item) } : i)),
           },
         });
+        get().track('repair');
         return { ok: true, kredits: cost };
       },
 
@@ -415,6 +481,7 @@ export const useGame = create<GameState>()(
         if (total === 0) return { ok: false, reason: 'Чинить нечего' };
         if (c.kredits < total) return { ok: false, reason: `На всё нужно ${total} кр.` };
         set({ character: { ...c, kredits: c.kredits - total, backpack } });
+        get().track('repair');
         return { ok: true, kredits: total };
       },
 
@@ -437,6 +504,7 @@ export const useGame = create<GameState>()(
             backpack: c.backpack.map((i) => (i.uid === itemUid ? { ...i, upgrade: next } : i)),
           },
         });
+        get().track('sharpen');
         return { ok: true };
       },
     }),
@@ -444,7 +512,7 @@ export const useGame = create<GameState>()(
       name: 'combat-save-v1',
       version: 2,
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: (s) => ({ character: s.character, fight: s.fight, arena: s.arena, mining: s.mining }),
+      partialize: (s) => ({ character: s.character, fight: s.fight, arena: s.arena, mining: s.mining, quests: s.quests }),
       // Старые сейвы дописываем недостающими полями (прочность, заточка, будущие фичи).
       migrate: (persisted) => {
         const state = persisted as Partial<GameState>;

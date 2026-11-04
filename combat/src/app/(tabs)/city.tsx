@@ -7,18 +7,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { CityMap } from '@/components/CityMap';
 import { Txt } from '@/components/Txt';
-import { activeInjury, BUILDINGS_BY_ID, CITY_START, deriveCharacter, healCost, mineIsDone, mineSecondsLeft, wornItems, type BuildingId } from '@/game';
+import { activeInjury, BUILDINGS_BY_ID, CITY_START, dayKey, deriveCharacter, healCost, mineIsDone, mineSecondsLeft, questDone, wornItems, type BuildingId } from '@/game';
 import { useNow } from '@/hooks/useNow';
 import { useGame } from '@/store/useGame';
 import { formatDuration, plural } from '@/ui/format';
 import { colors, radius, spacing } from '@/ui/theme';
 
-const ROUTES: Partial<Record<BuildingId, '/arena' | '/shop' | '/healer' | '/mine' | '/smithy'>> = {
+const ROUTES: Partial<Record<BuildingId, '/arena' | '/shop' | '/healer' | '/mine' | '/smithy' | '/tavern'>> = {
   arena: '/arena',
   shop: '/shop',
   healer: '/healer',
   mine: '/mine',
   smithy: '/smithy',
+  tavern: '/tavern',
 };
 
 // На коротких экранах (iPhone SE) панель внизу иначе наезжает на нижние заведения — подсказку убираем.
@@ -31,6 +32,7 @@ export default function CityScreen() {
   const character = useGame((s) => s.character);
   const arena = useGame((s) => s.arena);
   const mining = useGame((s) => s.mining);
+  const quests = useGame((s) => s.quests);
   const now = useNow();
   const insets = useSafeAreaInsets();
   const [selected, setSelected] = useState<BuildingId>(CITY_START);
@@ -53,8 +55,16 @@ export default function CityScreen() {
     healer: activeInjury(character, now) ? 'травма' : character.hp >= derived.maxHp ? 'ты здоров' : `${healCost(character)} кр.`,
     mine: mining ? (mineIsDone(mining, now) ? 'смена окончена' : `ещё ${formatDuration(mineSecondsLeft(mining, now))}`) : 'свободна',
     smithy: wornItems(character).length > 0 ? `${wornItems(character).length} ${plural(wornItems(character).length, ['вещь изношена', 'вещи изношены', 'вещей изношено'])}` : 'всё цело',
-    tavern: 'скоро',
+    tavern: questStatus(),
   };
+
+  function questStatus(): string {
+    if (!quests || quests.day !== dayKey(now)) return 'новые задания';
+    const claimable = quests.quests.filter((q) => questDone(q) && !q.claimed).length;
+    if (claimable > 0) return `награда: ${claimable}`;
+    const done = quests.quests.filter((q) => q.claimed).length;
+    return `задания ${done}/${quests.quests.length}`;
+  }
 
   const enter = () => {
     const route = ROUTES[selected];
