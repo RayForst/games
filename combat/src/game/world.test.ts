@@ -14,7 +14,7 @@ describe('карта мира', () => {
     expect(routeBetween('forest', 'city')?.minutes).toBe(2);
     expect(routeBetween('forest', 'ruins')).toBeNull();
     expect(routeBetween('pass', 'brod')?.minutes).toBe(4);
-    expect(neighbours('brod')).toEqual(['pass']);
+    expect(neighbours('brod')).toEqual(expect.arrayContaining(['pass', 'crypt', 'kamenka', 'kosh']));
     expect(neighbours('city')).toContain('forest');
     for (const l of LOCATIONS) {
       expect(l.x).toBeGreaterThan(0);

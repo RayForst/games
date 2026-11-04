@@ -34,6 +34,8 @@ import {
   TOURNAMENT_ROUNDS,
   tournamentLevels,
   tournamentPrize,
+  RAID_FIGHTS,
+  RAID_WAR_POINTS,
 } from '@/game';
 import { useFlash } from '@/hooks/useFlash';
 import { useNow } from '@/hooks/useNow';
@@ -52,6 +54,8 @@ export default function CastleScreen() {
   const startTournamentFight = useGame((s) => s.startTournamentFight);
   const sellRelics = useGame((s) => s.sellRelics);
   const war = useGame((s) => s.war);
+  const raids = useGame((s) => s.raids);
+  const raidToday = useGame((s) => (s.raid && s.raid.day === dayKey() ? s.raid : null));
   const defectTo = useGame((s) => s.defectTo);
   const now = useNow();
   const [flash, show] = useFlash();
@@ -153,6 +157,10 @@ export default function CastleScreen() {
             </View>
             <Txt variant="small">
               {leader ? `${SIDES_BY_ID[leader].name} ведёт сегодня.` : 'Сегодня ничья.'} Победа над чужой стороной: +{WAR_PLAYER_POINTS} очка своим и +{WAR_RATING_BONUS} рейтинга. Местные дерутся сами, по очку за бой.
+            </Txt>
+            <Txt variant="small" color={colors.textDim}>
+              Рейды через склеп: победа в чужой столице даёт +{RAID_WAR_POINTS} очков. Твоих полных рейдов: {raids.won}, отбитых налётов: {raids.defended}
+              {raidToday ? `; сегодня ${raidToday.status === 'active' ? 'рейд идёт' : `уложил ${raidToday.kills} из ${RAID_FIGHTS}`}.` : '.'}
             </Txt>
             {war.winner ? (
               <Txt variant="small" color={war.winner === character.side ? colors.green : colors.textMuted}>

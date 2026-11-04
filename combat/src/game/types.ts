@@ -217,9 +217,9 @@ export interface Character {
   /** Забранные достижения. */
   achievements: string[];
   /** Где персонаж сейчас на карте мира. */
-  location: 'city' | 'forest' | 'swamp' | 'ruins' | 'pass' | 'brod';
+  location: 'city' | 'forest' | 'swamp' | 'ruins' | 'pass' | 'brod' | 'rudnya' | 'zastava' | 'kosh' | 'kamenka' | 'topi' | 'crypt';
   /** Ресурсы из диких земель. */
-  resources: Record<'herbs' | 'wood' | 'pelts' | 'bogwort' | 'relics' | 'ore', number>;
+  resources: Record<'herbs' | 'wood' | 'pelts' | 'bogwort' | 'relics' | 'ore' | 'bones', number>;
   /** Счёт против именных соперников: id → победы/поражения игрока. */
   rivals: Record<string, { wins: number; losses: number }>;
   /** Сторона: Корона или Вольница. */
@@ -329,10 +329,12 @@ export interface LogLine {
 }
 
 export interface FightState {
-  /** Откуда бой: арена, турнир в замке, засада в лесу или гильдейская стычка. */
-  context?: 'arena' | 'tournament' | 'forest' | 'guild';
-  /** Чья арена: городская или Брода (там соперники сильнее, награда больше). */
-  venue?: 'city' | 'brod';
+  /** Откуда бой: арена, турнир в замке, засада в лесу, гильдейская стычка, ярус склепа или рейд на чужую столицу. */
+  context?: 'arena' | 'tournament' | 'forest' | 'guild' | 'crypt' | 'raid';
+  /** Чья арена: город из `TOWNS` (в Броде соперники сильнее, награда больше). */
+  venue?: 'city' | 'brod' | 'rudnya' | 'zastava' | 'kosh' | 'kamenka' | 'topi';
+  /** Ярус склепа, за который идёт бой (контекст `crypt`). */
+  cryptFloor?: number;
   opponent: Opponent;
   playerHp: number;
   enemyHp: number;

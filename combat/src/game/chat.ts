@@ -3,6 +3,8 @@ import type { FightStatus } from './types';
 import type { Role } from './roles';
 import type { SideId } from './races';
 import { RIVALS_BY_ID } from './rivals';
+import { TOWNS_BY_ID } from './towns';
+import type { TownId } from './world';
 
 // Чат. Сервера нет, поэтому собеседники — завсегдатаи пивной и знакомые с арены: они болтают сами
 // по себе и отвечают на слова игрока по теме. Структура сообщений та же, что будет у сетевого чата
@@ -489,8 +491,11 @@ export function nextAmbientAt(rng: () => number, now = Date.now()): number {
 }
 
 /** Сводка боя для канала «Арена». */
-export function fightNews(player: string, opponent: string, status: FightStatus, turns: number, venue: 'city' | 'brod' | 'tournament' | 'wild'): string {
-  const where = venue === 'brod' ? 'Брод' : venue === 'tournament' ? 'Замок' : venue === 'wild' ? 'Дорога' : 'Арена';
+export type NewsVenue = TownId | 'tournament' | 'wild' | 'crypt' | 'raid';
+
+export function fightNews(player: string, opponent: string, status: FightStatus, turns: number, venue: NewsVenue): string {
+  const where =
+    venue === 'city' ? 'Арена' : venue === 'tournament' ? 'Замок' : venue === 'wild' ? 'Дорога' : venue === 'crypt' ? 'Склеп' : venue === 'raid' ? 'Рейд' : TOWNS_BY_ID[venue].name;
   if (status === 'won') return `${where}: ${player} уложил ${opponent} за ${turns} ход.`.replace('ход.', turns === 1 ? 'ход.' : turns < 5 ? 'хода.' : 'ходов.');
   if (status === 'lost') return `${where}: ${opponent} уложил ${player}. ${turns} ход${turns === 1 ? '' : turns < 5 ? 'а' : 'ов'}.`;
   return `${where}: ${player} и ${opponent} разошлись вничью.`;

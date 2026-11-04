@@ -11,7 +11,7 @@ import { Portrait } from '@/components/Portrait';
 import { Screen } from '@/components/Screen';
 import { SideBadge } from '@/components/SideBadge';
 import { Txt } from '@/components/Txt';
-import { deriveCharacter, rivalRecord, type Opponent } from '@/game';
+import { deriveCharacter, rivalRecord, TOWNS_BY_ID, townOf, type Opponent } from '@/game';
 import { useGame } from '@/store/useGame';
 import { colors, radius, spacing } from '@/ui/theme';
 
@@ -24,6 +24,7 @@ export default function ArenaScreen() {
   if (!character) return null;
 
   const derived = deriveCharacter(character);
+  const town = townOf(character.location) ?? TOWNS_BY_ID.city;
   const hpRatio = character.hp / derived.maxHp;
   const weak = hpRatio < 0.35;
 
@@ -48,12 +49,10 @@ export default function ArenaScreen() {
 
   return (
     <Screen>
-      <BackBar title={character.location === 'brod' ? 'Брод' : 'Город'} right={<Kredits value={character.kredits} />} />
+      <BackBar title={town.name} right={<Kredits value={character.kredits} />} />
       <View style={styles.header}>
-        <Txt variant="title">{character.location === 'brod' ? 'Арена Брода' : 'Арена'}</Txt>
-        <Txt variant="muted">
-          {character.location === 'brod' ? 'Чужой город, чужие правила: соперники сильнее, плата выше.' : 'Выбери соперника. Бой — до первого упавшего.'}
-        </Txt>
+        <Txt variant="title">{town.arenaName}</Txt>
+        <Txt variant="muted">{town.arenaHint}</Txt>
       </View>
 
       <Hint screen="arena" />

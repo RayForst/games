@@ -34,7 +34,8 @@ export default function WorldScreen() {
   if (!character) return null;
 
   const W = Math.min(screenW - spacing.lg * 2, 520);
-  const H = Math.round(W * 1.1);
+  // Дюжина мест: карта вытянута в высоту, чтобы кружки не налезали друг на друга.
+  const H = Math.round(W * 1.35);
   const px = (id: LocationId) => ({ x: LOCATIONS_BY_ID[id].x * W, y: LOCATIONS_BY_ID[id].y * H });
 
   const here = character.location;
@@ -64,7 +65,7 @@ export default function WorldScreen() {
       <BackBar title="Назад" />
       <View>
         <Txt variant="title">Карта мира</Txt>
-        <Txt variant="muted">Нажми на место, чтобы узнать дорогу. Путь занимает время, как и всё в этом княжестве.</Txt>
+        <Txt variant="muted">Нажми на место, чтобы узнать дорогу. Путь занимает время, как и всё в этом княжестве. Родной город открыт с любого уровня.</Txt>
       </View>
 
       <View style={[styles.map, { width: W, height: H }]}>
@@ -78,7 +79,7 @@ export default function WorldScreen() {
               .map(({ m }) => {
                 const a = px(l.id);
                 const b = px(m.id);
-                const open = locationOpen(l.id, character.level) && locationOpen(m.id, character.level);
+                const open = locationOpen(l.id, character.level, character.home) && locationOpen(m.id, character.level, character.home);
                 return (
                   <Line
                     key={`${l.id}-${m.id}`}
@@ -96,7 +97,7 @@ export default function WorldScreen() {
           {LOCATIONS.map((l) => {
             const p = px(l.id);
             const active = l.id === selected;
-            const open = locationOpen(l.id, character.level);
+            const open = locationOpen(l.id, character.level, character.home);
             return (
               <Circle
                 key={l.id}
@@ -113,7 +114,8 @@ export default function WorldScreen() {
         </Svg>
         {LOCATIONS.map((l) => {
           const p = px(l.id);
-          const open = locationOpen(l.id, character.level);
+          const open = locationOpen(l.id, character.level, character.home);
+          const home = l.id === character.home && l.id !== 'city';
           return (
             <Pressable
               key={l.id}
@@ -125,7 +127,7 @@ export default function WorldScreen() {
                 <GiIcon name={l.icon} size={28} color={open ? colors.gold : colors.textDim} />
               </View>
               <Txt variant="small" bold color={open ? colors.text : colors.textDim} style={styles.nodeLabel} numberOfLines={1}>
-                {open ? l.name : `${l.name} · ${l.minLevel} ур.`}
+                {open ? (home ? `${l.name} · дом` : l.name) : `${l.name} · ${l.minLevel} ур.`}
               </Txt>
             </Pressable>
           );
@@ -191,10 +193,18 @@ function Terrain({ w, h }: { w: number; h: number }) {
         strokeDasharray="2 10"
       />
       {/* мост у города */}
-      <Rect x={w * 0.58} y={h * 0.5} width={w * 0.1} height={6} fill={colors.goldDim} rx={2} />
+      <Rect x={w * 0.58} y={h * 0.36} width={w * 0.1} height={6} fill={colors.goldDim} rx={2} />
       {/* холмы вокруг города */}
-      <Ellipse cx={w * 0.42} cy={h * 0.66} rx={w * 0.12} ry={h * 0.035} fill="#2a2118" />
-      <Ellipse cx={w * 0.55} cy={h * 0.7} rx={w * 0.1} ry={h * 0.03} fill="#241c15" />
+      <Ellipse cx={w * 0.42} cy={h * 0.46} rx={w * 0.12} ry={h * 0.03} fill="#2a2118" />
+      <Ellipse cx={w * 0.56} cy={h * 0.48} rx={w * 0.1} ry={h * 0.025} fill="#241c15" />
+      {/* кресты старого кладбища у склепа */}
+      {[0.24, 0.3, 0.36].map((x, i) => (
+        <Path key={`cross-${i}`} d={`M ${p(x, 0.58)} L ${p(x, 0.62)} M ${p(x - 0.012, 0.592)} L ${p(x + 0.012, 0.592)}`} stroke="#4a4646" strokeWidth={2} strokeLinecap="round" />
+      ))}
+      {/* сваи Топей */}
+      {[0.86, 0.9, 0.94].map((x, i) => (
+        <Line key={`pile-${i}`} x1={w * x} y1={h * 0.37} x2={w * x} y2={h * 0.4} stroke="#4a5a30" strokeWidth={2} />
+      ))}
       {/* ели у леса */}
       {trees.map(([x, y], i) => (
         <Polygon key={i} points={`${p(x, y - 0.045)} ${p(x - 0.022, y)} ${p(x + 0.022, y)}`} fill="#1f2b1c" stroke="#2f4428" strokeWidth={1} />

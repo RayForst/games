@@ -8,6 +8,7 @@ import { Card } from './Card';
 import { Chip } from './Chip';
 import { Flash } from './Flash';
 import { GiIcon } from './GiIcon';
+import { HomeLink } from './HomeLink';
 import { Kredits } from './Kredits';
 import { Screen } from './Screen';
 import { Txt } from './Txt';
@@ -89,10 +90,13 @@ export function WildsHub({ wild }: { wild: WildId }) {
         </View>
         <Kredits value={character.kredits} />
       </View>
-      <Pressable onPress={() => router.push('/world')} accessibilityRole="button" accessibilityLabel="Карта мира" style={styles.mapLink}>
-        <GiIcon name="road" size={18} />
-        <Txt variant="gold">Карта мира</Txt>
-      </Pressable>
+      <View style={styles.links}>
+        <Pressable onPress={() => router.push('/world')} accessibilityRole="button" accessibilityLabel="Карта мира" style={styles.mapLink}>
+          <GiIcon name="road" size={18} />
+          <Txt variant="gold">Карта мира</Txt>
+        </Pressable>
+        <HomeLink onError={(reason) => show(reason)} />
+      </View>
 
       {roadNews ? (
         <Pressable onPress={dismissRoadNews} accessibilityRole="button" accessibilityLabel="Дорожные вести">
@@ -167,7 +171,7 @@ export function WildsHub({ wild }: { wild: WildId }) {
             <Txt bold>{character.resources[r.id]} шт.</Txt>
           </View>
         ))}
-        <Txt variant="small">Скупают в городской лавке, цена меняется каждый день. Травы берёт лекарь, дрова — Макар.</Txt>
+        <Txt variant="small">Скупают в любом городе, цена меняется каждый день. Травы берёт лекарь, дрова и кости — Макар.</Txt>
       </Card>
 
       <Txt variant="small" center color={colors.textDim}>
@@ -182,6 +186,7 @@ export function WildsHub({ wild }: { wild: WildId }) {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, paddingTop: spacing.sm },
+  links: { flexDirection: 'row', gap: spacing.lg, flexWrap: 'wrap' },
   mapLink: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start' },
   news: { borderColor: colors.gold },
   newsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },

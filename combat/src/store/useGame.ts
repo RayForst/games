@@ -188,7 +188,46 @@ import {
   warRatingBonus,
   WAR_PLAYER_POINTS,
   WAR_RATING_BONUS,
+  addWarPoints,
   type War,
+  // столицы, склеп и рейды
+  canTravelHome,
+  TOWNS_BY_ID,
+  townOf,
+  townSmithyMult,
+  townHealerMult,
+  townJobMult,
+  townPrice,
+  CRYPT_BY_FLOOR,
+  cryptAfterWin,
+  cryptBones,
+  cryptCleared,
+  cryptOpponent,
+  newCrypt,
+  nextFloor,
+  normalizeCrypt,
+  type CryptState,
+  canStartRaid,
+  defenseNews,
+  DEFENDER_TITLE,
+  enemyRaidDueAt,
+  enemyRaidNews,
+  newRaid,
+  newRaidLog,
+  normalizeRaidLog,
+  raidAfterFight,
+  RAID_FIGHTS,
+  RAID_GUILD_RATING,
+  RAID_TITLE,
+  RAID_WAR_EXTRA,
+  raidLoot,
+  raidNews,
+  raidOpponent,
+  rollEnemyRaid,
+  type Raid,
+  type RaidLog,
+  bonesForRepair,
+  POTION_BONES,
 } from '@/game';
 
 export interface MineResult extends Check {
@@ -244,6 +283,12 @@ export interface GameState {
   tutorial: Tutorial;
   /** Война сторон: дневной счёт Короны и Вольницы. */
   war: War | null;
+  /** Склеп: сколько ярусов пройдено сегодня. */
+  crypt: CryptState | null;
+  /** Текущий (или последний сегодняшний) рейд на чужую столицу. */
+  raid: Raid | null;
+  /** Журнал рейдов: лимит в день, ответные рейды, оборона. */
+  raids: RaidLog;
   hydrated: boolean;
 
   setHydrated: () => void;
@@ -258,7 +303,7 @@ export interface GameState {
   choosePerk: (id: PerkId) => Check;
   tick: () => void;
   /** Лечение у лекаря: доля максимального hp (зелья 0.3 / 0.6 / 1), за кредиты или за травы. */
-  heal: (fraction?: number, pay?: 'kredits' | 'herbs') => Check;
+  heal: (fraction?: number, pay?: 'kredits' | 'herbs' | 'bones') => Check;
   /** Снять травму у лекаря: за кредиты или за болотник. */
   cureInjury: (pay?: 'kredits' | 'bogwort') => MineResult;
 
@@ -281,7 +326,7 @@ export interface GameState {
   /** Кузница. */
   repairItem: (itemUid: string) => MineResult;
   /** Починить всё за кредиты или за дрова. */
-  repairAll: (pay?: 'kredits' | 'wood') => MineResult;
+  repairAll: (pay?: 'kredits' | 'wood' | 'bones') => MineResult;
   /** Заточить за кредиты или за руду. */
   upgradeItem: (itemUid: string, pay?: 'kredits' | 'ore') => Check;
 
@@ -353,6 +398,20 @@ export interface GameState {
   /** Обучение: закрыть сделанные шаги (force — кнопка «Понял»), пропустить целиком. */
   advanceTutorial: (extras?: Pick<TutorialSnapshot, 'attackChosen' | 'blockChosen' | 'tavernVisited'>, force?: boolean) => void;
   skipTutorial: () => void;
+
+  // --- Склеп и рейды ---
+  /** Домой одним переходом по кратчайшей дороге (родной город открыт всегда). */
+  travelHome: () => Check;
+  /** Склеп: бой за следующий ярус. */
+  startCryptFight: () => Check;
+  /** Рейд: выйти с нижнего яруса в чужую столицу и выйти на первый бой. */
+  startRaid: () => Check;
+  startRaidFight: () => Check;
+  /** Бросить рейд и уйти под землю: засчитывается как проигранный. */
+  abandonRaid: () => Check;
+  /** Отбить ответный рейд чужих у своих ворот. */
+  startDefense: () => Check;
+  dismissDefense: () => void;
 }
 
 export interface GatherResult extends Check {
@@ -382,10 +441,11 @@ export const useGame = create<GameState>()(
         const log = [...f.log];
         const turn = f.turn;
         const base = rewardFor(status, c.level, f.opponent.level, rng);
-        // Арена Брода платит больше.
-        if (f.venue === 'brod') {
-          base.kredits = Math.round(base.kredits * 1.2);
-          base.exp = Math.round(base.exp * 1.2);
+        // Арена Брода платит больше (множитель города из `TOWNS`; рейд платит добычей, не ареной).
+        const venueMult = f.venue && f.context !== 'raid' ? (TOWNS_BY_ID[f.venue]?.arenaMult ?? 1) : 1;
+        if (venueMult !== 1) {
+          base.kredits = Math.round(base.kredits * venueMult);
+          base.exp = Math.round(base.exp * venueMult);
         }
         // «Грамотей» и расовая «Выучка» дают больше опыта.
         base.exp = Math.round(base.exp * deriveCharacter(c).expMult);
@@ -511,6 +571,76 @@ export const useGame = create<GameState>()(
           }
           set({ pendingHaul: null });
         }
+        // --- Склеп и рейды ---
+        // Склеп: победа — ярус пройден и кости в мешок; поражение — ярус остался за нежитью.
+        if (f.context === 'crypt' && f.cryptFloor) {
+          if (status === 'won') {
+            const bones = cryptBones(f.cryptFloor, rng);
+            character = { ...character, resources: { ...character.resources, bones: character.resources.bones + bones } };
+            const crypt = cryptAfterWin(normalizeCrypt(get().crypt, dayKey()), f.cryptFloor);
+            set({ crypt });
+            log.push(makeLogLine(turn, `Ярус ${f.cryptFloor} пройден. Костей в мешок: +${bones}.${cryptCleared(crypt) ? ' Дальше — нижний ход: сверху слышен чужой город.' : ''}`, 'system'));
+            get().track('gather', bones);
+          } else {
+            log.push(makeLogLine(turn, 'Нежить не пустила ниже. Ярус остался за ней, попробуй ещё.', 'system'));
+          }
+        }
+        // Рейд: добыча за каждую победу, очки войны сверх обычных, слава гильдии; три победы — полный рейд и титул.
+        if (f.context === 'raid') {
+          const raid = get().raid;
+          const defense = get().raids.defense;
+          const warNow = get().war;
+          const own = raid && raid.status === 'active' && f.venue === raid.target;
+          if (own) {
+            const loot = status === 'won' ? raidLoot(f.opponent.level) : 0;
+            const next = raidAfterFight(raid, status, loot);
+            if (loot > 0) {
+              character = { ...character, kredits: character.kredits + loot, ledger: { ...character.ledger, kreditsEarned: character.ledger.kreditsEarned + loot } };
+              reward = { ...reward, kredits: reward.kredits + loot };
+              log.push(makeLogLine(turn, `Добыча: +${loot} кр. с ${f.opponent.name}.`, 'system'));
+            }
+            if (status === 'won') {
+              if (warNow) set({ war: addWarPoints(warNow, c.side, RAID_WAR_EXTRA) });
+              log.push(makeLogLine(turn, `Рейд: ещё +${RAID_WAR_EXTRA} очка ${SIDES_BY_ID[c.side].dative} сверх обычных.`, 'system'));
+            }
+            let raids = get().raids;
+            if (next.status === 'won') {
+              if (!character.titles.includes(RAID_TITLE)) character = { ...character, titles: [...character.titles, RAID_TITLE] };
+              reward = { ...reward, title: RAID_TITLE };
+              raids = { ...raids, won: raids.won + 1 };
+              log.push(makeLogLine(turn, `Полный рейд: трое легли, ${TOWNS_BY_ID[raid.target].name} запомнит. Титул «${RAID_TITLE}». Пора под землю.`, 'system'));
+              worldSays('tavern', raidNews(c.name, c.side, raid.target, next.kills, 'won'));
+            } else if (next.status === 'lost') {
+              log.push(makeLogLine(turn, `Тебя вынесли обратно в склеп. Рейд окончен: уложил ${next.kills} из ${RAID_FIGHTS}.`, 'system'));
+              worldSays('tavern', raidNews(c.name, c.side, raid.target, next.kills, 'lost'));
+            } else {
+              log.push(makeLogLine(turn, `Бой ${next.stage} из ${RAID_FIGHTS} за тобой. Следующий уже бежит с улицы.`, 'system'));
+            }
+            set({ raid: next, raids });
+          } else if (defense && f.opponent.id === defense.opponent.id) {
+            // Оборона своих ворот от ответного рейда.
+            let raids = get().raids;
+            if (status === 'won') {
+              const loot = Math.round(raidLoot(f.opponent.level) / 2);
+              character = { ...character, kredits: character.kredits + loot, ledger: { ...character.ledger, kreditsEarned: character.ledger.kreditsEarned + loot } };
+              reward = { ...reward, kredits: reward.kredits + loot };
+              if (warNow) set({ war: addWarPoints(warNow, c.side, RAID_WAR_EXTRA) });
+              if (!character.titles.includes(DEFENDER_TITLE)) {
+                character = { ...character, titles: [...character.titles, DEFENDER_TITLE] };
+                reward = { ...reward, title: DEFENDER_TITLE };
+              }
+              raids = { ...raids, defended: raids.defended + 1 };
+              log.push(makeLogLine(turn, `Налёт отбит. С налётчика сняли ${loot} кр., ${SIDES_BY_ID[c.side].dative} ещё +${RAID_WAR_EXTRA} очка.`, 'system'));
+              worldSays('tavern', `${c.name} отбил налёт у ворот: ${f.opponent.name} ушёл под землю ни с чем.`);
+            } else {
+              log.push(makeLogLine(turn, 'Налётчик прошёл через тебя и ушёл с добычей. Ворота запомнили.', 'system'));
+              worldSays('tavern', `${f.opponent.name} прошёл через ${c.name} у ворот и ушёл в склеп с добычей.`);
+            }
+            set({ raids: { ...raids, defense: null } });
+          }
+        }
+        // Гильдия: слава за победу в рейде сверх обычной.
+        if (f.context === 'raid' && status === 'won' && guildNow) set({ guild: { ...get().guild!, rating: get().guild!.rating + RAID_GUILD_RATING } });
         // Именной соперник: счёт и реплика после боя.
         const rival = f.opponent.rivalId ? RIVALS_BY_ID[f.opponent.rivalId] : null;
         if (rival && status !== 'draw') {
@@ -578,7 +708,7 @@ export const useGame = create<GameState>()(
         }
         // Сводка боя уходит в канал «Арена», иногда с комментарием завсегдатая.
         {
-          const venue = f.context === 'tournament' ? 'tournament' : f.context === 'forest' ? 'wild' : (f.venue ?? 'city');
+          const venue = f.context === 'tournament' ? 'tournament' : f.context === 'forest' ? 'wild' : f.context === 'crypt' ? 'crypt' : f.context === 'raid' ? 'raid' : (f.venue ?? 'city');
           const now = Date.now();
           let chat = appendMessage(get().chat, { id: uid(), channel: 'arena', at: now, author: WORLD_AUTHOR, text: fightNews(c.name, f.opponent.name, status, turn, venue), kind: 'system' });
           if (rng() < 0.3) {
@@ -617,9 +747,12 @@ export const useGame = create<GameState>()(
       const need = (permission: Parameters<typeof can>[1]): Check =>
         can(get().account.role, permission) ? { ok: true } : { ok: false, reason: 'Нет прав. Нужен служебный вход.' };
 
-      /** Зал: в Городе именной соперник первым, в Броде все на уровень выше и без знакомых лиц. */
-      const newArena = (c: Character): Opponent[] =>
-        c.location === 'brod' ? generateArena(c.level + 1, rng) : generateArena(c.level, rng, rivalOpponent(pickRival(c, rng), c.level, rng));
+      /** Зал по данным города: в Городе именной соперник первым, в Броде все на уровень выше и без знакомых лиц. */
+      const newArena = (c: Character): Opponent[] => {
+        const town = townOf(c.location);
+        if (!town) return generateArena(c.level, rng);
+        return town.rivals ? generateArena(c.level, rng, rivalOpponent(pickRival(c, rng), c.level, rng)) : generateArena(c.level + town.arenaLevelBonus, rng);
+      };
 
       return {
       character: null,
@@ -643,6 +776,9 @@ export const useGame = create<GameState>()(
       settings: { sound: true },
       tutorial: newTutorial(),
       war: null,
+      crypt: null,
+      raid: null,
+      raids: newRaidLog(),
       hydrated: false,
 
       setHydrated: () => set({ hydrated: true }),
@@ -668,6 +804,9 @@ export const useGame = create<GameState>()(
           skirmish: null,
           skirmishes: null,
           tutorial: newTutorial(),
+          crypt: null,
+          raid: null,
+          raids: newRaidLog(),
         });
         get().sendChat('tavern', 'Здарова всем. Я тут новенький.');
       },
@@ -701,7 +840,7 @@ export const useGame = create<GameState>()(
       },
 
       resetGame: () =>
-        set({ character: null, fight: null, mining: null, quests: null, tournament: null, travel: null, gathering: null, pendingHaul: null, arena: [], chat: emptyChat(), chatSeenAt: 0, guild: null, npcGuilds: normalizeGuilds(undefined), skirmish: null, skirmishes: null, tutorial: newTutorial() }),
+        set({ character: null, fight: null, mining: null, quests: null, tournament: null, travel: null, gathering: null, pendingHaul: null, arena: [], chat: emptyChat(), chatSeenAt: 0, guild: null, npcGuilds: normalizeGuilds(undefined), skirmish: null, skirmishes: null, tutorial: newTutorial(), crypt: null, raid: null, raids: newRaidLog() }),
 
       ensureQuests: () => {
         const { character, quests } = get();
@@ -788,7 +927,7 @@ export const useGame = create<GameState>()(
             if (event.kredits) next = { ...next, kredits: Math.max(0, next.kredits + event.kredits) };
             if (event.resource) next = { ...next, resources: { ...next.resources, [event.resource.id]: next.resources[event.resource.id] + event.resource.amount } };
           }
-          set({ travel: null, roadNews: event?.text ?? null, arena: generateArena(next.level + (t.to === 'brod' ? 1 : 0), rng) });
+          set({ travel: null, roadNews: event?.text ?? null, arena: newArena(next) });
         }
         if (next !== c) set({ character: next });
         // Чат: созревшие ответы и болтовня завсегдатаев без повода.
@@ -808,6 +947,29 @@ export const useGame = create<GameState>()(
         const g = get().guild;
         if (g && g.lastDay !== day) set({ guild: dailyGuildUpdate(g, day, rng, now) });
         if (get().npcGuilds.some((x) => x.lastDay !== day)) set({ npcGuilds: get().npcGuilds.map((x) => dailyGuildUpdate(x, day, rng, now)) });
+        // --- Склеп и рейды ---
+        // В полночь склеп засыпает обратно, незаконченный рейд сгорает, налётчик у ворот уходит сам.
+        if (get().crypt && get().crypt!.day !== day) set({ crypt: newCrypt(day) });
+        const raidNow = get().raid;
+        if (raidNow && raidNow.status === 'active' && raidNow.day !== day) set({ raid: { ...raidNow, status: 'lost' } });
+        const raidsNow = get().raids;
+        if (raidsNow.defense && raidsNow.defense.day !== day) set({ raids: { ...raidsNow, defense: null } });
+        // Ответный рейд чужих: раз в день, в свой час. Застал тебя дома — налётчик ждёт у ворот.
+        // Новичка на обучении не трогаем: стража справляется сама.
+        if (get().tutorial.done && raidsNow.enemyDay !== day && now >= enemyRaidDueAt(day, now) && get().war && !(raidNow && raidNow.status === 'active' && raidNow.day === day)) {
+          const e = rollEnemyRaid(next.side, next.level, get().npcGuilds, rng);
+          const atHome = next.location === e.town && !get().travel && get().fight?.status !== 'active';
+          const war = get().war;
+          if (war) set({ war: addWarPoints(war, e.side, e.points) });
+          if (atHome) {
+            const opponent = raidOpponent(e.side, next.level, get().npcGuilds, rng);
+            set({ raids: { ...get().raids, enemyDay: day, defense: { day, town: e.town, side: e.side, opponent } } });
+            worldSays('tavern', defenseNews(e));
+          } else {
+            set({ raids: { ...get().raids, enemyDay: day } });
+            worldSays('tavern', enemyRaidNews(e));
+          }
+        }
       },
 
       cureInjury: (pay = 'kredits') => {
@@ -816,11 +978,13 @@ export const useGame = create<GameState>()(
         const injury = activeInjury(c);
         if (!injury) return { ok: false, reason: 'Травм нет' };
         if (pay === 'bogwort') {
-          if (c.resources.bogwort < INJURY_BOGWORT) return { ok: false, reason: `Нужно ${INJURY_BOGWORT} болотника` };
-          set({ character: { ...c, injury: null, resources: { ...c.resources, bogwort: c.resources.bogwort - INJURY_BOGWORT } } });
+          // В Топях знахарь берёт меньше болотника (особенность города).
+          const need = townOf(c.location)?.perk.injuryBogwort ?? INJURY_BOGWORT;
+          if (c.resources.bogwort < need) return { ok: false, reason: `Нужно ${need} болотника` };
+          set({ character: { ...c, injury: null, resources: { ...c.resources, bogwort: c.resources.bogwort - need } } });
           return { ok: true, kredits: 0 };
         }
-        const cost = cureCost(c, injury);
+        const cost = townPrice(cureCost(c, injury), townHealerMult(c.location));
         if (c.kredits < cost) return { ok: false, reason: `Нужно ${cost} кр.` };
         set({ character: { ...c, injury: null, kredits: c.kredits - cost } });
         return { ok: true, kredits: cost };
@@ -836,8 +1000,13 @@ export const useGame = create<GameState>()(
           const herbs = fraction >= 1 ? POTION_HERBS.large : fraction >= 0.6 ? POTION_HERBS.medium : POTION_HERBS.small;
           if (c.resources.herbs < herbs) return { ok: false, reason: `Нужно ${herbs} трав` };
           set({ character: { ...c, hp, resources: { ...c.resources, herbs: c.resources.herbs - herbs }, hpUpdatedAt: Date.now() } });
+        } else if (pay === 'bones') {
+          // Костная мука из склепа: лекарь варит на ней зелья.
+          const bones = fraction >= 1 ? POTION_BONES.large : fraction >= 0.6 ? POTION_BONES.medium : POTION_BONES.small;
+          if (c.resources.bones < bones) return { ok: false, reason: `Нужно ${bones} костей` };
+          set({ character: { ...c, hp, resources: { ...c.resources, bones: c.resources.bones - bones }, hpUpdatedAt: Date.now() } });
         } else {
-          const cost = healPrice(c, fraction);
+          const cost = townPrice(healPrice(c, fraction), townHealerMult(c.location));
           if (c.kredits < cost) return { ok: false, reason: `Нужно ${cost} кр.` };
           set({ character: { ...c, hp, kredits: c.kredits - cost, hpUpdatedAt: Date.now() } });
         }
@@ -928,7 +1097,7 @@ export const useGame = create<GameState>()(
 
         const fight: FightState = {
           context: 'arena',
-          venue: c.location === 'brod' ? 'brod' : 'city',
+          venue: isTown(c.location) ? c.location : 'city',
           opponent,
           playerHp: fresh.hp,
           enemyHp: opponent.derived.maxHp,
@@ -1196,8 +1365,10 @@ export const useGame = create<GameState>()(
         if (state.fight?.status === 'active') return { ok: false, reason: 'Сначала закончи бой' };
         if (state.mining) return { ok: false, reason: state.mining.job === 'caravan' ? 'Ты уже с караваном' : 'Ты уже в шахте' };
         if (state.travel) return { ok: false, reason: 'Ты в пути' };
-        if (job === 'mine' && state.character.location !== 'city') return { ok: false, reason: 'Шахта в Городе. Сначала вернись.' };
-        if (job === 'caravan' && state.character.location !== 'brod') return { ok: false, reason: 'Караваны собирают в Броде.' };
+        // Работа есть в каждом городе, но своя: шахта или караван — по данным города.
+        const town = townOf(state.character.location);
+        if (!town) return { ok: false, reason: 'Работу дают в городах. Сначала дойди.' };
+        if (town.job !== job) return { ok: false, reason: job === 'mine' ? `${town.locative[0].toUpperCase()}${town.locative.slice(1)} шахты нет, тут нанимают в ${town.jobName.toLowerCase()}.` : `${town.locative[0].toUpperCase()}${town.locative.slice(1)} караванов нет, тут ${town.jobName.toLowerCase()}.` };
         if (!isShiftHours(hours)) return { ok: false, reason: 'Такой смены нет' };
         set({ mining: { startedAt: Date.now(), hours, job } });
         get().advanceTutorial();
@@ -1209,7 +1380,8 @@ export const useGame = create<GameState>()(
         if (!mining || !character) return { ok: false, reason: 'Ты не на работе' };
         if (fight?.status === 'active') return { ok: false, reason: 'Сначала закончи бой' };
         const job: JobId = mining.job ?? 'mine';
-        const earned = mineEarnings(mining, jobRatePerHour(job, deriveCharacter(character)), Date.now());
+        // Ставка с надбавкой города (степные кони Коша).
+        const earned = mineEarnings(mining, Math.round(jobRatePerHour(job, deriveCharacter(character)) * townJobMult(character.location)), Date.now());
         // Караван: на обратной дороге бывает засада, плата на кону.
         if (job === 'caravan' && earned > 0 && rng() < CARAVAN_AMBUSH) {
           const opponent: OpponentType = wildOpponent('pass', character.level, rng);
@@ -1252,7 +1424,7 @@ export const useGame = create<GameState>()(
         const inv = c.backpack.find((i) => i.uid === itemUid);
         if (!inv) return { ok: false, reason: 'Предмет не найден' };
         const item = getItem(inv.itemId);
-        const cost = repairCost(item, inv.durability);
+        const cost = townPrice(repairCost(item, inv.durability), townSmithyMult(c.location));
         if (cost === 0) return { ok: false, reason: 'Вещь цела' };
         if (c.kredits < cost) return { ok: false, reason: `Нужно ${cost} кр.` };
         set({
@@ -1278,10 +1450,18 @@ export const useGame = create<GameState>()(
           return { ...i, durability: maxDurability(item) };
         });
         if (total === 0) return { ok: false, reason: 'Чинить нечего' };
+        total = townPrice(total, townSmithyMult(c.location));
         if (pay === 'wood') {
           const wood = woodForRepair(total);
           if (c.resources.wood < wood) return { ok: false, reason: `Нужно ${wood} дров` };
           set({ character: { ...c, resources: { ...c.resources, wood: c.resources.wood - wood }, backpack } });
+          get().track('repair');
+          return { ok: true, kredits: 0 };
+        }
+        if (pay === 'bones') {
+          const bones = bonesForRepair(total);
+          if (c.resources.bones < bones) return { ok: false, reason: `Нужно ${bones} костей` };
+          set({ character: { ...c, resources: { ...c.resources, bones: c.resources.bones - bones }, backpack } });
           get().track('repair');
           return { ok: true, kredits: 0 };
         }
@@ -1501,7 +1681,7 @@ export const useGame = create<GameState>()(
         const opponent = skirmishOpponent(enemy, c.level, rng);
         const fight: FightState = {
           context: 'guild',
-          venue: c.location === 'brod' ? 'brod' : 'city',
+          venue: isTown(c.location) ? c.location : 'city',
           opponent,
           playerHp: fresh.hp,
           enemyHp: opponent.derived.maxHp,
@@ -1629,6 +1809,10 @@ export const useGame = create<GameState>()(
           npcGuilds: get().npcGuilds.map((g) => ({ ...g, lastDay: null })),
           // Война: день закрывается, вчерашний лидер станет победителем на тике.
           war: get().war ? { ...get().war!, day: '' } : null,
+          // Склеп засыпает, рейды и налёты можно заново.
+          crypt: null,
+          raid: null,
+          raids: { ...get().raids, lastDay: null, enemyDay: null, defense: null },
         });
         get().tick();
         return { ok: true };
@@ -1711,6 +1895,148 @@ export const useGame = create<GameState>()(
 
       skipTutorial: () => set({ tutorial: skipSteps(get().tutorial) }),
 
+      // --- Склеп и рейды ---
+
+      travelHome: () => {
+        const state = get();
+        const c = state.character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        const check = canTravelHome(c, {
+          mining: !!state.mining,
+          gathering: !!state.gathering,
+          traveling: !!state.travel,
+          fighting: state.fight?.status === 'active',
+        });
+        if (!check.ok || !check.route) return { ok: false, reason: check.reason };
+        set({ travel: { from: c.location, to: check.route.to, startedAt: Date.now(), minutes: check.route.minutes } });
+        return { ok: true };
+      },
+
+      startCryptFight: () => {
+        const state = get();
+        const c = state.character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        if (c.location !== 'crypt' || state.travel) return { ok: false, reason: 'Склеп — место на карте мира. Сначала дойди.' };
+        if (state.fight?.status === 'active') return { ok: false, reason: 'Бой уже идёт' };
+        if (state.mining) return { ok: false, reason: 'Сначала забери заработок' };
+        const day = dayKey();
+        if (state.raid && state.raid.status === 'active' && state.raid.day === day) return { ok: false, reason: 'Ты в рейде. Сначала закончи наверху.' };
+        const crypt = normalizeCrypt(state.crypt, day);
+        const floor = nextFloor(crypt);
+        if (!floor) return { ok: false, reason: 'На сегодня склеп пройден до дна. Внизу — выход наверх, завтра всё засыплет обратно.' };
+        const fresh = applyRegen(c);
+        if (fresh.hp < 1) return { ok: false, reason: 'Нет сил. Под землёй не лечат.' };
+        const opponent: OpponentType = cryptOpponent(floor, c.level, rng);
+        const fight: FightState = {
+          context: 'crypt',
+          cryptFloor: floor,
+          opponent,
+          playerHp: fresh.hp,
+          enemyHp: opponent.derived.maxHp,
+          turn: 1,
+          status: 'active',
+          log: [
+            makeLogLine(0, `Ярус ${floor}, «${CRYPT_BY_FLOOR[floor].name}». ${CRYPT_BY_FLOOR[floor].flavor}`, 'system'),
+            makeLogLine(0, `${opponent.name} поднимается навстречу.`, 'enemy'),
+          ],
+          playerMoves: [],
+          lastEnemyMove: null,
+          reward: null,
+          startedAt: Date.now(),
+        };
+        set({ character: fresh, fight, crypt, lastFightContext: 'forest' });
+        return { ok: true };
+      },
+
+      startRaid: () => {
+        const state = get();
+        const c = state.character;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        if (c.location !== 'crypt' || state.travel) return { ok: false, reason: 'Выход наверх — с нижнего яруса склепа' };
+        if (state.fight?.status === 'active') return { ok: false, reason: 'Бой уже идёт' };
+        if (state.mining) return { ok: false, reason: 'Сначала забери заработок' };
+        const day = dayKey();
+        const crypt = normalizeCrypt(state.crypt, day);
+        const check = canStartRaid({ cleared: cryptCleared(crypt), log: state.raids, day, raid: state.raid, hp: applyRegen(c).hp });
+        if (!check.ok) return check;
+        const raid = newRaid(day, c.side);
+        set({ raid, raids: { ...state.raids, lastDay: day }, crypt });
+        worldSays('arena', `${SIDES_BY_ID[c.side].name} лезет в ${TOWNS_BY_ID[raid.target].name} через склеп: ${c.name} уже наверху.`);
+        return get().startRaidFight();
+      },
+
+      startRaidFight: () => {
+        const state = get();
+        const c = state.character;
+        const raid = state.raid;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        if (!raid || raid.status !== 'active' || raid.day !== dayKey()) return { ok: false, reason: 'Рейда нет' };
+        if (state.fight?.status === 'active') return { ok: false, reason: 'Бой уже идёт' };
+        const fresh = applyRegen(c);
+        if (fresh.hp < 1) return { ok: false, reason: 'Нет сил. В чужом городе не лечат: подожди или бросай рейд.' };
+        const guilds = [...state.npcGuilds, ...(state.guild ? [state.guild] : [])];
+        const opponent = raidOpponent(raid.side, c.level, guilds, rng);
+        const fight: FightState = {
+          context: 'raid',
+          venue: raid.target,
+          opponent,
+          playerHp: fresh.hp,
+          enemyHp: opponent.derived.maxHp,
+          turn: 1,
+          status: 'active',
+          log: [
+            makeLogLine(0, `Рейд, бой ${raid.stage + 1} из ${RAID_FIGHTS}: ${fresh.name} против ${opponent.name} ${TOWNS_BY_ID[raid.target].locative}.`, 'system'),
+            ...(activeInjury(fresh) ? [makeLogLine(0, `${fresh.name} дерётся с травмой: ${injuryText(activeInjury(fresh)!).toLowerCase()}.`, 'system')] : []),
+          ],
+          playerMoves: [],
+          lastEnemyMove: null,
+          reward: null,
+          startedAt: Date.now(),
+        };
+        set({ character: fresh, fight, lastFightContext: 'forest' });
+        return { ok: true };
+      },
+
+      abandonRaid: () => {
+        const { character: c, raid, fight } = get();
+        if (!c || !raid || raid.status !== 'active') return { ok: false, reason: 'Рейда нет' };
+        if (fight?.status === 'active') return { ok: false, reason: 'Сначала закончи бой' };
+        set({ raid: { ...raid, status: 'lost' } });
+        worldSays('tavern', raidNews(c.name, c.side, raid.target, raid.kills, 'lost'));
+        return { ok: true };
+      },
+
+      startDefense: () => {
+        const state = get();
+        const c = state.character;
+        const d = state.raids.defense;
+        if (!c) return { ok: false, reason: 'Нет персонажа' };
+        if (!d) return { ok: false, reason: 'Никто не ломится' };
+        if (c.location !== d.town || state.travel) return { ok: false, reason: `Налётчик у ворот ${TOWNS_BY_ID[d.town].name}, а ты не там` };
+        if (state.fight?.status === 'active') return { ok: false, reason: 'Бой уже идёт' };
+        if (state.mining) return { ok: false, reason: 'Сначала забери заработок' };
+        const fresh = applyRegen(c);
+        if (fresh.hp < 1) return { ok: false, reason: 'Нет сил драться. Пусть стража разбирается.' };
+        const fight: FightState = {
+          context: 'raid',
+          venue: d.town,
+          opponent: d.opponent,
+          playerHp: fresh.hp,
+          enemyHp: d.opponent.derived.maxHp,
+          turn: 1,
+          status: 'active',
+          log: [makeLogLine(0, `Налёт на ${TOWNS_BY_ID[d.town].name}: ${d.opponent.name} у ворот. ${fresh.name} выходит навстречу.`, 'system')],
+          playerMoves: [],
+          lastEnemyMove: null,
+          reward: null,
+          startedAt: Date.now(),
+        };
+        set({ character: fresh, fight, lastFightContext: 'forest' });
+        return { ok: true };
+      },
+
+      dismissDefense: () => set({ raids: { ...get().raids, defense: null } }),
+
       gmResetSave: () => {
         const p = need('save.reset');
         if (!p.ok) return p;
@@ -1728,7 +2054,7 @@ export const useGame = create<GameState>()(
         if (inv.upgrade >= UPGRADE_MAX) return { ok: false, reason: 'Дальше точить некуда' };
         if (inv.durability <= 0) return { ok: false, reason: 'Сначала почини' };
         const next = inv.upgrade + 1;
-        const cost = upgradeCost(item, next);
+        const cost = townPrice(upgradeCost(item, next), townSmithyMult(c.location));
         const backpack = c.backpack.map((i) => (i.uid === itemUid ? { ...i, upgrade: next } : i));
         if (pay === 'ore') {
           const ore = oreForUpgrade(cost);
@@ -1770,6 +2096,9 @@ export const useGame = create<GameState>()(
         settings: s.settings,
         tutorial: s.tutorial,
         war: s.war,
+        crypt: s.crypt,
+        raid: s.raid,
+        raids: s.raids,
       }),
       // Старые сейвы дописываем недостающими полями (прочность, заточка, будущие фичи).
       migrate: (persisted) => {
@@ -1787,6 +2116,10 @@ export const useGame = create<GameState>()(
         state.account = state.account ?? newAccount();
         state.settings = { sound: state.settings?.sound ?? true };
         state.tutorial = normalizeTutorial(state.tutorial, state.character?.ledger.fightsTotal ?? 0);
+        // Склеп и рейды: старым сейвам — пустые поля, вчерашний спуск сгорает.
+        state.crypt = state.crypt ? normalizeCrypt(state.crypt, dayKey()) : null;
+        state.raid = state.raid && typeof state.raid.day === 'string' && state.raid.day === dayKey() ? state.raid : null;
+        state.raids = normalizeRaidLog(state.raids);
         state.setHydrated();
       },
     },

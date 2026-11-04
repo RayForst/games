@@ -21,6 +21,10 @@ import {
   UPGRADE_MAX,
   oreForUpgrade,
   woodForRepair,
+  bonesForRepair,
+  townOf,
+  townPrice,
+  townSmithyMult,
   type InventoryItem,
 } from '@/game';
 import { useFlash } from '@/hooks/useFlash';
@@ -38,13 +42,17 @@ export default function SmithyScreen() {
   if (!character) return null;
 
   const items = [...character.backpack].sort((a, b) => Number(isEquipped(character, b.uid)) - Number(isEquipped(character, a.uid)));
-  const totalRepair = items.reduce((sum, i) => sum + repairCost(getItem(i.itemId), i.durability), 0);
+  // Особенность города: в Рудне кузница берёт на 20 % меньше.
+  const town = townOf(character.location);
+  const mult = townSmithyMult(character.location);
+  const totalRepair = townPrice(items.reduce((sum, i) => sum + repairCost(getItem(i.itemId), i.durability), 0), mult);
 
-  const onRepairAll = (pay: 'kredits' | 'wood' = 'kredits') => {
+  const onRepairAll = (pay: 'kredits' | 'wood' | 'bones' = 'kredits') => {
     const r = repairAll(pay);
-    show(r.ok ? (pay === 'wood' ? 'Починил всё за дрова. Макар доволен.' : `Починил всё за ${r.kredits} кр.`) : (r.reason ?? 'Не получилось'));
+    show(r.ok ? (pay === 'wood' ? 'Починил всё за дрова. Макар доволен.' : pay === 'bones' ? 'Починил всё за кости. Кузнец сварил клей и не спросил, чьи.' : `Починил всё за ${r.kredits} кр.`) : (r.reason ?? 'Не получилось'));
   };
   const woodNeeded = totalRepair > 0 ? woodForRepair(totalRepair) : 0;
+  const bonesNeeded = totalRepair > 0 ? bonesForRepair(totalRepair) : 0;
 
   const onRepair = (inv: InventoryItem) => {
     const r = repairItem(inv.uid);
@@ -60,10 +68,10 @@ export default function SmithyScreen() {
 
   return (
     <Screen>
-      <BackBar right={<Kredits value={character.kredits} />} />
+      <BackBar title={town && town.id !== 'city' ? town.name : undefined} right={<Kredits value={character.kredits} />} />
       <View>
         <Txt variant="title">Кузница</Txt>
-        <Txt variant="muted">{BUILDINGS_BY_ID.smithy.description}</Txt>
+        <Txt variant="muted">{town && town.id !== 'city' ? `Кузница ${town.locative}. ${mult < 1 ? `${town.perk.name}: ${town.perk.description}` : 'Молот тот же, цены как у Макара.'}` : BUILDINGS_BY_ID.smithy.description}</Txt>
       </View>
 
       <Flash text={flash} />
@@ -80,6 +88,15 @@ export default function SmithyScreen() {
             disabled={character.resources.wood < woodNeeded}
           />
         ) : null}
+        {totalRepair > 0 && character.resources.bones > 0 ? (
+          <Button
+            small
+            variant="ghost"
+            title={`Или за кости · ${bonesNeeded} шт. (есть ${character.resources.bones})`}
+            onPress={() => onRepairAll('bones')}
+            disabled={character.resources.bones < bonesNeeded}
+          />
+        ) : null}
       </Card>
 
       <Txt variant="heading">Твои вещи</Txt>
@@ -94,10 +111,10 @@ export default function SmithyScreen() {
         const item = getItem(inv.itemId);
         const max = maxDurability(item);
         const broken = inv.durability <= 0;
-        const repair = repairCost(item, inv.durability);
+        const repair = townPrice(repairCost(item, inv.durability), mult);
         const sharpenable = canUpgrade(item);
         const maxed = inv.upgrade >= UPGRADE_MAX;
-        const nextCost = sharpenable && !maxed ? upgradeCost(item, inv.upgrade + 1) : 0;
+        const nextCost = sharpenable && !maxed ? townPrice(upgradeCost(item, inv.upgrade + 1), mult) : 0;
         return (
           <View key={inv.uid} style={[styles.row, broken && styles.rowBroken]}>
             <ItemIcon id={item.id} slot={item.slot} size={52} />
@@ -144,7 +161,7 @@ export default function SmithyScreen() {
         );
       })}
       <Txt variant="small" center color={colors.textDim}>
-        Заточка: оружию +1 к урону, броне +1 к защите за уровень. До +{UPGRADE_MAX}. Руды в сумке: {character.resources.ore}, дров: {character.resources.wood}.
+        Заточка: оружию +1 к урону, броне +1 к защите за уровень. До +{UPGRADE_MAX}. Руды в сумке: {character.resources.ore}, дров: {character.resources.wood}, костей: {character.resources.bones}.
       </Txt>
     </Screen>
   );

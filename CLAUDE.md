@@ -102,6 +102,15 @@
 - Портреты: `src/ui/portrait.ts` (черты по сиду-имени, `RIVAL_PORTRAITS` по `rivalId`, кэш `portraitSpec`), компонент
   `Portrait` (SVG, пропсы `seed`, `rivalId`, `size`, `hpRatio`, `injured`, `tight` для квадратных карточек); стоит в
   `Avatar`, `FighterCard` и списке арены. Новая черта — новое поле в `PortraitSpec`, слой в `Portrait.tsx` и тест.
+- Столицы рас и города: `world.ts` (`TownId`, `isTown`, `locationOpen(id, level, home)`, `pathMinutes`, `canTravelHome`),
+  данные городов `towns.ts` (`TOWNS`: арена, работа, особенность `perk`; хелперы `townOf`, `townSmithyMult`, `townHealerMult`,
+  `townJobMult`, `townPrice`), рынок по городам `MARKET_MULT` в `wilds.ts`. Хаб `TownHub` для всех городов, кроме Города;
+  `BrodHub` — обёртка. Кнопка «Домой» — `HomeLink` (действие `travelHome`). Новый город — запись в `LOCATIONS`, `ROUTES`,
+  `TOWNS` и `TownId`; особенность — поле в `TownPerk` и его чтение в сторе.
+- Склеп и рейды: `crypt.ts` (ярусы `CRYPT`, `cryptOpponent`, `cryptAfterWin`, ресурс `bones` в `wilds.ts`), `raid.ts` (`Raid`,
+  `RaidLog`, `raidOpponent`, `raidAfterFight`, ответный рейд `rollEnemyRaid`/`enemyRaidDueAt`), стор `crypt`/`raid`/`raids`,
+  действия в блоке `// --- Склеп и рейды ---`, контексты боя `'crypt'`/`'raid'` (возврат в таб места). Хабы `CryptHub`,
+  карточка обороны `DefenseCard`. Итоги боя — в `settle()` там же.
 - Сервер (чат, гильдии, роли): `server/` (Node 22, `ws`, JSON-файл; `npm run dev`, `ADMIN_SECRET`), импортирует правила из
   `combat/src/game/`. Контракт `src/net/backend.ts`, протокол `src/net/protocol.ts`, адаптер `src/net/serverBackend.ts`,
   локальная реализация поверх стора `src/net/localBackend.ts`, выбор режима `src/net/index.ts` (`getBackend()`,

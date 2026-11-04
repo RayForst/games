@@ -1,19 +1,21 @@
 import type { DerivedStats, Opponent, StatKey } from './types';
 import { generateOpponent } from './opponents';
 import { deriveStats } from './formulas';
+import type { TownId } from './world';
 
 // Дикие земли: лес, болото, руины, перевал. Занятия по времени (как шахта), ресурсы, рынок, засады.
 
 export type WildId = 'forest' | 'swamp' | 'ruins' | 'pass';
 
-export type ResourceId = 'herbs' | 'wood' | 'pelts' | 'bogwort' | 'relics' | 'ore';
+export type ResourceId = 'herbs' | 'wood' | 'pelts' | 'bogwort' | 'relics' | 'ore' | 'bones';
 
 export interface ResourceDef {
   id: ResourceId;
   name: string;
   /** Базовая цена скупки за штуку. */
   basePrice: number;
-  icon: ResourceId;
+  /** Иконка из GI: у костей своей нет, берём череп. */
+  icon: Exclude<ResourceId, 'bones'> | 'skull';
 }
 
 export const RESOURCES: ResourceDef[] = [
@@ -23,6 +25,7 @@ export const RESOURCES: ResourceDef[] = [
   { id: 'bogwort', name: 'Болотник', basePrice: 9, icon: 'bogwort' },
   { id: 'ore', name: 'Руда', basePrice: 6, icon: 'ore' },
   { id: 'relics', name: 'Реликвии', basePrice: 15, icon: 'relics' },
+  { id: 'bones', name: 'Кости', basePrice: 5, icon: 'skull' },
 ];
 
 export const RESOURCES_BY_ID = Object.fromEntries(RESOURCES.map((r) => [r.id, r])) as Record<ResourceId, ResourceDef>;
@@ -30,7 +33,7 @@ export const RESOURCES_BY_ID = Object.fromEntries(RESOURCES.map((r) => [r.id, r]
 export type Resources = Record<ResourceId, number>;
 
 export function emptyResources(): Resources {
-  return { herbs: 0, wood: 0, pelts: 0, bogwort: 0, relics: 0, ore: 0 };
+  return { herbs: 0, wood: 0, pelts: 0, bogwort: 0, relics: 0, ore: 0, bones: 0 };
 }
 
 export function normalizeResources(raw?: Partial<Resources> | null): Resources {
@@ -196,13 +199,13 @@ function hash(s: string): number {
   return h;
 }
 
-/** Надбавка рынка по городу: в Броде платят больше, туда дальше везти. */
-export const MARKET_MULT: Record<'city' | 'brod', number> = { city: 1, brod: 1.25 };
+/** Надбавка рынка по городу: в Броде платят больше, туда дальше везти; Каменке нечего есть, она тоже доплачивает. */
+export const MARKET_MULT: Record<TownId, number> = { city: 1, brod: 1.25, rudnya: 1, zastava: 1, kosh: 1, kamenka: 1.15, topi: 1 };
 
 /** Цена скупки на день: база × 0.7…1.3 × надбавка города, одинаковая весь день. */
-export function marketPrice(resource: ResourceId, day: string, town: 'city' | 'brod' = 'city'): number {
+export function marketPrice(resource: ResourceId, day: string, town: TownId = 'city'): number {
   const mult = 0.7 + (hash(`${day}:${resource}`) % 61) / 100;
-  return Math.max(1, Math.round(RESOURCES_BY_ID[resource].basePrice * mult * MARKET_MULT[town]));
+  return Math.max(1, Math.round(RESOURCES_BY_ID[resource].basePrice * mult * (MARKET_MULT[town] ?? 1)));
 }
 
 // ─── Засада ─────────────────────────────────────────────────────────────────
@@ -257,6 +260,16 @@ export const ORE_UPGRADE_VALUE = 4;
 export function oreForUpgrade(kredits: number): number {
   return Math.max(1, Math.ceil(kredits / ORE_UPGRADE_VALUE));
 }
+
+/** Кости из склепа: кузнец берёт их в счёт ремонта (костяной клей и накладки), по столько кредитов за кость. */
+export const BONE_REPAIR_VALUE = 2;
+
+export function bonesForRepair(kredits: number): number {
+  return Math.max(1, Math.ceil(kredits / BONE_REPAIR_VALUE));
+}
+
+/** Зелья лекаря за кости (костная мука): малое / среднее / большое. Дороже трав, зато костей в склепе много. */
+export const POTION_BONES: Record<'small' | 'medium' | 'large', number> = { small: 5, medium: 10, large: 16 };
 
 /** Князь скупает реликвии вдвое дороже лавки и добавляет рейтинг за каждую. */
 export const RELIC_RATING = 2;

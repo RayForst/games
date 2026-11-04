@@ -15,6 +15,7 @@ import {
   mineIsDone,
   mineProgress,
   mineSecondsLeft,
+  townJobMult,
   type JobId,
   type ShiftHours,
 } from '@/game';
@@ -50,7 +51,8 @@ export function JobPanel({ job, rateHint, idleHint, startTitle, workingTitle, co
   if (!character) return null;
 
   const derived = deriveCharacter(character);
-  const rate = jobRatePerHour(job, derived);
+  // Надбавка города (степные кони Коша) — та же, что в сторе при расчёте.
+  const rate = Math.round(jobRatePerHour(job, derived) * townJobMult(character.location));
   const mine = mining && (mining.job ?? 'mine') === job ? mining : null;
   const busyElsewhere = !!mining && !mine;
 

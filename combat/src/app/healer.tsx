@@ -8,7 +8,7 @@ import { Flash } from '@/components/Flash';
 import { Kredits } from '@/components/Kredits';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
-import { activeInjury, BUILDINGS_BY_ID, cureCost, deriveCharacter, HEAL_OPTIONS, healAmount, healPrice, INJURY_BOGWORT, injurySecondsLeft, injuryText, POTION_HERBS, secondsToFullHp } from '@/game';
+import { activeInjury, BUILDINGS_BY_ID, cureCost, deriveCharacter, HEAL_OPTIONS, healAmount, healPrice, INJURY_BOGWORT, injurySecondsLeft, injuryText, POTION_BONES, POTION_HERBS, secondsToFullHp, townHealerMult, townOf, townPrice } from '@/game';
 import { GiIcon } from '@/components/GiIcon';
 import { useFlash } from '@/hooks/useFlash';
 import { useNow } from '@/hooks/useNow';
@@ -31,7 +31,11 @@ export default function HealerScreen() {
   const toFull = secondsToFullHp(character, now);
   const healthy = toFull === 0;
   const injury = activeInjury(character, now);
-  const cure = injury ? cureCost(character, injury) : 0;
+  // Особенности городов: гарнизонный лекарь Заставы дешевле, знахарь Топей берёт меньше болотника.
+  const town = townOf(character.location);
+  const mult = townHealerMult(character.location);
+  const bogwortNeed = town?.perk.injuryBogwort ?? INJURY_BOGWORT;
+  const cure = injury ? townPrice(cureCost(character, injury), mult) : 0;
 
   const onCure = (pay: 'kredits' | 'bogwort' = 'kredits') => {
     const r = cureInjury(pay);
@@ -42,7 +46,7 @@ export default function HealerScreen() {
     show('Вправил. Больше не ноет.');
   };
 
-  const drink = (fraction: number, flavor: string, pay: 'kredits' | 'herbs' = 'kredits') => {
+  const drink = (fraction: number, flavor: string, pay: 'kredits' | 'herbs' | 'bones' = 'kredits') => {
     const r = heal(fraction, pay);
     if (!r.ok) {
       Alert.alert('Лекарь', r.reason ?? 'Не получилось');
@@ -53,10 +57,10 @@ export default function HealerScreen() {
 
   return (
     <Screen>
-      <BackBar right={<Kredits value={character.kredits} />} />
+      <BackBar title={town && town.id !== 'city' ? town.name : undefined} right={<Kredits value={character.kredits} />} />
       <View>
         <Txt variant="title">Лекарь</Txt>
-        <Txt variant="muted">{BUILDINGS_BY_ID.healer.description}</Txt>
+        <Txt variant="muted">{town && town.id !== 'city' ? `Лекарь ${town.locative}. ${mult < 1 ? `${town.perk.name}: ${town.perk.description}` : 'Те же зелья, те же руки, другая вывеска.'}` : BUILDINGS_BY_ID.healer.description}</Txt>
       </View>
 
       <Flash text={flash} />
@@ -74,19 +78,20 @@ export default function HealerScreen() {
           <Button
             small
             variant="ghost"
-            title={`Или за ${INJURY_BOGWORT} болотника (есть ${character.resources.bogwort})`}
+            title={`Или за ${bogwortNeed} болотника (есть ${character.resources.bogwort})`}
             onPress={() => onCure('bogwort')}
-            disabled={character.resources.bogwort < INJURY_BOGWORT}
+            disabled={character.resources.bogwort < bogwortNeed}
           />
         </Card>
       ) : null}
 
       <Card title="Зелья">
         {HEAL_OPTIONS.map((o) => {
-          const price = healPrice(character, o.fraction);
+          const price = townPrice(healPrice(character, o.fraction), mult);
           const amount = healAmount(character, o.fraction);
           const poor = character.kredits < price;
           const noHerbs = character.resources.herbs < POTION_HERBS[o.id];
+          const noBones = character.resources.bones < POTION_BONES[o.id];
           return (
             <View key={o.id} style={[styles.potion, healthy && styles.potionDisabled]}>
               <Image source={UI_ICONS[o.icon]} style={styles.potionIcon} resizeMode="contain" />
@@ -120,14 +125,28 @@ export default function HealerScreen() {
                     или {POTION_HERBS[o.id]} трав
                   </Txt>
                 </Pressable>
+                {character.resources.bones > 0 ? (
+                  <Pressable
+                    onPress={() => drink(o.fraction, o.flavor, 'bones')}
+                    disabled={healthy || noBones}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${o.name} за кости`}
+                    accessibilityState={{ disabled: healthy || noBones }}
+                    style={({ pressed }) => [styles.herbs, (healthy || noBones) && styles.potionDisabled, pressed && styles.pressed]}>
+                    <GiIcon name="skull" size={14} color={colors.textMuted} />
+                    <Txt variant="small" color={colors.textMuted}>
+                      или {POTION_BONES[o.id]} костей
+                    </Txt>
+                  </Pressable>
+                ) : null}
               </View>
             </View>
           );
         })}
         <Txt variant="small">
-          Трав в сумке: {character.resources.herbs}. Лекарь варит из них сам, деньги не берёт.
+          Трав в сумке: {character.resources.herbs}{character.resources.bones > 0 ? `, костей из склепа: ${character.resources.bones}` : ''}. Лекарь варит из них сам, деньги не берёт.
         </Txt>
-        {!healthy && character.kredits < healPrice(character, HEAL_OPTIONS[0].fraction) ? (
+        {!healthy && character.kredits < townPrice(healPrice(character, HEAL_OPTIONS[0].fraction), mult) ? (
           <Txt variant="small" color={colors.red}>
             Не хватает даже на малое. Подожди или сходи в шахту.
           </Txt>

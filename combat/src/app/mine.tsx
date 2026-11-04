@@ -6,7 +6,7 @@ import { JobPanel } from '@/components/JobPanel';
 import { Kredits } from '@/components/Kredits';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
-import { BUILDINGS_BY_ID, deriveCharacter } from '@/game';
+import { BUILDINGS_BY_ID, deriveCharacter, TOWNS_BY_ID, townOf } from '@/game';
 import { useGame } from '@/store/useGame';
 
 /** Шахта: отправить персонажа на смену и забрать кредиты. Работает офлайн, по часам телефона. */
@@ -14,13 +14,14 @@ export default function MineScreen() {
   const character = useGame((s) => s.character);
   if (!character) return null;
   const d = deriveCharacter(character);
+  const town = townOf(character.location) ?? TOWNS_BY_ID.city;
 
   return (
     <Screen>
-      <BackBar right={<Kredits value={character.kredits} />} />
+      <BackBar title={town.id === 'city' ? undefined : town.name} right={<Kredits value={character.kredits} />} />
       <View style={styles.header}>
-        <Txt variant="title">Шахта</Txt>
-        <Txt variant="muted">{BUILDINGS_BY_ID.mine.description}</Txt>
+        <Txt variant="title">{town.jobName}</Txt>
+        <Txt variant="muted">{town.id === 'city' ? BUILDINGS_BY_ID.mine.description : town.jobHint}</Txt>
       </View>
       <Hint screen="mine" />
       <JobPanel

@@ -110,6 +110,10 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'sharp-3', name: 'Остриё', description: 'Заточи вещь до +3', reward: 40, check: (c) => c.backpack.some((i) => i.upgrade >= 3) },
   // Дикие земли
   { id: 'relic-hunter', name: 'Кладоискатель', description: 'Принеси из руин 5 реликвий разом', reward: 40, ...atLeast((c) => c.resources.relics, 5) },
+  // Склеп и рейды
+  { id: 'bone-sack', name: 'Костяной мешок', description: 'Вынеси из склепа 30 костей разом', reward: 40, ...atLeast((c) => c.resources.bones, 30) },
+  { id: 'raider', name: 'Налётчик', description: 'Пройди склеп до дна и уложи троих в чужой столице за один рейд', reward: 120, check: (c) => c.titles.includes('Налётчик') },
+  { id: 'gatekeeper', name: 'Привратник', description: 'Отбей ответный рейд чужих у своих ворот', reward: 60, check: (c) => c.titles.includes('Привратник') },
 ];
 
 export const ACHIEVEMENTS_BY_ID = Object.fromEntries(ACHIEVEMENTS.map((a) => [a.id, a])) as Record<string, AchievementDef>;

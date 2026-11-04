@@ -6,13 +6,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
 import { CityMap } from '@/components/CityMap';
-import { BrodHub } from '@/components/BrodHub';
+import { CryptHub } from '@/components/CryptHub';
+import { DefenseCard } from '@/components/DefenseCard';
+import { HomeLink } from '@/components/HomeLink';
+import { TownHub } from '@/components/TownHub';
 import { GiIcon } from '@/components/GiIcon';
 import { Hint } from '@/components/Hint';
 import { TravelHub } from '@/components/TravelHub';
 import { WildsHub } from '@/components/WildsHub';
 import { Txt } from '@/components/Txt';
-import { activeInjury, BUILDINGS_BY_ID, CITY_START, dayKey, deriveCharacter, healCost, hintFor, isWild, mineIsDone, mineSecondsLeft, questDone, unreadCount, wornItems, type BuildingId } from '@/game';
+import { activeInjury, BUILDINGS_BY_ID, CITY_START, dayKey, deriveCharacter, healCost, hintFor, isTown, isWild, mineIsDone, mineSecondsLeft, questDone, unreadCount, wornItems, type BuildingId } from '@/game';
 import { useNow } from '@/hooks/useNow';
 import { useGame } from '@/store/useGame';
 import { formatDuration, plural } from '@/ui/format';
@@ -33,13 +36,14 @@ const SHORT_SCENE = 700;
 const SCRIM = 'rgba(20, 16, 12, 0)';
 const SCRIM_DARK = 'rgba(20, 16, 12, 0.85)';
 
-/** Таб «место»: город, лес или дорога — смотря где персонаж. */
+/** Таб «место»: Город, другой город, дикие земли, склеп или дорога — смотря где персонаж. */
 export default function PlaceScreen() {
   const location = useGame((s) => s.character?.location ?? 'city');
   const traveling = useGame((s) => !!s.travel);
   if (traveling) return <TravelHub />;
   if (isWild(location)) return <WildsHub wild={location} />;
-  if (location === 'brod') return <BrodHub />;
+  if (location === 'crypt') return <CryptHub />;
+  if (isTown(location) && location !== 'city') return <TownHub town={location} />;
   return <CityScreen />;
 }
 
@@ -135,6 +139,7 @@ function CityScreen() {
                 Чат{unread > 0 ? ` · ${unread}` : ''}
               </Txt>
             </Pressable>
+            <HomeLink shadow />
           </View>
         </View>
         <View style={styles.headerRight}>
@@ -158,6 +163,7 @@ function CityScreen() {
           </Pressable>
         ) : null}
         <Hint screen="city" />
+        <DefenseCard town="city" />
         <View style={styles.panel}>
           <View style={styles.panelHeader}>
             <Txt variant="heading">{building.name}</Txt>
@@ -193,7 +199,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   headerRight: { alignItems: 'flex-end', flexShrink: 1 },
-  links: { flexDirection: 'row', gap: spacing.md },
+  links: { flexDirection: 'row', gap: spacing.md, flexWrap: 'wrap' },
   mapLink: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start' },
   shadow: { textShadowColor: 'rgba(0, 0, 0, 0.9)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
   bottom: {

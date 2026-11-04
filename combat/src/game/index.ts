@@ -22,3 +22,6 @@ export * from './guild';
 export * from './tutorial';
 export * from './races';
 export * from './war';
+export * from './towns';
+export * from './crypt';
+export * from './raid';

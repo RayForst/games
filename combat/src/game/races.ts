@@ -1,4 +1,5 @@
 import type { DerivedStats, StatKey, Stats } from './types';
+import type { TownId } from './world';
 
 // Стороны и расы. Две стороны, как Орда и Альянс: «Корона» (княжьи — Город, замок, стража) и
 // «Вольница» (вольные — Брод, перевал, тракт). По три расы на сторону: +1 к характеристике при создании
@@ -8,30 +9,26 @@ import type { DerivedStats, StatKey, Stats } from './types';
 export type SideId = 'crown' | 'free';
 export type RaceId = 'human' | 'karl' | 'halfblood' | 'steppe' | 'orc' | 'bog';
 
-/**
- * Столицы рас. Город и Брод уже на карте мира (`LocationId`); остальные — задел: ids держим здесь, а не в `world.ts`,
- * потому что `LOCATIONS_BY_ID` и дороги типизированы по `LocationId` и требуют запись на каждый id.
- * Локации построит сессия «Столицы рас, склеп и рейды».
- */
-export type CapitalId = 'city' | 'brod' | 'rudnya' | 'zastava' | 'kosh' | 'kamenka' | 'topi';
+/** Столицы рас — города на карте мира (`TownId` в world.ts). Правила городов — в towns.ts. */
+export type CapitalId = TownId;
 
 export interface CapitalDef {
   id: CapitalId;
   name: string;
   /** Чем славится, 1–2 строки. */
   description: string;
-  /** Уже есть на карте мира. */
+  /** Есть на карте мира (теперь все). */
   onMap: boolean;
 }
 
 export const CAPITALS: CapitalDef[] = [
   { id: 'city', name: 'Город', description: 'Столица Короны: замок князя за рекой, клуб с красными флагами, шахта, где серебро кончилось.', onMap: true },
   { id: 'brod', name: 'Брод', description: 'Столица Вольницы за перевалом: без князя и без клуба, зато арена за деньги, жирный рынок и караваны.', onMap: true },
-  { id: 'rudnya', name: 'Рудня', description: 'Рудокопский посад в горах над старыми серебряными штольнями. Кузницы дымят круглые сутки, пиво варят из ячменя и злобы.', onMap: false },
-  { id: 'zastava', name: 'Застава', description: 'Пограничная крепость на тракте, где полукровок больше, чем людей. Стража своя, законы князя читают по настроению.', onMap: false },
-  { id: 'kosh', name: 'Кош', description: 'Степной стан за перевалом: глинобитные стены, табуны, торг конями и всем, что на конях увезли.', onMap: false },
-  { id: 'kamenka', name: 'Каменка', description: 'Орочье селение в скалах: дома в пещерах, костры на уступах, за хлеб нанимаются в караванную охрану.', onMap: false },
-  { id: 'topi', name: 'Топи', description: 'Свайный город на островах среди болота. Тропы знают только свои, чужие приходят с плотами и не все уходят.', onMap: false },
+  { id: 'rudnya', name: 'Рудня', description: 'Рудокопский посад в горах над старыми серебряными штольнями. Кузницы дымят круглые сутки, пиво варят из ячменя и злобы.', onMap: true },
+  { id: 'zastava', name: 'Застава', description: 'Пограничная крепость на тракте, где полукровок больше, чем людей. Стража своя, законы князя читают по настроению.', onMap: true },
+  { id: 'kosh', name: 'Кош', description: 'Степной стан за перевалом: глинобитные стены, табуны, торг конями и всем, что на конях увезли.', onMap: true },
+  { id: 'kamenka', name: 'Каменка', description: 'Орочье селение в скалах: дома в пещерах, костры на уступах, за хлеб нанимаются в караванную охрану.', onMap: true },
+  { id: 'topi', name: 'Топи', description: 'Свайный город на островах среди болота. Тропы знают только свои, чужие приходят с плотами и не все уходят.', onMap: true },
 ];
 
 export const CAPITALS_BY_ID = Object.fromEntries(CAPITALS.map((c) => [c.id, c])) as Record<CapitalId, CapitalDef>;
