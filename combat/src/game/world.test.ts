@@ -70,6 +70,9 @@ describe('лес', () => {
     expect(normalizeResources(undefined).wood).toBe(0);
     expect(marketPrice('pelts', '2026-11-04', 'brod')).toBeGreaterThan(marketPrice('pelts', '2026-11-04', 'city'));
     expect(jobRatePerHour('caravan', d)).toBeGreaterThan(mineRatePerHour(d));
+    // Брод выгоднее Города не больше чем на треть: караван с засадой и рынок.
+    expect(jobRatePerHour('caravan', d)).toBeLessThanOrEqual(Math.round(mineRatePerHour(d) * 1.3));
+    expect(marketPrice('pelts', '2026-11-04', 'brod')).toBeLessThanOrEqual(Math.ceil(marketPrice('pelts', '2026-11-04', 'city') * 1.3));
   });
 
   it('зверь без вещей, засада меняет улов, враги руин сильнее', () => {

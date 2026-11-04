@@ -72,7 +72,7 @@ export function BrodHub() {
       <Flash text={flash} />
 
       <Card title="Арена Брода" right={<Txt variant="small">соперники на уровень выше</Txt>}>
-        <Txt variant="muted">Здесь дерутся не за уважение, а за деньги: плата на треть больше, опыта на пятую часть. Знакомых лиц нет.</Txt>
+        <Txt variant="muted">Здесь дерутся не за уважение, а за деньги: плата и опыт на пятую часть больше. Знакомых лиц нет.</Txt>
         <Button title="В зал" onPress={() => router.push('/arena')} disabled={!!mining} />
       </Card>
 
@@ -106,7 +106,7 @@ export function BrodHub() {
             </View>
           );
         })}
-        {!haveAny ? <Txt variant="small">Сумка пуста. Здесь за травы, дрова, шкуры, руду и реликвии платят на 40 % больше, чем дома.</Txt> : null}
+        {!haveAny ? <Txt variant="small">Сумка пуста. Здесь за травы, дрова, шкуры, руду и реликвии платят на {Math.round((MARKET_MULT.brod - 1) * 100)} % больше, чем дома.</Txt> : null}
       </Card>
 
       <Button title={back ? `К перевалу · ${back.minutes} мин` : 'К перевалу'} variant="secondary" onPress={goBack} disabled={!!mining} />

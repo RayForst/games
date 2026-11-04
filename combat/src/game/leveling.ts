@@ -33,7 +33,7 @@ export function rewardFor(status: FightStatus, playerLevel: number, enemyLevel: 
   const diff = enemyLevel - playerLevel;
   const mult = Math.max(0.4, 1 + diff * 0.3);
   const winExp = Math.max(4, Math.round((12 + enemyLevel * 14) * mult));
-  const winKredits = Math.round((6 + enemyLevel * 7) * mult) + Math.floor(rng() * 5);
+  const winKredits = Math.round((6 + enemyLevel * 10) * mult) + Math.floor(rng() * 5);
 
   switch (status) {
     case 'won':

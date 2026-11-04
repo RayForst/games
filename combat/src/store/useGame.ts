@@ -362,7 +362,7 @@ export const useGame = create<GameState>()(
         const base = rewardFor(status, c.level, f.opponent.level, rng);
         // Арена Брода платит больше.
         if (f.venue === 'brod') {
-          base.kredits = Math.round(base.kredits * 1.3);
+          base.kredits = Math.round(base.kredits * 1.2);
           base.exp = Math.round(base.exp * 1.2);
         }
         // «Грамотей» и расовая «Выучка» дают больше опыта.
