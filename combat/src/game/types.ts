@@ -1,6 +1,6 @@
 // Базовые типы игры. Всё, что здесь, — чистые данные, без React.
 
-import type { RaceId, SideId } from './races';
+import type { CapitalId, RaceId, SideId } from './races';
 
 export type StatKey = 'strength' | 'dexterity' | 'intuition' | 'endurance';
 
@@ -228,6 +228,8 @@ export interface Character {
   race: RaceId;
   /** Сколько раз перебегал на другую сторону (первый раз бесплатно). */
   defections: number;
+  /** Родной город — столица расы (`CAPITALS`). Стартуют все в Городе, это только происхождение. */
+  home: CapitalId;
 }
 
 export interface Ledger {

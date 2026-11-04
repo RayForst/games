@@ -95,7 +95,8 @@
   `handsConflict`, `prepareEquip` в `character.ts` (стор `equip` снимает лишнее сам, `canEquip` запрещает). Кукла —
   `PaperDoll` (амулет слева, пара колец справа), фильтры магазина — `FILTERS` в `shop.tsx`.
 - Стороны и расы: `races.ts` (`SideId`, `RaceId`, `SIDES`, `RACES`, `raceStats`/`switchRaceStats`, `applyRace` в `deriveStats`),
-  поля `side`/`race`/`defections` в `Character`, `Opponent.side` (звери без стороны), `Guild.side`, `ChatAuthor.side`.
+  поля `side`/`race`/`defections`/`home` в `Character` (столицы рас `CAPITALS`, ids не в `LocationId`), `Opponent.side`
+  (звери без стороны), `Guild.side`, `ChatAuthor.side`.
   Война сторон — `war.ts` (счёт по дням, `simulateWar` на тике, бонус `warKreditsMult` в `settle()`), стор `war`;
   перебежчик — `defectTo`, экран `castle.tsx`. Метка стороны — `SideBadge`, цвета `sideColors` в `theme.ts`.
 - Портреты: `src/ui/portrait.ts` (черты по сиду-имени, `RIVAL_PORTRAITS` по `rivalId`, кэш `portraitSpec`), компонент
