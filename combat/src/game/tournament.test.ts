@@ -23,6 +23,7 @@ describe('турнир', () => {
 
   it('приз растёт с уровнем', () => {
     expect(tournamentPrize(2).kredits).toBeGreaterThan(tournamentPrize(0).kredits);
+    expect(tournamentPrize(5).kredits).toBe(400);
     expect(tournamentPrize(0).title).toContain('Чемпион');
   });
 });

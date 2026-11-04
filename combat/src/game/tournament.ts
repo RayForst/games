@@ -29,7 +29,7 @@ export function createTournament(playerLevel: number, rng: () => number, now = D
 
 export function tournamentPrize(playerLevel: number): { kredits: number; exp: number; title: string } {
   return {
-    kredits: 60 + playerLevel * 40,
+    kredits: 100 + playerLevel * 60,
     exp: 40 + playerLevel * 30,
     title: `Чемпион турнира ${playerLevel + 1}-го круга`,
   };

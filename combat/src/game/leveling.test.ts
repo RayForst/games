@@ -39,4 +39,11 @@ describe('награда', () => {
     expect(rewardFor('won', 0, 2, rng).exp).toBeGreaterThan(rewardFor('won', 0, 0, rng).exp);
     expect(rewardFor('won', 3, 0, rng).exp).toBeLessThan(rewardFor('won', 0, 0, rng).exp);
   });
+
+  it('кредиты за победу: 6 + 10 × уровень соперника (плюс 0…4 случайных)', () => {
+    const zero = () => 0;
+    expect(rewardFor('won', 0, 0, zero).kredits).toBe(6);
+    expect(rewardFor('won', 5, 5, zero).kredits).toBe(56);
+    expect(rewardFor('won', 5, 6, zero).kredits).toBe(Math.round(66 * 1.3));
+  });
 });

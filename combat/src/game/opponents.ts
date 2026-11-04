@@ -1,5 +1,5 @@
 import type { Opponent, Slot, StatKey, Stats } from './types';
-import { itemSlotOf, SLOTS, STAT_KEYS } from './types';
+import { itemSlotOf, STAT_KEYS } from './types';
 import { ITEMS } from './items';
 import { baseStats, deriveStats, statPointsTotal } from './formulas';
 import type { Rng } from './combat';
@@ -74,6 +74,11 @@ function meetsRequirements(stats: Stats, req?: Partial<Record<StatKey, number>>)
  * Экипировка бота. `gearScale` в [0..1] режет шансы на каждый слот —
  * так «слабый» соперник в зале приходит почти голым, а «сильный» — одетым.
  */
+/** Прибавка к шансу каждого слота за уровень бота: с 5-го уровня боты одеты почти полностью. */
+const GEAR_PER_LEVEL = 0.05;
+/** Порядок примерки: вещи со статами первыми. */
+const GEAR_ORDER: Slot[] = ['gloves', 'belt', 'ring1', 'ring2', 'amulet', 'helmet', 'pants', 'boots', 'armor', 'weapon', 'shield'];
+
 function rollGear(level: number, stats: Stats, gearScale: number, rng: Rng): string[] {
   const ids: string[] = [];
   const chance: Record<Slot, number> = {
@@ -81,16 +86,21 @@ function rollGear(level: number, stats: Stats, gearScale: number, rng: Rng): str
     ring1: 0.4, ring2: 0.25, amulet: 0.4,
   };
   let twoHanded = false;
-  for (const slot of SLOTS) {
+  // Сначала то, что прибавляет характеристики (перчатки, пояс, кольца, амулет), потом доспех и оружие:
+  // требования считаются с учётом уже надетого — как `canEquip` у игрока.
+  for (const slot of GEAR_ORDER) {
     // Щит при двуручнике не носят — то же правило, что у игрока.
     if (slot === 'shield' && twoHanded) continue;
-    if (rng() >= (chance[slot] + level * 0.05) * gearScale) continue;
+    if (rng() >= (chance[slot] + level * GEAR_PER_LEVEL) * gearScale) continue;
     const catalogSlot = itemSlotOf(slot);
-    const options = ITEMS.filter((i) => i.slot === catalogSlot && i.level <= level && meetsRequirements(stats, i.requires));
+    const eff = deriveStats(stats, level, ids).stats;
+    const options = ITEMS.filter((i) => i.slot === catalogSlot && i.level <= level && meetsRequirements(eff, i.requires));
     if (options.length === 0) continue;
-    // Предпочитаем предметы ближе к уровню бота.
-    const best = options.filter((i) => i.level >= level - 1);
-    const chosen = pick(rng, best.length > 0 ? best : options);
+    // Предпочитаем предметы ближе к уровню бота; если в слоте нет вещей своего уровня (перчатки на 4-м),
+    // берём лучшие из доступных, а не случайные вплоть до кожаных.
+    const near = options.filter((i) => i.level >= level - 1);
+    const top = Math.max(...options.map((i) => i.level));
+    const chosen = pick(rng, near.length > 0 ? near : options.filter((i) => i.level === top));
     if (slot === 'weapon' && chosen.twoHanded) twoHanded = true;
     ids.push(chosen.id);
   }
