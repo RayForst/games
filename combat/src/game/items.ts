@@ -50,6 +50,31 @@ export const ITEMS: ItemDef[] = [
   { id: 'bast-shoes', name: 'Лапти', slot: 'boots', price: 15, level: 0, bonus: { armor: { legs: 1 } } },
   { id: 'leather-boots', name: 'Сапоги', slot: 'boots', price: 80, level: 1, bonus: { armor: { legs: 2 }, dodge: 2 } },
   { id: 'iron-boots', name: 'Латные сапоги', slot: 'boots', price: 260, level: 3, bonus: { armor: { legs: 3 }, stats: { endurance: 1 } } },
+
+  // ─── Уровни 4–6 ───────────────────────────────────────────────────────────
+  // Оружие
+  { id: 'flail', name: 'Кистень', slot: 'weapon', price: 850, level: 4, damage: [9, 16], requires: { strength: 12 }, bonus: { antiDodge: 4 } },
+  { id: 'longsword', name: 'Полуторный меч', slot: 'weapon', price: 950, level: 4, damage: [10, 16], requires: { strength: 13 } },
+  { id: 'war-hammer', name: 'Боевой молот', slot: 'weapon', price: 1600, level: 5, damage: [12, 20], requires: { strength: 15 }, bonus: { antiDodge: 6 } },
+  { id: 'estoc', name: 'Эсток', slot: 'weapon', price: 1700, level: 5, damage: [10, 17], requires: { intuition: 10 }, bonus: { crit: 10 } },
+  { id: 'halberd', name: 'Алебарда', slot: 'weapon', price: 2600, level: 6, damage: [14, 24], requires: { strength: 17 } },
+  { id: 'executioner-sword', name: 'Меч палача', slot: 'weapon', price: 3000, level: 6, damage: [15, 25], requires: { strength: 18 }, bonus: { crit: 6 }, description: 'Зазубрен не от боёв.' },
+  // Щиты
+  { id: 'kite-shield', name: 'Каплевидный щит', slot: 'shield', price: 900, level: 4, requires: { strength: 11 }, bonus: { armor: { head: 2, body: 3, belt: 2, legs: 1 }, dodge: -5 } },
+  { id: 'steel-wall', name: 'Стальная стена', slot: 'shield', price: 2400, level: 6, requires: { strength: 16 }, bonus: { armor: { head: 3, body: 4, belt: 3, legs: 3 }, dodge: -8 } },
+  // Шлемы
+  { id: 'barbute', name: 'Барбют', slot: 'helmet', price: 800, level: 4, requires: { strength: 10 }, bonus: { armor: { head: 6 }, antiCrit: 3 } },
+  { id: 'crowned-helm', name: 'Коронованный шлем', slot: 'helmet', price: 2300, level: 6, requires: { strength: 14 }, bonus: { armor: { head: 8 }, stats: { endurance: 2 } } },
+  // Броня
+  { id: 'scale', name: 'Чешуйчатый доспех', slot: 'armor', price: 1000, level: 4, requires: { strength: 12 }, bonus: { armor: { body: 7 }, hp: 10 } },
+  { id: 'gothic-plate', name: 'Готические латы', slot: 'armor', price: 1800, level: 5, requires: { strength: 14 }, bonus: { armor: { body: 9 }, hp: 15, dodge: -6 } },
+  { id: 'dragon-plate', name: 'Драконья броня', slot: 'armor', price: 3200, level: 6, requires: { strength: 17 }, bonus: { armor: { body: 12 }, hp: 25, dodge: -8, stats: { strength: 1 } }, description: 'Дракона никто не видел. Кузнеца тоже.' },
+  // Перчатки, пояс, штаны, сапоги
+  { id: 'knight-gauntlets', name: 'Рыцарские перчатки', slot: 'gloves', price: 1400, level: 5, bonus: { stats: { strength: 3 }, antiCrit: 5 } },
+  { id: 'champion-belt', name: 'Пояс чемпиона', slot: 'belt', price: 1500, level: 5, bonus: { armor: { belt: 6 }, stats: { endurance: 2, strength: 1 } } },
+  { id: 'plate-legs', name: 'Латные поножи', slot: 'pants', price: 1300, level: 5, requires: { strength: 12 }, bonus: { armor: { legs: 6 } } },
+  { id: 'dragon-legs', name: 'Драконьи поножи', slot: 'pants', price: 2500, level: 6, requires: { strength: 15 }, bonus: { armor: { legs: 8 }, stats: { endurance: 1 } } },
+  { id: 'knight-sabatons', name: 'Рыцарские сабатоны', slot: 'boots', price: 1200, level: 5, bonus: { armor: { legs: 5 }, stats: { endurance: 1 }, dodge: 2 } },
 ];
 
 export const ITEMS_BY_ID: Record<string, ItemDef> = Object.fromEntries(ITEMS.map((i) => [i.id, i]));

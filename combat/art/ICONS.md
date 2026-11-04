@@ -171,6 +171,32 @@ no cartoon or flat vector look.
 | `leather-boots.png` | Сапоги | pair of tall brown leather boots, worn soles |
 | `iron-boots.png` | Латные сапоги | pair of steel plate boots with brass rivets |
 
+## Предметы 4–6 уровней (иконок ещё нет — сгенерировать тем же стилем)
+
+Промпт собирается так же: часть из таблицы + общий хвост шаблона (или вариант для GPT Image).
+Пока файла нет, игра показывает пустую плитку слота.
+
+| Ключ = имя файла | Название | Промпт |
+| --- | --- | --- |
+| `flail.png` | Кистень | iron flail: short wooden haft, chain and spiked iron ball, worn |
+| `longsword.png` | Полуторный меч | hand-and-a-half longsword, long grip, steel crossguard, faint scratches |
+| `war-hammer.png` | Боевой молот | heavy war hammer with blunt head and back spike, iron and dark wood |
+| `estoc.png` | Эсток | long narrow thrusting estoc with stiff triangular blade, plain steel |
+| `halberd.png` | Алебарда | halberd on a long pole: axe blade, hook and top spike, tall vertical composition |
+| `executioner-sword.png` | Меч палача | wide executioner's sword with squared tip, notched dark blade, red-wrapped grip |
+| `kite-shield.png` | Каплевидный щит | tall kite shield of wood and iron, faded heraldic paint, dented rim |
+| `steel-wall.png` | Стальная стена | massive rectangular steel pavise shield, riveted plates, heavy and scarred |
+| `barbute.png` | Барбют | steel barbute helmet with T-shaped face opening, dull burnished finish |
+| `crowned-helm.png` | Коронованный шлем | great helm with a brass crown ring around the top, polished steel |
+| `scale.png` | Чешуйчатый доспех | scale armor shirt of overlapping dark iron scales on leather |
+| `gothic-plate.png` | Готические латы | gothic fluted plate cuirass, ridged polished steel with brass edges |
+| `dragon-plate.png` | Драконья броня | dark plate cuirass with dragon-scale pattern embossed, deep red tint, brass trim |
+| `knight-gauntlets.png` | Рыцарские перчатки | pair of articulated knight gauntlets, polished steel with brass rivets |
+| `champion-belt.png` | Пояс чемпиона | wide champion's belt with a large ornate brass plate buckle and iron studs, coiled |
+| `plate-legs.png` | Латные поножи | pair of steel plate leg armor cuisses and greaves, articulated knees |
+| `dragon-legs.png` | Драконьи поножи | pair of dark red-tinted plate greaves with scale pattern, brass trim |
+| `knight-sabatons.png` | Рыцарские сабатоны | pair of articulated steel sabatons, pointed toes, brass rivets |
+
 ## Иконки интерфейса (после предметов)
 
 Тем же стилем, тоже 512×512 с прозрачным фоном:
