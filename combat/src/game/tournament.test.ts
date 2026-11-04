@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { newCharacter } from './character';
 import { dayKey } from './quests';
-import { canEnterTournament, createTournament, nextRank, rankFor, ratingDelta, TOURNAMENT_ROUNDS, tournamentLevels, tournamentPrize } from './tournament';
+import { canEnterTournament, createTournament, nextRank, rankFor, RANKS, ratingDelta, TOURNAMENT_ROUNDS, tournamentLevels, tournamentPrize } from './tournament';
 
 describe('турнир', () => {
   it('четыре соперника с нарастающим уровнем', () => {
@@ -31,10 +31,15 @@ describe('рейтинг', () => {
   it('звания по порогам', () => {
     expect(rankFor(0)).toBe('Новичок');
     expect(rankFor(50)).toBe('Боец');
-    expect(rankFor(799)).toBe('Мастер');
+    expect(rankFor(399)).toBe('Бретёр');
+    expect(rankFor(400)).toBe('Мастер');
     expect(rankFor(800)).toBe('Чемпион');
+    expect(rankFor(5000)).toBe('Имя на стене');
     expect(nextRank(40)).toEqual({ name: 'Боец', left: 10 });
-    expect(nextRank(1000)).toBeNull();
+    expect(nextRank(1000)).toEqual({ name: 'Легенда клуба', left: 200 });
+    expect(nextRank(5000)).toBeNull();
+    expect(RANKS.length).toBeGreaterThanOrEqual(10);
+    for (let i = 1; i < RANKS.length; i += 1) expect(RANKS[i].min).toBeGreaterThan(RANKS[i - 1].min);
   });
 
   it('очки за бой', () => {

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { newCharacter } from './character';
 import { canTravel, locationOpen, LOCATIONS, neighbours, routeBetween, travelDone, travelProgress, travelSecondsLeft } from './world';
-import { ACTIVITIES, gatherRatePerHour, gatherYield, haulAfterAmbush, marketPrice, normalizeResources, oreForUpgrade, relicPriceAtCastle, rollRoadEvent, WILDS, wildOpponent, woodForRepair } from './wilds';
+import { ACTIVITIES, gatherRatePerHour, gatherYield, haulAfterAmbush, marketPrice, normalizeResources, oreForUpgrade, relicPriceAtCastle, ROAD_EVENTS, rollRoadEvent, WILDS, wildOpponent, woodForRepair } from './wilds';
 import { baseStats, deriveStats } from './formulas';
 import { jobRatePerHour, mineRatePerHour } from './mine';
 
@@ -80,7 +80,25 @@ describe('лес', () => {
     expect(wildOpponent('ruins', 1, () => 0).level).toBe(1 + WILDS.ruins.foeLevelBonus);
     expect(haulAfterAmbush(8, true)).toBe(10);
     expect(haulAfterAmbush(8, false)).toBe(4);
-    for (const w of Object.values(WILDS)) expect(w.activities.length).toBeGreaterThan(0);
+    for (const w of Object.values(WILDS)) {
+      expect(w.activities.length).toBeGreaterThan(0);
+      expect(w.foes.length).toBeGreaterThanOrEqual(4);
+      expect(new Set(w.foes.map((f) => f.name)).size).toBe(w.foes.length);
+    }
+  });
+
+  it('дорожных событий много, и каждое складно сформулировано', () => {
+    expect(ROAD_EVENTS.length).toBeGreaterThanOrEqual(15);
+    const texts = new Set<string>();
+    for (let i = 0; i < ROAD_EVENTS.length; i += 1) {
+      const r = 0.75 + ((i + 0.5) / ROAD_EVENTS.length) * 0.25;
+      const e = rollRoadEvent(2, (() => { let first = true; return () => { if (first) { first = false; return r; } return 0.5; }; })())!;
+      expect(e.text).not.toMatch(/undefined|NaN/);
+      if (e.kredits !== undefined) expect(e.kredits).not.toBe(0);
+      if (e.resource) expect(e.resource.amount).toBeGreaterThan(0);
+      texts.add(e.text);
+    }
+    expect(texts.size).toBe(ROAD_EVENTS.length);
   });
 
   it('дорожные события и крафт', () => {

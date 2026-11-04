@@ -40,7 +40,25 @@ describe('достижения', () => {
   });
 
   it('у всех достижений уникальные id и награда', () => {
+    expect(ACHIEVEMENTS.length).toBeGreaterThanOrEqual(25);
     expect(new Set(ACHIEVEMENTS.map((a) => a.id)).size).toBe(ACHIEVEMENTS.length);
-    for (const a of ACHIEVEMENTS) expect(a.reward).toBeGreaterThan(0);
+    const c = newCharacter('Вася');
+    for (const a of ACHIEVEMENTS) {
+      expect(a.reward).toBeGreaterThan(0);
+      expect(a.check(c)).toBe(false);
+      if (a.progress) {
+        const [have, need] = a.progress(c);
+        expect(have).toBeLessThan(need);
+      }
+    }
+  });
+
+  it('все лица арены и должник считают по счёту с именными', () => {
+    const c = newCharacter('Вася');
+    const rivals = { tolyan: { wins: 1, losses: 5 }, bart: { wins: 1, losses: 0 }, nyura: { wins: 1, losses: 0 }, butcher: { wins: 1, losses: 0 }, shadow: { wins: 1, losses: 0 }, soldier: { wins: 1, losses: 0 } };
+    const ids = claimableAchievements({ ...c, rivals }).map((a) => a.id);
+    expect(ids).toContain('all-faces');
+    expect(ids).toContain('nemesis');
+    expect(ids).not.toContain('old-scores');
   });
 });

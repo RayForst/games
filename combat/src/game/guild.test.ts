@@ -121,7 +121,7 @@ describe('guild', () => {
     const dogs = dailyGuildUpdate(NPC_GUILDS[0], '2026-01-01', seq([0.9]));
     expect(dogs.rating).toBeGreaterThan(NPC_GUILDS[0].rating);
     expect(dogs.treasury).toBeGreaterThan(NPC_GUILDS[0].treasury);
-    expect(dogs.log).toHaveLength(0);
+    expect(dogs.log).toHaveLength(NPC_GUILDS[0].log.length);
   });
 
   it('таблица и нормализация', () => {
@@ -133,5 +133,18 @@ describe('guild', () => {
     const partial = normalizeGuilds([{ ...NPC_GUILDS[0], rating: 999 }]);
     expect(partial).toHaveLength(NPC_GUILDS.length);
     expect(partial[0].rating).toBe(999);
+    expect(partial.map((x) => x.id)).toContain('ferrymen');
+  });
+
+  it('гильдии местных: уникальные теги и id, у каждой девиз и летопись', () => {
+    expect(NPC_GUILDS.length).toBeGreaterThanOrEqual(5);
+    expect(new Set(NPC_GUILDS.map((g) => g.tag)).size).toBe(NPC_GUILDS.length);
+    expect(new Set(NPC_GUILDS.map((g) => g.id)).size).toBe(NPC_GUILDS.length);
+    for (const g of NPC_GUILDS) {
+      expect(g.motto).toBeTruthy();
+      expect(g.log.length).toBeGreaterThanOrEqual(2);
+      expect(g.members.filter((m) => m.rank === 'leader')).toHaveLength(1);
+      expect(validateGuildTag(g.tag).ok).toBe(true);
+    }
   });
 });

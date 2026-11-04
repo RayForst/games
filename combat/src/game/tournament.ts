@@ -51,12 +51,18 @@ export function canEnterTournament(c: Character, mining: boolean, now = Date.now
 
 // ─── Рейтинг и звания ──────────────────────────────────────────────────────
 
+/** Звания по рейтингу. Пороги растут, названия — по тому, как в клубе зовут таких людей. */
 export const RANKS: { min: number; name: string }[] = [
   { min: 0, name: 'Новичок' },
   { min: 50, name: 'Боец' },
+  { min: 100, name: 'Задира' },
   { min: 150, name: 'Ветеран' },
+  { min: 250, name: 'Бретёр' },
   { min: 400, name: 'Мастер' },
+  { min: 600, name: 'Гроза подвала' },
   { min: 800, name: 'Чемпион' },
+  { min: 1200, name: 'Легенда клуба' },
+  { min: 2000, name: 'Имя на стене' },
 ];
 
 export function rankFor(rating: number): string {

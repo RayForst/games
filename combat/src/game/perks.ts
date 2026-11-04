@@ -13,7 +13,18 @@ export type PerkId =
   | 'miner'
   | 'haggler'
   | 'scholar'
-  | 'second-wind';
+  | 'second-wind'
+  | 'cat-step'
+  | 'long-arm'
+  | 'bull-neck'
+  | 'oak-legs'
+  | 'cold-blood'
+  | 'brawler'
+  | 'tough-hide'
+  | 'light-sleeper'
+  | 'coal-lungs'
+  | 'tavern-regular'
+  | 'rat-cunning';
 
 export interface PerkDef {
   id: PerkId;
@@ -54,6 +65,65 @@ export const PERKS: PerkDef[] = [
   { id: 'haggler', name: 'Торгаш', description: 'Лекарь берёт на 30 % меньше', apply: (d) => void (d.healMult *= 0.7) },
   { id: 'scholar', name: 'Грамотей', description: '+15 % опыта за бой', apply: (d) => void (d.expMult *= 1.15) },
   { id: 'second-wind', name: 'Второе дыхание', description: 'Здоровье восстанавливается в полтора раза быстрее', apply: (d) => void (d.regenMult *= 1.5) },
+  { id: 'cat-step', name: 'Кошачий шаг', description: '+3 % защиты от крита', apply: (d) => void (d.antiCrit += 3) },
+  { id: 'long-arm', name: 'Длинная рука', description: '+3 % пробития уворота', apply: (d) => void (d.antiDodge += 3) },
+  { id: 'bull-neck', name: 'Бычья шея', description: '+2 брони корпуса', apply: (d) => void (d.armor.body += 2) },
+  { id: 'oak-legs', name: 'Дубовые ноги', description: '+2 брони ног', apply: (d) => void (d.armor.legs += 2) },
+  {
+    id: 'cold-blood',
+    name: 'Холодная кровь',
+    description: '+2 % крита и +2 % защиты от крита',
+    apply: (d) => {
+      d.crit += 2;
+      d.antiCrit += 2;
+    },
+  },
+  {
+    id: 'brawler',
+    name: 'Драчун',
+    description: '+2 к максимальному урону, −2 % уворота',
+    apply: (d) => {
+      d.dmgMax += 2;
+      d.dodge -= 2;
+    },
+  },
+  {
+    id: 'tough-hide',
+    name: 'Дублёная шкура',
+    description: '+5 % здоровья и +1 брони корпуса',
+    apply: (d) => {
+      d.maxHp += Math.ceil(d.maxHp * 0.05);
+      d.armor.body += 1;
+    },
+  },
+  { id: 'light-sleeper', name: 'Чуткий сон', description: 'Здоровье восстанавливается на четверть быстрее', apply: (d) => void (d.regenMult *= 1.25) },
+  {
+    id: 'coal-lungs',
+    name: 'Угольные лёгкие',
+    description: '+2 кр. в час в шахте и +4 здоровья',
+    apply: (d) => {
+      d.mineBonus += 2;
+      d.maxHp += 4;
+    },
+  },
+  {
+    id: 'tavern-regular',
+    name: 'Завсегдатай',
+    description: '+8 % опыта за бой, лекарь берёт на 10 % меньше',
+    apply: (d) => {
+      d.expMult *= 1.08;
+      d.healMult *= 0.9;
+    },
+  },
+  {
+    id: 'rat-cunning',
+    name: 'Крысиная хитрость',
+    description: '+2 % уворота и +2 % крита',
+    apply: (d) => {
+      d.dodge += 2;
+      d.crit += 2;
+    },
+  },
 ];
 
 export const PERKS_BY_ID = Object.fromEntries(PERKS.map((p) => [p.id, p])) as Record<PerkId, PerkDef>;
