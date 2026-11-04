@@ -11,7 +11,23 @@ import { GiIcon } from '@/components/GiIcon';
 import { Kredits } from '@/components/Kredits';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
-import { alignmentName, BUILDINGS_BY_ID, chainFinished, dailyRumors, questDone, questReward, questTitle, sortedProgress, STORY_BY_ID, storyAttention, storyStep, unreadCount } from '@/game';
+import {
+  activeEvent,
+  alignmentName,
+  BUILDINGS_BY_ID,
+  chainFinished,
+  dailyClaimed,
+  dailyRumors,
+  questDone,
+  questReward,
+  questTitle,
+  sortedProgress,
+  STORY_BY_ID,
+  storyAttention,
+  storyStep,
+  totalChests,
+  unreadCount,
+} from '@/game';
 import { useFlash } from '@/hooks/useFlash';
 import { useGame } from '@/store/useGame';
 import { playSfx } from '@/ui/sfx';
@@ -28,6 +44,7 @@ export default function TavernScreen() {
   const guild = useGame((s) => s.guild);
   const story = useGame((s) => s.story);
   const ensureStory = useGame((s) => s.ensureStory);
+  const daily = useGame((s) => s.daily);
   const [flash, show] = useFlash(2500);
 
   // Доска на сегодня создаётся при входе (и пересоздаётся, если наступил новый день).
@@ -111,6 +128,21 @@ export default function TavernScreen() {
           <Button small variant="secondary" title="Гильдии" onPress={() => router.push('/guild')} />
         </Card>
       </View>
+
+      <Card title="Календарь" right={<GiIcon name="calendar" size={22} />}>
+        {(() => {
+          const ev = activeEvent();
+          const ready = !dailyClaimed(daily);
+          const chests = totalChests(character.chests);
+          return (
+            <Txt variant="small">
+              {ev ? `Идёт ${ev.def.name.toLowerCase()}, ещё ${ev.daysLeft} дн. ` : 'Награда за вход, цели недели, сундуки. '}
+              {ready ? 'Награда за день ждёт.' : chests > 0 ? `Сундуков не открыто: ${chests}.` : 'Гришка считает неделю.'}
+            </Txt>
+          );
+        })()}
+        <Button small variant={!dailyClaimed(daily) ? 'primary' : 'secondary'} title="Открыть календарь" onPress={() => router.push('/daily')} />
+      </Card>
 
       <Card title="Слухи">
         {dailyRumors(quests?.day ?? '').map((r) => (

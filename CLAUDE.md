@@ -122,6 +122,13 @@
   (входы из `castle.tsx` и экрана персонажа). Рамка и фон — пропсы `frame`/`cardBg` у `Avatar`, цвет имени и эмблема —
   `ChatAuthor.cosmetics`. Новая вещь — строка в `COSMETICS`; новый раздел — в `CosmeticKind`, подписи и `Swatch`.
   Печати за любое новое событие — через `grantSeals`. Косметика на бой не влияет — так и держать.
+- Ежедневки, сундуки, события: `daily.ts` (цепочка 7 дней `claimDailyState`/`nextDailyDay`, недельные цели `generateWeekly`/
+  `applyWeeklyEvent` по `WeeklyEvent = QuestEvent | 'skirmish'`, серия `streakBonusMult`), `chests.ts` (виды `CHESTS`, таблицы
+  `CHEST_TABLES`, `openChest`, `applyLoot`, `rollChestDrop`), `events.ts` (календарь `CALENDAR` по `dayKey`, `activeEvent`,
+  `eventMults`, обёртки `marketPriceToday`/`healPriceToday`/`cureCostToday`/`arenaEventMult`/`roadLoss`). Стор: `daily`,
+  `character.chests`, действия `claimDaily`/`ensureWeekly`/`trackWeekly`/`claimWeekly`/`openChest` в блоке
+  `// --- Ежедневки, сундуки, события ---`; `track()` зовёт `trackWeekly`. Экран `daily.tsx`, входы из пивной и экрана персонажа.
+  Новое событие — запись в `EVENTS` и слот в `CALENDAR`; новый множитель — поле `EventMults` и чтение в нужной формуле стора.
 - Сюжет и склонность: `story.ts` (линии `STORY_CHAINS`, движок `applyStoryEvent`/`chooseStoryOption`/`claimStoryReward`,
   склонность `alignmentName`/`alignmentTone`/`alignmentPriceMult`/`shopPrice`), стор `story`, блок `// --- Сюжет и склонность ---`
   (`storyApply` на локальном персонаже внутри `settle()`, действия `ensureStory`/`chooseStory`/`claimStory`), `track(event, amount, detail)`

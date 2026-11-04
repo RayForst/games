@@ -121,6 +121,10 @@ const WANT = {
   bear: ['GiBearHead'],
   rose: ['GiRose'],
   'crowned-skull': ['GiCrownedSkull'],
+  // сундуки и календарь
+  chest: ['GiLockedChest', 'GiChest'],
+  'chest-open': ['GiOpenChest', 'GiOpenTreasureChest', 'GiChest'],
+  calendar: ['GiCalendar', 'GiScrollUnfurled'],
 };
 
 const src = await readFile(path.join(root, 'node_modules/react-icons/gi/index.mjs'), 'utf8');

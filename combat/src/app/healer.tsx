@@ -8,7 +8,7 @@ import { Flash } from '@/components/Flash';
 import { Kredits } from '@/components/Kredits';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
-import { activeInjury, BUILDINGS_BY_ID, cureCost, deriveCharacter, HEAL_OPTIONS, healAmount, healPrice, INJURY_BOGWORT, injurySecondsLeft, injuryText, POTION_HERBS, secondsToFullHp } from '@/game';
+import { activeInjury, BUILDINGS_BY_ID, cureCostToday, deriveCharacter, HEAL_OPTIONS, healAmount, healPriceToday, INJURY_BOGWORT, injurySecondsLeft, injuryText, POTION_HERBS, secondsToFullHp } from '@/game';
 import { GiIcon } from '@/components/GiIcon';
 import { useFlash } from '@/hooks/useFlash';
 import { useNow } from '@/hooks/useNow';
@@ -31,7 +31,7 @@ export default function HealerScreen() {
   const toFull = secondsToFullHp(character, now);
   const healthy = toFull === 0;
   const injury = activeInjury(character, now);
-  const cure = injury ? cureCost(character, injury) : 0;
+  const cure = injury ? cureCostToday(character, injury) : 0;
 
   const onCure = (pay: 'kredits' | 'bogwort' = 'kredits') => {
     const r = cureInjury(pay);
@@ -83,7 +83,7 @@ export default function HealerScreen() {
 
       <Card title="Зелья">
         {HEAL_OPTIONS.map((o) => {
-          const price = healPrice(character, o.fraction);
+          const price = healPriceToday(character, o.fraction);
           const amount = healAmount(character, o.fraction);
           const poor = character.kredits < price;
           const noHerbs = character.resources.herbs < POTION_HERBS[o.id];
@@ -127,7 +127,7 @@ export default function HealerScreen() {
         <Txt variant="small">
           Трав в сумке: {character.resources.herbs}. Лекарь варит из них сам, деньги не берёт.
         </Txt>
-        {!healthy && character.kredits < healPrice(character, HEAL_OPTIONS[0].fraction) ? (
+        {!healthy && character.kredits < healPriceToday(character, HEAL_OPTIONS[0].fraction) ? (
           <Txt variant="small" color={colors.red}>
             Не хватает даже на малое. Подожди или сходи в шахту.
           </Txt>
