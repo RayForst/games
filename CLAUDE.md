@@ -115,6 +115,13 @@
 - Баланс: симуляция `scripts/balance.mts` (`npm run balance -- --n=1000`, флаги `--level`, `--short`, `--seed`) — архетипы,
   щит/двуручник, Город/Брод, доходы всех источников, комплект и ремонт. Цели и таблица было/стало — раздел «Баланс»
   в `ROADMAP.md`; после любой правки чисел в `items.ts`/`leveling.ts`/`opponents.ts`/`mine.ts`/`wilds.ts` прогонять.
+- Косметика и Лавка князя: `cosmetics.ts` (каталог `COSMETICS` по разделам `CosmeticKind`, печати `Character.seals`,
+  `sealsForAchievement`/`SEALS_FOR_TOURNAMENT`/`SEALS_FOR_WEEK_STREAK`/`SEAL_PACKS`, владение `Character.cosmetics`,
+  чистые `buyCosmetic`/`equipCosmetic`/`unequipCosmetic`, `authorCosmetics` для чата), стор — блок `// --- Косметика ---`
+  (`buyCosmetic`, `equipCosmetic`, `unequipCosmetic`, `buySeals`, `grantSeals`, `gmGiveSeals`); экран `boutique.tsx`
+  (входы из `castle.tsx` и экрана персонажа). Рамка и фон — пропсы `frame`/`cardBg` у `Avatar`, цвет имени и эмблема —
+  `ChatAuthor.cosmetics`. Новая вещь — строка в `COSMETICS`; новый раздел — в `CosmeticKind`, подписи и `Swatch`.
+  Печати за любое новое событие — через `grantSeals`. Косметика на бой не влияет — так и держать.
 - Ежедневки, сундуки, события: `daily.ts` (цепочка 7 дней `claimDailyState`/`nextDailyDay`, недельные цели `generateWeekly`/
   `applyWeeklyEvent` по `WeeklyEvent = QuestEvent | 'skirmish'`, серия `streakBonusMult`), `chests.ts` (виды `CHESTS`, таблицы
   `CHEST_TABLES`, `openChest`, `applyLoot`, `rollChestDrop`), `events.ts` (календарь `CALENDAR` по `dayKey`, `activeEvent`,

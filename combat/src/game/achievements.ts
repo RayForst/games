@@ -35,6 +35,8 @@ export interface AchievementDef {
   name: string;
   description: string;
   reward: number;
+  /** Печати князя сверх кредитов; если не задано — считается от `reward` (`sealsForAchievement`). */
+  seals?: number;
   check: (c: Character) => boolean;
   /** Текущий прогресс для полоски: [есть, нужно]. */
   progress?: (c: Character) => [number, number];
