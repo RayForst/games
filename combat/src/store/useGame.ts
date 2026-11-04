@@ -9,6 +9,8 @@ import {
   applyRegen,
   canEnterTournament,
   canEquip,
+  handsConflict,
+  prepareEquip,
   canTravel,
   canUpgrade,
   createTournament,
@@ -779,14 +781,15 @@ export const useGame = create<GameState>()(
         if (!inv) return { ok: false, reason: 'Предмет не найден' };
         if (isEquipped(c, itemUid)) return { ok: false, reason: 'Уже надето' };
         const item = getItem(inv.itemId);
-        // Проверяем требования без предмета, который сейчас занимает слот.
-        const without: Character = { ...c, equipment: { ...c.equipment, [item.slot]: null } };
-        const check = canEquip(without, item);
+        // Проверяем требования без вещи, которую заменяем; щит при двуручнике (и наоборот) снимается сам.
+        const prepared = prepareEquip(c, item);
+        const check = canEquip(prepared.character, item);
         if (!check.ok) return check;
-        const next: Character = { ...c, equipment: { ...c.equipment, [item.slot]: itemUid } };
+        const next: Character = { ...prepared.character, equipment: { ...prepared.character.equipment, [prepared.slot]: itemUid } };
         next.hp = Math.min(next.hp, deriveCharacter(next).maxHp);
         set({ character: next });
-        return { ok: true };
+        const conflict = handsConflict(c, item);
+        return { ok: true, note: conflict === 'shield' ? 'щит снят' : conflict === 'weapon' ? 'оружие снято' : undefined };
       },
 
       unequip: (slot) => {
@@ -1595,7 +1598,7 @@ export const useGame = create<GameState>()(
     },
     {
       name: 'combat-save-v1',
-      version: 2,
+      version: 3,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (s) => ({
         character: s.character,

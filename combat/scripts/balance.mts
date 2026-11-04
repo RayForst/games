@@ -9,7 +9,7 @@ import { rewardFor, expForLevel } from '../src/game/leveling.ts';
 import { mineRatePerHour } from '../src/game/mine.ts';
 import { gatherRatePerHour, ACTIVITIES, RESOURCES_BY_ID } from '../src/game/wilds.ts';
 import { tournamentPrize } from '../src/game/tournament.ts';
-import { ZONES, BLOCKS, SLOTS, type Stats, type Slot, type Zone, type Block } from '../src/game/types.ts';
+import { ZONES, BLOCKS, SLOTS, itemSlotOf, type Stats, type Slot, type Zone, type Block } from '../src/game/types.ts';
 
 const rng = Math.random;
 const pick = <T,>(a: readonly T[]) => a[Math.floor(rng() * a.length)];
@@ -31,10 +31,13 @@ function buildStats(level: number): Stats {
 function bestGear(level: number, stats: Stats): { ids: string[]; cost: number } {
   const ids: string[] = [];
   let cost = 0;
+  let twoHanded = false;
   for (const slot of SLOTS as Slot[]) {
-    const ok = ITEMS.filter((it) => it.slot === slot && it.level <= level && Object.entries(it.requires ?? {}).every(([k, v]) => stats[k as keyof Stats] >= (v ?? 0)));
+    if (slot === 'shield' && twoHanded) continue;
+    const ok = ITEMS.filter((it) => it.slot === itemSlotOf(slot) && it.level <= level && Object.entries(it.requires ?? {}).every(([k, v]) => stats[k as keyof Stats] >= (v ?? 0)));
     if (!ok.length) continue;
     const best = ok.sort((a, b) => b.price - a.price)[0];
+    if (slot === 'weapon' && best.twoHanded) twoHanded = true;
     ids.push(best.id);
     cost += best.price;
   }

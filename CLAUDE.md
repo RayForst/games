@@ -84,7 +84,17 @@
   возвращает на `guild.tsx`. Бонусы и слава считаются в `settle()`.
 - Роли и ГМ: `roles.ts` (`Role`, `Permission`, `can`, слово ключника), стор `account`, действия `gm*`; экран `admin.tsx`
   (вход с экрана персонажа). Любая новая служебная кнопка — через `need('permission')` в сторе и `can()` в UI.
-- Контракт будущего сервера — `src/net/backend.ts`; стор сегодня и есть локальная реализация.
+- Кольца, амулеты, двуручники: слоты `ring1`/`ring2`/`amulet` в `types.ts` (`ItemSlot` каталога ≠ `Slot` экипировки,
+  `slotsForItem`/`itemSlotOf`), флаг `twoHanded` в `ItemDef`; выбор слота и конфликт щит/двуручник — `targetSlot`,
+  `handsConflict`, `prepareEquip` в `character.ts` (стор `equip` снимает лишнее сам, `canEquip` запрещает). Кукла —
+  `PaperDoll` (амулет слева, пара колец справа), фильтры магазина — `FILTERS` в `shop.tsx`.
+- Портреты: `src/ui/portrait.ts` (черты по сиду-имени, `RIVAL_PORTRAITS` по `rivalId`, кэш `portraitSpec`), компонент
+  `Portrait` (SVG, пропсы `seed`, `rivalId`, `size`, `hpRatio`, `injured`, `tight` для квадратных карточек); стоит в
+  `Avatar`, `FighterCard` и списке арены. Новая черта — новое поле в `PortraitSpec`, слой в `Portrait.tsx` и тест.
+- Сервер (чат, гильдии, роли): `server/` (Node 22, `ws`, JSON-файл; `npm run dev`, `ADMIN_SECRET`), импортирует правила из
+  `combat/src/game/`. Контракт `src/net/backend.ts`, протокол `src/net/protocol.ts`, адаптер `src/net/serverBackend.ts`,
+  локальная реализация поверх стора `src/net/localBackend.ts`, выбор режима `src/net/index.ts` (`getBackend()`,
+  `EXPO_PUBLIC_BACKEND_URL`; пусто — офлайн как раньше). Экраны пока зовут стор напрямую. Подробности `server/README.md`.
 - Звук: `src/ui/sfx.ts` (`playSfx`, `playStrikes`, expo-audio), файлы `assets/sfx/` — боевые из `scripts/sfx.mjs`
   (`npm run sfx`), интерфейсные из npm-пакета uisfx (CC0). Настройка `settings.sound` в сторе, тумблер на экране персонажа.
 - Завершение боя — один хелпер `settle()` внутри стора (награда, уровень, умения, износ, рейтинг, турнир, трофей,
@@ -99,8 +109,9 @@
   цифры в модалке `src/app/stats.tsx`).
 - Иконки предметов и UI готовы (Scenario, GPT Image): мастера в `combat/art/icons-src/`, `npm run icons` жмёт их
   в WebP и генерирует `src/ui/icons.generated.ts`; показ через `ItemIcon` и `Kredits`. Подробности `combat/art/ICONS.md`.
-- Открыто по графике: портрет вместо силуэта в `Avatar`, портреты бойцов, фигура в `ZonePicker`, иконки hp/exp.
-  План владельца: персонажей через 3D (Tripo / Meshy / Rodin) с рендером в 2D из Blender по bpy-скрипту.
+- Портреты бойцов процедурные (SVG по имени, см. «Карту фич»), стоят в `Avatar`, бою и арене. Открыто по графике:
+  фигура в `ZonePicker`, иконки hp/exp. План владельца: персонажей через 3D (Tripo / Meshy / Rodin) с рендером в 2D
+  из Blender по bpy-скрипту — тогда `Portrait` заменяется картинками, не трогая экраны.
 - Сделано за автономную сессию (см. `ROADMAP.md`): кузница, травмы, умения, пивная, замок с турниром и рейтингом,
   предметы 4–6 уровней, полировка боя, статистика и достижения, трофеи, иконка приложения, карта мира с дорогой,
   лес с ресурсами и скупкой, иконки-заглушки из Game Icons, Брод, чат с местными, гильдии, режим мастера игры, звук.

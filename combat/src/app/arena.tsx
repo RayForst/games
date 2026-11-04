@@ -6,11 +6,12 @@ import { Bar } from '@/components/Bar';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Kredits } from '@/components/Kredits';
+import { Portrait } from '@/components/Portrait';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
 import { deriveCharacter, rivalRecord, type Opponent } from '@/game';
 import { useGame } from '@/store/useGame';
-import { colors, spacing } from '@/ui/theme';
+import { colors, radius, spacing } from '@/ui/theme';
 
 export default function ArenaScreen() {
   const character = useGame((s) => s.character);
@@ -76,6 +77,9 @@ export default function ArenaScreen() {
         return (
           <Card key={o.id}>
             <View style={styles.rowBetween}>
+              <View style={styles.portrait}>
+                <Portrait seed={o.name} rivalId={o.rivalId} size={PORTRAIT} backdrop tight />
+              </View>
               <View style={styles.flex}>
                 <Txt variant="heading">{o.name}</Txt>
                 <Txt variant="small" style={styles.flavor}>
@@ -110,8 +114,20 @@ export default function ArenaScreen() {
   );
 }
 
+const PORTRAIT = 60;
+
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  portrait: {
+    width: PORTRAIT,
+    height: PORTRAIT,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.bgElevated,
+    overflow: 'hidden',
+    alignItems: 'center',
+  },
   header: { paddingTop: spacing.sm, gap: 2 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.md },
   flavor: { fontStyle: 'italic' },

@@ -79,9 +79,9 @@ export const ZONE_TO_ARMOR: Record<Zone, ArmorZone> = {
   legs: 'legs',
 };
 
-export type Slot = 'weapon' | 'shield' | 'helmet' | 'armor' | 'gloves' | 'belt' | 'pants' | 'boots';
+export type Slot = 'weapon' | 'shield' | 'helmet' | 'armor' | 'gloves' | 'belt' | 'pants' | 'boots' | 'ring1' | 'ring2' | 'amulet';
 
-export const SLOTS: Slot[] = ['weapon', 'shield', 'helmet', 'armor', 'gloves', 'belt', 'pants', 'boots'];
+export const SLOTS: Slot[] = ['weapon', 'shield', 'helmet', 'armor', 'gloves', 'belt', 'pants', 'boots', 'ring1', 'ring2', 'amulet'];
 
 export const SLOT_LABELS: Record<Slot, string> = {
   weapon: 'Оружие',
@@ -92,7 +92,29 @@ export const SLOT_LABELS: Record<Slot, string> = {
   belt: 'Пояс',
   pants: 'Штаны',
   boots: 'Сапоги',
+  ring1: 'Кольцо',
+  ring2: 'Кольцо',
+  amulet: 'Амулет',
 };
+
+/** Кольцо в каталоге одно (`slot: 'ring'`), а слотов на руках два. */
+export type ItemSlot = Exclude<Slot, 'ring1' | 'ring2'> | 'ring';
+
+export const ITEM_SLOTS: ItemSlot[] = ['weapon', 'shield', 'helmet', 'armor', 'gloves', 'belt', 'pants', 'boots', 'ring', 'amulet'];
+
+export const ITEM_SLOT_LABELS: Record<ItemSlot, string> = { ...SLOT_LABELS, ring: 'Кольцо' };
+
+export const RING_SLOTS: Slot[] = ['ring1', 'ring2'];
+
+/** В какие слоты экипировки ложится вещь каталога. */
+export function slotsForItem(slot: ItemSlot): Slot[] {
+  return slot === 'ring' ? RING_SLOTS : [slot];
+}
+
+/** Слот каталога для слота экипировки: `ring1`/`ring2` → `ring`. */
+export function itemSlotOf(slot: Slot): ItemSlot {
+  return slot === 'ring1' || slot === 'ring2' ? 'ring' : slot;
+}
 
 export interface ItemBonus {
   stats?: Partial<Record<StatKey, number>>;
@@ -111,7 +133,7 @@ export interface ItemBonus {
 export interface ItemDef {
   id: string;
   name: string;
-  slot: Slot;
+  slot: ItemSlot;
   /** Цена в кредитах. */
   price: number;
   /** Минимальный уровень. */
@@ -120,6 +142,8 @@ export interface ItemDef {
   requires?: Partial<Record<StatKey, number>>;
   /** Урон оружия [min, max]. */
   damage?: [number, number];
+  /** Двуручное: урон выше, но вместе со щитом не носится. */
+  twoHanded?: boolean;
   bonus?: ItemBonus;
   description?: string;
 }

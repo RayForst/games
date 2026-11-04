@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 
 import { Bar } from './Bar';
+import { Portrait } from './Portrait';
 import { Txt } from './Txt';
 import { colors, radius, spacing } from '@/ui/theme';
 import type { DerivedStats, Strike } from '@/game';
@@ -16,6 +17,10 @@ interface Props {
   lastStrike?: Strike | null;
   /** Меняется каждый раунд, чтобы анимация запускалась заново. */
   strikeKey?: number;
+  /** Именной соперник — портрет из таблицы, а не по сиду. */
+  rivalId?: string;
+  /** Травма — повязка на портрете. */
+  injured?: boolean;
 }
 
 function popText(s: Strike): { text: string; color: string; big: boolean } {
@@ -32,7 +37,7 @@ function popText(s: Strike): { text: string; color: string; big: boolean } {
   }
 }
 
-export function FighterCard({ name, level, hp, derived, side, lastStrike, strikeKey }: Props) {
+export function FighterCard({ name, level, hp, derived, side, lastStrike, strikeKey, rivalId, injured }: Props) {
   const enemy = side === 'enemy';
   // Одна анимация на раунд: 0 — удар только что случился, 1 — всё растаяло.
   const [anim] = useState(() => new Animated.Value(1));
@@ -55,16 +60,23 @@ export function FighterCard({ name, level, hp, derived, side, lastStrike, strike
         pointerEvents="none"
         style={[StyleSheet.absoluteFill, styles.flash, { opacity: flash, backgroundColor: pop?.big ? colors.gold : colors.red }]}
       />
-      <View style={styles.row}>
-        <Txt variant="heading" numberOfLines={1} style={styles.name}>
-          {name}
-        </Txt>
-        <Txt variant="small">{level} ур.</Txt>
+      <View style={styles.body}>
+        <View style={styles.portrait}>
+          <Portrait seed={name} rivalId={rivalId} size={PORTRAIT} hpRatio={hp / derived.maxHp} injured={injured} backdrop tight />
+        </View>
+        <View style={styles.info}>
+          <View style={styles.row}>
+            <Txt variant="heading" numberOfLines={1} style={styles.name}>
+              {name}
+            </Txt>
+            <Txt variant="small">{level} ур.</Txt>
+          </View>
+          <Bar value={hp} max={derived.maxHp} color={enemy ? colors.purple : colors.red} height={12} />
+          <Txt variant="small">
+            урон {derived.dmgMin}–{derived.dmgMax} · крит {derived.crit}% · уворот {derived.dodge}%
+          </Txt>
+        </View>
       </View>
-      <Bar value={hp} max={derived.maxHp} color={enemy ? colors.purple : colors.red} height={12} />
-      <Txt variant="small">
-        урон {derived.dmgMin}–{derived.dmgMax} · крит {derived.crit}% · уворот {derived.dodge}%
-      </Txt>
       {pop ? (
         <Animated.View pointerEvents="none" style={[styles.pop, { opacity, transform: [{ translateY }] }]}>
           <Txt bold color={pop.color} style={pop.big ? styles.popBig : styles.popText}>
@@ -76,7 +88,21 @@ export function FighterCard({ name, level, hp, derived, side, lastStrike, strike
   );
 }
 
+const PORTRAIT = 58;
+
 const styles = StyleSheet.create({
+  body: { flexDirection: 'row', gap: spacing.md, alignItems: 'center' },
+  portrait: {
+    width: PORTRAIT,
+    height: PORTRAIT,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.bgElevated,
+    overflow: 'hidden',
+    alignItems: 'center',
+  },
+  info: { flex: 1, gap: spacing.xs },
   card: {
     backgroundColor: colors.card,
     borderRadius: radius.lg,

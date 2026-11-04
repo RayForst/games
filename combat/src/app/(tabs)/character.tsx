@@ -117,7 +117,7 @@ export default function CharacterScreen() {
       </View>
 
       <PaperDoll character={character} onSlotPress={onSlot}>
-        <Avatar hpRatio={character.hp / derived.maxHp} />
+        <Avatar seed={character.name} hpRatio={character.hp / derived.maxHp} injured={!!injury} />
       </PaperDoll>
 
       <Card style={styles.vitals}>

@@ -1,9 +1,9 @@
 import { defineConfig } from 'vitest/config';
 
-// Тесты покрывают только чистую игровую логику в src/game (без React Native).
+// Тесты покрывают чистую логику без React Native: игра в src/game и генератор портретов в src/ui.
 export default defineConfig({
   test: {
-    include: ['src/game/**/*.test.ts'],
+    include: ['src/game/**/*.test.ts', 'src/ui/**/*.test.ts'],
     environment: 'node',
   },
   resolve: {

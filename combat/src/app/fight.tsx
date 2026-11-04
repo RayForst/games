@@ -10,7 +10,8 @@ import { FightLog } from '@/components/FightLog';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
 import { ZonePicker } from '@/components/ZonePicker';
-import { BLOCK_LABELS, deriveCharacter, TOURNAMENT_ROUNDS, ZONE_LABELS, type Block, type Zone } from '@/game';
+import { activeInjury, BLOCK_LABELS, deriveCharacter, TOURNAMENT_ROUNDS, ZONE_LABELS, type Block, type Zone } from '@/game';
+import { useNow } from '@/hooks/useNow';
 import { useGame } from '@/store/useGame';
 import { playSfx, playStrikes } from '@/ui/sfx';
 import { colors, spacing } from '@/ui/theme';
@@ -26,6 +27,8 @@ export default function FightScreen() {
 
   const [attack, setAttack] = useState<Zone | null>(null);
   const [block, setBlock] = useState<Block | null>(null);
+  // Раз в минуту хватает: повязка на портрете пропадает, когда травма прошла.
+  const now = useNow(60_000);
 
   const status = fight?.status;
   useEffect(() => {
@@ -93,7 +96,16 @@ export default function FightScreen() {
 
   return (
     <Screen>
-      <FighterCard name={character.name} level={character.level} hp={fight.playerHp} derived={derived} side="player" lastStrike={enemyStrike} strikeKey={fight.turn} />
+      <FighterCard
+        name={character.name}
+        level={character.level}
+        hp={fight.playerHp}
+        derived={derived}
+        side="player"
+        lastStrike={enemyStrike}
+        strikeKey={fight.turn}
+        injured={!!activeInjury(character, now)}
+      />
       <View style={styles.vsRow}>
         <View style={styles.vsLine} />
         <Txt variant="small" style={styles.vs}>
@@ -102,7 +114,7 @@ export default function FightScreen() {
         </Txt>
         <View style={styles.vsLine} />
       </View>
-      <FighterCard name={o.name} level={o.level} hp={fight.enemyHp} derived={o.derived} side="enemy" lastStrike={playerStrike} strikeKey={fight.turn} />
+      <FighterCard name={o.name} level={o.level} hp={fight.enemyHp} derived={o.derived} side="enemy" lastStrike={playerStrike} strikeKey={fight.turn} rivalId={o.rivalId} />
 
       {fight.status === 'active' ? (
         <>

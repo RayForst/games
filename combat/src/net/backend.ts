@@ -56,5 +56,11 @@ export interface GameBackend {
   guilds: GuildBackend;
 }
 
-/** Пока единственная «реализация» — локальная, в сторе. Здесь только отметка, чтобы искалось по коду. */
-export const BACKEND_MODE: 'local' | 'server' = 'local';
+/**
+ * Реализации: `localBackend.ts` (стор на телефоне, офлайн как всегда) и `serverBackend.ts`
+ * (WebSocket к `server/`, протокол в `protocol.ts`). Какая работает — решает `index.ts` по
+ * `EXPO_PUBLIC_BACKEND_URL`: пусто — локальный режим, иначе адрес сервера. Переменные `EXPO_PUBLIC_*`
+ * Expo вшивает в бандл на сборке, поэтому режим меняется перезапуском Metro.
+ */
+export const BACKEND_URL: string = process.env.EXPO_PUBLIC_BACKEND_URL ?? '';
+export const BACKEND_MODE: 'local' | 'server' = BACKEND_URL ? 'server' : 'local';
