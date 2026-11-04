@@ -105,7 +105,8 @@ export default function FightScreen() {
 
   const derived = deriveCharacter(character);
   const o = fight.opponent;
-  const strikeScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.04] });
+  // Пульс — золотым ореолом по непрозрачности, а не масштабом: размер кнопки не прыгает, тапать проще (и Playwright не ждёт «стабильности»).
+  const halo = pulse.interpolate({ inputRange: [0, 1], outputRange: [0, 0.9] });
   // Подсветка столбцов в первые два хода обучения.
   const highlight = fight.turn <= 2 ? fightHighlight(tutorial, attack !== null, block !== null) : null;
 
@@ -177,9 +178,10 @@ export default function FightScreen() {
               Выбери, куда бить и что закрыть.
             </Txt>
           )}
-          <Animated.View style={{ transform: [{ scale: strikeScale }] }}>
+          <View style={styles.strikeWrap}>
+            <Animated.View pointerEvents="none" style={[styles.halo, { opacity: halo }]} />
             <Button title="Удар!" onPress={strike} disabled={!ready} variant="danger" style={styles.strike} />
-          </Animated.View>
+          </View>
           <Button title="Сдаться" onPress={giveUp} variant="ghost" small style={styles.surrender} />
         </>
       ) : (
@@ -244,6 +246,8 @@ const styles = StyleSheet.create({
   vsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   vsLine: { flex: 1, height: 1, backgroundColor: colors.border },
   vs: { letterSpacing: 2, color: colors.textDim },
+  strikeWrap: { marginHorizontal: -3, padding: 3 },
+  halo: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: radius.md + 3, borderWidth: 3, borderColor: colors.gold },
   strike: { paddingVertical: 16 },
   streak: { backgroundColor: colors.gold, borderRadius: radius.pill, paddingHorizontal: spacing.sm, paddingVertical: 2 },
   streakText: { letterSpacing: 1 },
