@@ -1,0 +1,87 @@
+# CI: на каждый пуш в main и ветки claude/** (и на pull request) — тесты, типы, линт клиента и сервера,
+# затем сборка веб-версии и сквозной прогон в headless Chromium (combat/scripts/e2e.cjs).
+# Скриншоты прогона лежат в артефакте «e2e-shots» (хранятся 14 дней).
+name: CI
+
+on:
+  push:
+    branches: [main, 'claude/**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  EXPO_NO_TELEMETRY: '1'
+  CI: 'true'
+
+jobs:
+  combat:
+    name: combat · test, typecheck, lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: combat
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: combat/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run typecheck
+      - run: npm run lint
+
+  server:
+    name: server · test, typecheck
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run typecheck
+
+  e2e:
+    name: web · export + e2e in Chromium
+    needs: [combat]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: combat
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: combat/package-lock.json
+      - run: npm ci
+      - name: Export web bundle
+        run: npx expo export --platform web
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Run e2e
+        run: npm run e2e
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-shots
+          path: combat/e2e-shots
+          if-no-files-found: ignore
+          retention-days: 14

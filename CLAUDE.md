@@ -44,6 +44,12 @@
   (`fuser -k 8081/tcp`, не `pkill -f "expo start"` — он убьёт и свой шелл).
 - Веб-версия публикуется на https://rayforst.github.io/games/ workflow'ом `.github/workflows/deploy-web.yml`
   при пуше в `main` (окружение `github-pages` разрешает только `main`).
+- CI (`.github/workflows/ci.yml`) на пуш в `main`, `claude/**` и на PR: `npm test`, `typecheck`, `lint` в `combat/`,
+  тесты и типы в `server/`, затем `expo export --platform web` и сквозной прогон `combat/scripts/e2e.cjs` в Chromium
+  (создание → бой → магазин → шахта с перемоткой времени через `combat-save-v1` → перезагрузка); скриншоты —
+  артефакт `e2e-shots`. Локально: `npx expo export --platform web && npm run e2e` в `combat/`; в контейнере скрипт
+  сам находит глобальный Playwright и Chromium из `/opt/pw-browsers`, иначе `E2E_CHROMIUM`/`E2E_PLAYWRIGHT`;
+  `E2E_URL` — прогон против уже поднятого сервера (например, dev-сервера Metro).
 - Из облачной сессии Claude недоступны docs.expo.dev, api.expo.dev, github.io и ngrok; `npx expo install`
   не работает — версии брать из `node_modules/expo/bundledNativeModules.json` и ставить `npm install` напрямую.
 
