@@ -44,7 +44,7 @@ export const BodyFigure = memo(function BodyFigure({ attack, block, row, gap, st
   const baseDark = colors.border;
 
   return (
-    <Svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={style} pointerEvents="none" accessible={false} importantForAccessibility="no-hide-descendants">
+    <Svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={style} pointerEvents="none" accessible={false} aria-hidden>
       {/* Руки — не зоны, просто чтобы силуэт читался. */}
       <Path d={`M ${CX - 24} ${y1 + 10} C ${CX - 30} ${y1 + 30} ${CX - 31} ${y2 + 20} ${CX - 29} ${b(2) + 8} L ${CX - 23} ${b(2) + 6} C ${CX - 25} ${y2 + 20} ${CX - 24} ${y1 + 30} ${CX - 21} ${y1 + 14} Z`} fill={baseDark} />
       <Path d={`M ${CX + 24} ${y1 + 10} C ${CX + 30} ${y1 + 30} ${CX + 31} ${y2 + 20} ${CX + 29} ${b(2) + 8} L ${CX + 23} ${b(2) + 6} C ${CX + 25} ${y2 + 20} ${CX + 24} ${y1 + 30} ${CX + 21} ${y1 + 14} Z`} fill={baseDark} />
