@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { newCharacter } from './character';
-import { canTravel, LOCATIONS, neighbours, routeBetween, travelDone, travelProgress, travelSecondsLeft } from './world';
-import { ACTIVITIES, forestOpponent, gatherRatePerHour, gatherYield, haulAfterAmbush, marketPrice, normalizeResources } from './forest';
+import { canTravel, locationOpen, LOCATIONS, neighbours, routeBetween, travelDone, travelProgress, travelSecondsLeft } from './world';
+import { ACTIVITIES, gatherRatePerHour, gatherYield, haulAfterAmbush, marketPrice, normalizeResources, rollRoadEvent, WILDS, wildOpponent, woodForRepair } from './wilds';
 import { baseStats, deriveStats } from './formulas';
 
 const busyFree = { mining: false, gathering: false, traveling: false, fighting: false };
@@ -31,7 +31,10 @@ describe('карта мира', () => {
     const c = newCharacter('Вася');
     expect(canTravel(c, 'forest', busyFree).ok).toBe(true);
     expect(canTravel(c, 'city', busyFree).ok).toBe(false);
-    expect(canTravel(c, 'swamp', busyFree).ok).toBe(false);
+    expect(canTravel(c, 'swamp', busyFree).ok).toBe(false); // с 2 уровня
+    expect(canTravel({ ...c, level: 2 }, 'swamp', busyFree).ok).toBe(true);
+    expect(locationOpen('ruins', 3)).toBe(false);
+    expect(locationOpen('ruins', 4)).toBe(true);
     expect(canTravel(c, 'forest', { ...busyFree, mining: true }).ok).toBe(false);
     expect(canTravel({ ...c, location: 'forest' }, 'ruins', busyFree).ok).toBe(false); // нет дороги (и закрыто)
   });
@@ -64,11 +67,24 @@ describe('лес', () => {
     expect(normalizeResources(undefined).wood).toBe(0);
   });
 
-  it('зверь без вещей, засада меняет улов', () => {
-    const wolf = forestOpponent(0, () => 0); // первый в списке — Волк
+  it('зверь без вещей, засада меняет улов, враги руин сильнее', () => {
+    const wolf = wildOpponent('forest', 0, () => 0); // первый в списке — Волк
     expect(wolf.name).toBe('Волк');
     expect(wolf.itemIds).toEqual([]);
+    expect(wolf.foeIcon).toBe('wolf');
+    expect(wildOpponent('ruins', 1, () => 0).level).toBe(1 + WILDS.ruins.foeLevelBonus);
     expect(haulAfterAmbush(8, true)).toBe(10);
     expect(haulAfterAmbush(8, false)).toBe(4);
+    for (const w of Object.values(WILDS)) expect(w.activities.length).toBeGreaterThan(0);
+  });
+
+  it('дорожные события и крафт', () => {
+    expect(rollRoadEvent(0, () => 0.1)).toBeNull();
+    const purse = rollRoadEvent(0, (() => { const v = [0.8, 0.5]; let i = 0; return () => v[i++] ?? 0.5; })())!;
+    expect(purse.kredits).toBeGreaterThan(0);
+    const toll = rollRoadEvent(0, () => 0.99)!;
+    expect(toll.kredits).toBeLessThan(0);
+    expect(woodForRepair(10)).toBe(4);
+    expect(woodForRepair(1)).toBe(1);
   });
 });

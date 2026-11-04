@@ -14,4 +14,4 @@ export * from './tournament';
 export * from './achievements';
 export * from './loot';
 export * from './world';
-export * from './forest';
+export * from './wilds';

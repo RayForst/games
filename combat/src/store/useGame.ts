@@ -19,11 +19,15 @@ import {
   deriveCharacter,
   describeFinish,
   describeStrike,
-  forestOpponent,
   gatherRatePerHour,
   gatherYield,
   haulAfterAmbush,
   isGatherMinutes,
+  isWild,
+  POTION_HERBS,
+  rollRoadEvent,
+  wildOpponent,
+  woodForRepair,
   generateArena,
   getItem,
   heavier,
@@ -56,6 +60,7 @@ import {
   rollAmbush,
   RESOURCES_BY_ID,
   ACTIVITIES_BY_ID,
+  WILDS,
   injuryText,
   sellPrice,
   toFighter,
@@ -86,6 +91,7 @@ import {
   type ActivityId,
   type ResourceId,
   type Opponent as OpponentType,
+  type WildId,
   travelDone,
 } from '@/game';
 
@@ -117,6 +123,8 @@ export interface GameState {
   gathering: Gathering | null;
   /** Улов, за который идёт бой с засадой. */
   pendingHaul: { resource: ResourceId; amount: number } | null;
+  /** Что случилось по дороге — показать по прибытии. */
+  roadNews: string | null;
   hydrated: boolean;
 
   setHydrated: () => void;
@@ -127,8 +135,8 @@ export interface GameState {
   /** Выбрать умение из текущего предложения. */
   choosePerk: (id: PerkId) => Check;
   tick: () => void;
-  /** Лечение у лекаря: доля максимального hp (зелья 0.3 / 0.6 / 1). */
-  heal: (fraction?: number) => Check;
+  /** Лечение у лекаря: доля максимального hp (зелья 0.3 / 0.6 / 1), за кредиты или за травы. */
+  heal: (fraction?: number, pay?: 'kredits' | 'herbs') => Check;
   /** Снять травму у лекаря. */
   cureInjury: () => MineResult;
 
@@ -149,7 +157,8 @@ export interface GameState {
 
   /** Кузница. */
   repairItem: (itemUid: string) => MineResult;
-  repairAll: () => MineResult;
+  /** Починить всё за кредиты или за дрова. */
+  repairAll: (pay?: 'kredits' | 'wood') => MineResult;
   upgradeItem: (itemUid: string) => Check;
 
   /** Пивная: доска на сегодня (пересоздаётся на новый день), прогресс и награда. */
@@ -170,6 +179,7 @@ export interface GameState {
   startGathering: (activity: ActivityId, minutes: number) => Check;
   collectGathering: () => GatherResult;
   sellResource: (resource: ResourceId, amount?: number) => MineResult;
+  dismissRoadNews: () => void;
 }
 
 export interface GatherResult extends Check {
@@ -271,6 +281,7 @@ export const useGame = create<GameState>()(
         if (f.context === 'forest' && haul) {
           const amount = haulAfterAmbush(haul.amount, status === 'won');
           character = { ...character, resources: { ...character.resources, [haul.resource]: character.resources[haul.resource] + amount } };
+          get().track('gather', amount);
           log.push(
             makeLogLine(
               turn,
@@ -320,6 +331,7 @@ export const useGame = create<GameState>()(
       travel: null,
       gathering: null,
       pendingHaul: null,
+      roadNews: null,
       hydrated: false,
 
       setHydrated: () => set({ hydrated: true }),
@@ -411,7 +423,12 @@ export const useGame = create<GameState>()(
         const t = get().travel;
         if (t && travelDone(t, Date.now())) {
           next = { ...next, location: t.to };
-          set({ travel: null });
+          const event = rollRoadEvent(next.level, rng);
+          if (event) {
+            if (event.kredits) next = { ...next, kredits: Math.max(0, next.kredits + event.kredits) };
+            if (event.resource) next = { ...next, resources: { ...next.resources, [event.resource.id]: next.resources[event.resource.id] + event.resource.amount } };
+          }
+          set({ travel: null, roadNews: event?.text ?? null });
         }
         if (next !== c) set({ character: next });
       },
@@ -427,15 +444,21 @@ export const useGame = create<GameState>()(
         return { ok: true, kredits: cost };
       },
 
-      heal: (fraction = 1) => {
+      heal: (fraction = 1, pay = 'kredits') => {
         const c = get().character;
         if (!c) return { ok: false, reason: 'Нет персонажа' };
         const maxHp = deriveCharacter(c).maxHp;
         if (c.hp >= maxHp) return { ok: false, reason: 'Ты и так здоров' };
-        const cost = healPrice(c, fraction);
-        if (c.kredits < cost) return { ok: false, reason: `Нужно ${cost} кр.` };
         const hp = Math.min(maxHp, c.hp + healAmount(c, fraction));
-        set({ character: { ...c, hp, kredits: c.kredits - cost, hpUpdatedAt: Date.now() } });
+        if (pay === 'herbs') {
+          const herbs = fraction >= 1 ? POTION_HERBS.large : fraction >= 0.6 ? POTION_HERBS.medium : POTION_HERBS.small;
+          if (c.resources.herbs < herbs) return { ok: false, reason: `Нужно ${herbs} трав` };
+          set({ character: { ...c, hp, resources: { ...c.resources, herbs: c.resources.herbs - herbs }, hpUpdatedAt: Date.now() } });
+        } else {
+          const cost = healPrice(c, fraction);
+          if (c.kredits < cost) return { ok: false, reason: `Нужно ${cost} кр.` };
+          set({ character: { ...c, hp, kredits: c.kredits - cost, hpUpdatedAt: Date.now() } });
+        }
         get().track('heal');
         return { ok: true };
       },
@@ -646,6 +669,8 @@ export const useGame = create<GameState>()(
         return { ok: true };
       },
 
+      dismissRoadNews: () => set({ roadNews: null }),
+
       startTravel: (to) => {
         const state = get();
         const c = state.character;
@@ -665,10 +690,11 @@ export const useGame = create<GameState>()(
         const state = get();
         const c = state.character;
         if (!c) return { ok: false, reason: 'Нет персонажа' };
-        if (c.location !== 'forest' || state.travel) return { ok: false, reason: 'Собирать можно только в лесу' };
+        if (!isWild(c.location) || state.travel) return { ok: false, reason: 'Собирать можно только в диких землях' };
         if (state.gathering) return { ok: false, reason: 'Ты уже занят' };
         if (state.fight?.status === 'active') return { ok: false, reason: 'Сначала закончи бой' };
         if (!ACTIVITIES_BY_ID[activity]) return { ok: false, reason: 'Такого занятия нет' };
+        if (!WILDS[c.location].activities.includes(activity)) return { ok: false, reason: 'Здесь этим не занимаются' };
         if (!isGatherMinutes(minutes)) return { ok: false, reason: 'Такой смены нет' };
         set({ gathering: { activity, startedAt: Date.now(), minutes } });
         return { ok: true };
@@ -682,9 +708,10 @@ export const useGame = create<GameState>()(
         if (state.fight?.status === 'active') return { ok: false, reason: 'Сначала закончи бой' };
         const def = ACTIVITIES_BY_ID[g.activity];
         const amount = gatherYield(g, gatherRatePerHour(g.activity, deriveCharacter(c)), Date.now());
+        const wild: WildId = isWild(c.location) ? c.location : 'forest';
         // Засада: улов ставится на кон, начинается бой.
-        if (amount > 0 && rollAmbush(rng)) {
-          const opponent: OpponentType = forestOpponent(c.level, rng);
+        if (amount > 0 && rollAmbush(wild, rng)) {
+          const opponent: OpponentType = wildOpponent(wild, c.level, rng);
           const fresh = applyRegen(c);
           const fight: FightState = {
             context: 'forest',
@@ -693,7 +720,7 @@ export const useGame = create<GameState>()(
             enemyHp: opponent.derived.maxHp,
             turn: 1,
             status: 'active',
-            log: [makeLogLine(0, `Засада! ${opponent.name} выскакивает на тропу. На кону ${amount} шт.: ${def.name.toLowerCase().replace('собирать ', '').replace('рубить ', '').replace('охотиться', 'шкуры')}.`, 'system')],
+            log: [makeLogLine(0, `Засада! ${opponent.name} выскакивает на тропу. На кону ${amount} шт.: ${def.haul}.`, 'system')],
             playerMoves: [],
             lastEnemyMove: null,
             reward: null,
@@ -706,6 +733,7 @@ export const useGame = create<GameState>()(
           gathering: null,
           character: { ...c, resources: { ...c.resources, [def.resource]: c.resources[def.resource] + amount } },
         });
+        get().track('gather', amount);
         return { ok: true, resource: def.resource, amount };
       },
 
@@ -726,6 +754,7 @@ export const useGame = create<GameState>()(
             ledger: { ...c.ledger, kreditsEarned: c.ledger.kreditsEarned + total },
           },
         });
+        get().track('sellResources', qty);
         return { ok: true, kredits: total };
       },
 
@@ -794,7 +823,7 @@ export const useGame = create<GameState>()(
         return { ok: true, kredits: cost };
       },
 
-      repairAll: () => {
+      repairAll: (pay = 'kredits') => {
         const c = get().character;
         if (!c) return { ok: false, reason: 'Нет персонажа' };
         let total = 0;
@@ -806,6 +835,13 @@ export const useGame = create<GameState>()(
           return { ...i, durability: maxDurability(item) };
         });
         if (total === 0) return { ok: false, reason: 'Чинить нечего' };
+        if (pay === 'wood') {
+          const wood = woodForRepair(total);
+          if (c.resources.wood < wood) return { ok: false, reason: `Нужно ${wood} дров` };
+          set({ character: { ...c, resources: { ...c.resources, wood: c.resources.wood - wood }, backpack } });
+          get().track('repair');
+          return { ok: true, kredits: 0 };
+        }
         if (c.kredits < total) return { ok: false, reason: `На всё нужно ${total} кр.` };
         set({ character: { ...c, kredits: c.kredits - total, backpack } });
         get().track('repair');
@@ -851,6 +887,7 @@ export const useGame = create<GameState>()(
         travel: s.travel,
         gathering: s.gathering,
         pendingHaul: s.pendingHaul,
+        roadNews: s.roadNews,
       }),
       // Старые сейвы дописываем недостающими полями (прочность, заточка, будущие фичи).
       migrate: (persisted) => {

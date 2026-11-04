@@ -64,8 +64,10 @@
 - Трофеи: `loot.ts`. Статистика и достижения: `achievements.ts`, `character.ledger`, экран `stats.tsx`.
 - Карта мира: `world.ts` (локации, дороги, `canTravel`), стор `travel`, прибытие в `tick()`; экран `world.tsx` (SVG-схема).
   Таб `(tabs)/city` рендерит город, `ForestHub` или `TravelHub` по `character.location` и `travel`.
-- Лес: `forest.ts` (занятия, ставка от характеристики, рынок `marketPrice`, засада `forestOpponent`), стор `gathering`,
-  `pendingHaul`; бой с контекстом `'forest'` возвращает в таб места.
+- Дикие земли (лес, болото, руины, перевал): `wilds.ts` — `WILDS` (занятия, враги, шанс засады, надбавка уровня),
+  ресурсы и рынок `marketPrice`, крафт (`POTION_HERBS`, `woodForRepair`), дорожные события `rollRoadEvent`.
+  Стор: `gathering`, `pendingHaul`, `roadNews`; компонент `WildsHub` общий для всех; бой с контекстом `'forest'`
+  (так называется и для других диких земель) возвращает в таб места. Локации открываются по `minLevel` в `world.ts`.
 - Иконки-заглушки: `scripts/gi-icons.mjs` → `src/ui/gi.generated.ts` (Game Icons, CC BY 3.0, через react-icons),
   компонент `GiIcon`, карта предмет→иконка `src/ui/giMap.ts`. Сайты с ассетами (opengameart, kenney, game-icons.net)
   из облака недоступны, npm доступен — брать оттуда.

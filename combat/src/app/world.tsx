@@ -10,7 +10,7 @@ import { Card } from '@/components/Card';
 import { GiIcon } from '@/components/GiIcon';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
-import { canTravel, LOCATIONS, LOCATIONS_BY_ID, routeBetween, travelProgress, travelSecondsLeft, type LocationId } from '@/game';
+import { canTravel, locationOpen, LOCATIONS, LOCATIONS_BY_ID, routeBetween, travelProgress, travelSecondsLeft, type LocationId } from '@/game';
 import { useNow } from '@/hooks/useNow';
 import { useGame } from '@/store/useGame';
 import { formatDuration } from '@/ui/format';
@@ -76,7 +76,7 @@ export default function WorldScreen() {
               .map(({ m }) => {
                 const a = px(l.id);
                 const b = px(m.id);
-                const open = l.open && m.open;
+                const open = locationOpen(l.id, character.level) && locationOpen(m.id, character.level);
                 return (
                   <Line
                     key={`${l.id}-${m.id}`}
@@ -94,6 +94,7 @@ export default function WorldScreen() {
           {LOCATIONS.map((l) => {
             const p = px(l.id);
             const active = l.id === selected;
+            const open = locationOpen(l.id, character.level);
             return (
               <Circle
                 key={l.id}
@@ -101,7 +102,7 @@ export default function WorldScreen() {
                 cy={p.y}
                 r={NODE}
                 fill={colors.card}
-                stroke={active ? colors.gold : l.open ? colors.goldDim : colors.border}
+                stroke={active ? colors.gold : open ? colors.goldDim : colors.border}
                 strokeWidth={active ? 3 : 2}
               />
             );
@@ -110,6 +111,7 @@ export default function WorldScreen() {
         </Svg>
         {LOCATIONS.map((l) => {
           const p = px(l.id);
+          const open = locationOpen(l.id, character.level);
           return (
             <Pressable
               key={l.id}
@@ -117,9 +119,9 @@ export default function WorldScreen() {
               accessibilityRole="button"
               accessibilityLabel={`Место: ${l.name}`}
               style={[styles.node, { left: p.x - NODE, top: p.y - NODE }]}>
-              <GiIcon name={l.icon} size={28} color={l.open ? colors.gold : colors.textDim} />
-              <Txt variant="small" bold color={l.open ? colors.text : colors.textDim} style={styles.nodeLabel} numberOfLines={1}>
-                {l.name}
+              <GiIcon name={l.icon} size={28} color={open ? colors.gold : colors.textDim} />
+              <Txt variant="small" bold color={open ? colors.text : colors.textDim} style={styles.nodeLabel} numberOfLines={1}>
+                {open ? l.name : `${l.name} · ${l.minLevel} ур.`}
               </Txt>
             </Pressable>
           );

@@ -8,7 +8,8 @@ import { Flash } from '@/components/Flash';
 import { Kredits } from '@/components/Kredits';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
-import { activeInjury, BUILDINGS_BY_ID, cureCost, deriveCharacter, HEAL_OPTIONS, healAmount, healPrice, injurySecondsLeft, injuryText, secondsToFullHp } from '@/game';
+import { activeInjury, BUILDINGS_BY_ID, cureCost, deriveCharacter, HEAL_OPTIONS, healAmount, healPrice, injurySecondsLeft, injuryText, POTION_HERBS, secondsToFullHp } from '@/game';
+import { GiIcon } from '@/components/GiIcon';
 import { useFlash } from '@/hooks/useFlash';
 import { useNow } from '@/hooks/useNow';
 import { useGame } from '@/store/useGame';
@@ -41,8 +42,8 @@ export default function HealerScreen() {
     show('Вправил. Больше не ноет.');
   };
 
-  const drink = (fraction: number, flavor: string) => {
-    const r = heal(fraction);
+  const drink = (fraction: number, flavor: string, pay: 'kredits' | 'herbs' = 'kredits') => {
+    const r = heal(fraction, pay);
     if (!r.ok) {
       Alert.alert('Лекарь', r.reason ?? 'Не получилось');
       return;
@@ -78,16 +79,9 @@ export default function HealerScreen() {
           const price = healPrice(character, o.fraction);
           const amount = healAmount(character, o.fraction);
           const poor = character.kredits < price;
-          const disabled = healthy || poor;
+          const noHerbs = character.resources.herbs < POTION_HERBS[o.id];
           return (
-            <Pressable
-              key={o.id}
-              onPress={() => drink(o.fraction, o.flavor)}
-              disabled={disabled}
-              accessibilityRole="button"
-              accessibilityLabel={`${o.name} · ${price} кр.`}
-              accessibilityState={{ disabled }}
-              style={({ pressed }) => [styles.potion, disabled && styles.potionDisabled, pressed && !disabled && styles.pressed]}>
+            <View key={o.id} style={[styles.potion, healthy && styles.potionDisabled]}>
               <Image source={UI_ICONS[o.icon]} style={styles.potionIcon} resizeMode="contain" />
               <View style={styles.flex}>
                 <Txt bold>{o.name}</Txt>
@@ -95,12 +89,37 @@ export default function HealerScreen() {
                   {healthy ? o.flavor : `+${amount} hp · ${Math.round(o.fraction * 100)}% здоровья`}
                 </Txt>
               </View>
-              <Txt variant="gold" bold>
-                {price} кр.
-              </Txt>
-            </Pressable>
+              <View style={styles.priceCol}>
+                <Pressable
+                  onPress={() => drink(o.fraction, o.flavor)}
+                  disabled={healthy || poor}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${o.name} · ${price} кр.`}
+                  accessibilityState={{ disabled: healthy || poor }}
+                  style={({ pressed }) => [styles.payBtn, (healthy || poor) && styles.potionDisabled, pressed && styles.pressed]}>
+                  <Txt variant="gold" bold>
+                    {price} кр.
+                  </Txt>
+                </Pressable>
+                <Pressable
+                  onPress={() => drink(o.fraction, o.flavor, 'herbs')}
+                  disabled={healthy || noHerbs}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${o.name} за травы`}
+                  accessibilityState={{ disabled: healthy || noHerbs }}
+                  style={({ pressed }) => [styles.herbs, (healthy || noHerbs) && styles.potionDisabled, pressed && styles.pressed]}>
+                  <GiIcon name="herbs" size={14} color={colors.green} />
+                  <Txt variant="small" color={colors.green}>
+                    или {POTION_HERBS[o.id]} трав
+                  </Txt>
+                </Pressable>
+              </View>
+            </View>
           );
         })}
+        <Txt variant="small">
+          Трав в сумке: {character.resources.herbs}. Лекарь варит из них сам, деньги не берёт.
+        </Txt>
         {!healthy && character.kredits < healPrice(character, HEAL_OPTIONS[0].fraction) ? (
           <Txt variant="small" color={colors.red}>
             Не хватает даже на малое. Подожди или сходи в шахту.
@@ -126,4 +145,7 @@ const styles = StyleSheet.create({
   potionDisabled: { opacity: 0.5 },
   pressed: { opacity: 0.75 },
   potionIcon: { width: 48, height: 48 },
+  priceCol: { alignItems: 'flex-end', gap: 4 },
+  payBtn: { paddingHorizontal: spacing.sm, paddingVertical: 4, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.goldDim },
+  herbs: { flexDirection: 'row', alignItems: 'center', gap: 4 },
 });

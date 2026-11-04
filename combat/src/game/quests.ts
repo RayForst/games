@@ -1,6 +1,6 @@
 // Пивная: три ежедневных задания и слухи. Прогресс копится из событий стора (бой, шахта, покупка…).
 
-export type QuestEvent = 'fightWin' | 'fightPlay' | 'fightWinStronger' | 'mineHours' | 'buyItem' | 'repair' | 'heal' | 'sharpen';
+export type QuestEvent = 'fightWin' | 'fightPlay' | 'fightWinStronger' | 'mineHours' | 'buyItem' | 'repair' | 'heal' | 'sharpen' | 'gather' | 'sellResources';
 
 export interface QuestTemplate {
   id: string;
@@ -37,6 +37,8 @@ export const QUEST_TEMPLATES: QuestTemplate[] = [
   { id: 'repair', event: 'repair', title: () => 'Почини вещь у Макара', targets: [1], kreditsPer: 10 },
   { id: 'heal', event: 'heal', title: () => 'Выпей зелье у лекаря', targets: [1], kreditsPer: 8 },
   { id: 'sharpen', event: 'sharpen', title: () => 'Заточи вещь в кузнице', targets: [1], kreditsPer: 15 },
+  { id: 'gather', event: 'gather', title: (n) => `Набери ${n} шт. в диких землях`, targets: [10, 20], kreditsPer: 2 },
+  { id: 'sell', event: 'sellResources', title: (n) => `Продай ${n} шт. ресурсов в лавке`, targets: [10], kreditsPer: 2 },
 ];
 
 /** Локальная дата как ключ дня. */

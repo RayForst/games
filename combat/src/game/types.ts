@@ -192,8 +192,8 @@ export interface Character {
   achievements: string[];
   /** Где персонаж сейчас на карте мира. */
   location: 'city' | 'forest' | 'swamp' | 'ruins' | 'pass';
-  /** Ресурсы из леса: травы, дрова, шкуры. */
-  resources: Record<'herbs' | 'wood' | 'pelts', number>;
+  /** Ресурсы из диких земель. */
+  resources: Record<'herbs' | 'wood' | 'pelts' | 'bogwort' | 'relics' | 'ore', number>;
 }
 
 export interface Ledger {

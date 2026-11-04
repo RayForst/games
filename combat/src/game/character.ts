@@ -3,7 +3,7 @@ import { SLOTS, STAT_KEYS, STAT_LABELS } from './types';
 import { ITEMS_BY_ID, maxDurability } from './items';
 import { CREATION_FREE_POINTS, FULL_REGEN_MINUTES, baseStats, deriveStats } from './formulas';
 import { emptyLedger, normalizeLedger } from './achievements';
-import { emptyResources, normalizeResources } from './forest';
+import { emptyResources, normalizeResources } from './wilds';
 import type { PerkId } from './perks';
 
 export function emptyEquipment(): Record<Slot, string | null> {

@@ -12,7 +12,6 @@ import { Kredits } from './Kredits';
 import { Screen } from './Screen';
 import { Txt } from './Txt';
 import {
-  ACTIVITIES,
   ACTIVITIES_BY_ID,
   deriveCharacter,
   GATHER_MINUTES,
@@ -23,8 +22,10 @@ import {
   LOCATIONS_BY_ID,
   RESOURCES,
   routeBetween,
+  WILDS,
   type ActivityId,
   type GatherMinutes,
+  type WildId,
 } from '@/game';
 import { useFlash } from '@/hooks/useFlash';
 import { useNow } from '@/hooks/useNow';
@@ -32,41 +33,46 @@ import { useGame } from '@/store/useGame';
 import { formatDuration } from '@/ui/format';
 import { colors, radius, spacing } from '@/ui/theme';
 
-/** Лес: три занятия по времени, сумка с ресурсами, дорога домой. */
-export function ForestHub() {
+/** Дикие земли (лес, болото, руины, перевал): занятия по времени, сумка, дорога домой. */
+export function WildsHub({ wild }: { wild: WildId }) {
   const character = useGame((s) => s.character);
   const gathering = useGame((s) => s.gathering);
+  const roadNews = useGame((s) => s.roadNews);
+  const dismissRoadNews = useGame((s) => s.dismissRoadNews);
   const startGathering = useGame((s) => s.startGathering);
   const collectGathering = useGame((s) => s.collectGathering);
   const startTravel = useGame((s) => s.startTravel);
   const now = useNow();
-  const [activity, setActivity] = useState<ActivityId>('herbs');
+  const def = WILDS[wild];
+  const [activity, setActivity] = useState<ActivityId>(def.activities[0]);
   const [minutes, setMinutes] = useState<GatherMinutes>(15);
   const [flash, show] = useFlash(2500);
 
   if (!character) return null;
 
+  const location = LOCATIONS_BY_ID[wild];
   const derived = deriveCharacter(character, now);
-  const rate = gatherRatePerHour(activity, derived);
-  const home = routeBetween('forest', 'city');
+  const current = def.activities.includes(activity) ? activity : def.activities[0];
+  const rate = gatherRatePerHour(current, derived);
+  const home = routeBetween(wild, 'city');
 
   const onStart = () => {
-    const r = startGathering(activity, minutes);
-    if (!r.ok) Alert.alert('Лес', r.reason ?? 'Не получилось');
+    const r = startGathering(current, minutes);
+    if (!r.ok) Alert.alert(location.name, r.reason ?? 'Не получилось');
   };
 
   const onCollect = () => {
     const r = collectGathering();
     if (!r.ok) {
-      Alert.alert('Лес', r.reason ?? 'Не получилось');
+      Alert.alert(location.name, r.reason ?? 'Не получилось');
       return;
     }
     if (r.ambush) {
       router.push('/fight');
       return;
     }
-    const name = r.resource ? ACTIVITIES.find((a) => a.resource === r.resource)?.name ?? '' : '';
-    show(r.amount ? `+${r.amount} шт. в сумку. ${name.replace('Собирать ', '').replace('Рубить ', '')}` : 'Пусто. Надо было дольше.');
+    const haul = r.resource ? ACTIVITIES_BY_ID[gathering?.activity ?? current]?.haul ?? '' : '';
+    show(r.amount ? `+${r.amount} шт. в сумку: ${haul}.` : 'Пусто. Надо было дольше.');
   };
 
   const goHome = () => {
@@ -78,8 +84,8 @@ export function ForestHub() {
     <Screen>
       <View style={styles.header}>
         <View style={styles.flex}>
-          <Txt variant="title">Лес</Txt>
-          <Txt variant="muted">{LOCATIONS_BY_ID.forest.description}</Txt>
+          <Txt variant="title">{location.name}</Txt>
+          <Txt variant="muted">{location.description}</Txt>
         </View>
         <Kredits value={character.kredits} />
       </View>
@@ -87,6 +93,18 @@ export function ForestHub() {
         <GiIcon name="road" size={18} />
         <Txt variant="gold">Карта мира</Txt>
       </Pressable>
+
+      {roadNews ? (
+        <Pressable onPress={dismissRoadNews} accessibilityRole="button" accessibilityLabel="Дорожные вести">
+          <Card style={styles.news}>
+            <View style={styles.newsRow}>
+              <GiIcon name="event" size={22} />
+              <Txt style={styles.flex}>{roadNews}</Txt>
+            </View>
+            <Txt variant="small">Нажми, чтобы убрать.</Txt>
+          </Card>
+        </Pressable>
+      ) : null}
 
       <Flash text={flash} />
 
@@ -104,12 +122,15 @@ export function ForestHub() {
             Набрал: <Txt variant="gold">{gatherYield(gathering, gatherRatePerHour(gathering.activity, derived), now)} шт.</Txt>
           </Txt>
           <Button title="Забрать" onPress={onCollect} />
-          <Txt variant="small">Можно забрать раньше. На обратной тропе бывает засада: отобьёшься — унесёшь больше.</Txt>
+          <Txt variant="small">
+            Можно забрать раньше. На обратной тропе бывает засада ({Math.round(def.ambushChance * 100)} %): отобьёшься — унесёшь больше.
+          </Txt>
         </Card>
       ) : (
         <Card title="Чем заняться">
-          {ACTIVITIES.map((a) => {
-            const active = a.id === activity;
+          {def.activities.map((id) => {
+            const a = ACTIVITIES_BY_ID[id];
+            const active = id === current;
             return (
               <Pressable
                 key={a.id}
@@ -139,17 +160,21 @@ export function ForestHub() {
       )}
 
       <Card title="Сумка">
-        {RESOURCES.map((r) => (
+        {RESOURCES.filter((r) => character.resources[r.id] > 0 || def.activities.some((a) => ACTIVITIES_BY_ID[a].resource === r.id)).map((r) => (
           <View key={r.id} style={styles.resource}>
             <GiIcon name={r.icon} size={22} color={colors.textMuted} />
             <Txt style={styles.flex}>{r.name}</Txt>
             <Txt bold>{character.resources[r.id]} шт.</Txt>
           </View>
         ))}
-        <Txt variant="small">Скупают в городской лавке, цена меняется каждый день.</Txt>
+        <Txt variant="small">Скупают в городской лавке, цена меняется каждый день. Травы берёт лекарь, дрова — Макар.</Txt>
       </Card>
 
-      <Button title={home ? `Вернуться в город · ${home.minutes} мин` : 'В город'} variant="secondary" onPress={goHome} disabled={!!gathering} />
+      <Txt variant="small" center color={colors.textDim}>
+        Кто тут водится: {def.foes.map((f) => f.name.toLowerCase()).join(', ')}.
+      </Txt>
+
+      <Button title={home ? `Вернуться в город · ${home.minutes} мин` : 'В город'} variant="secondary" onPress={goHome} disabled={!!gathering || !home} />
     </Screen>
   );
 }
@@ -158,6 +183,8 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, paddingTop: spacing.sm },
   mapLink: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start' },
+  news: { borderColor: colors.gold },
+  newsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   activity: {
     flexDirection: 'row',
     alignItems: 'center',

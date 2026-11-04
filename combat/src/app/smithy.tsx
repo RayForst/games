@@ -19,6 +19,7 @@ import {
   repairCost,
   upgradeCost,
   UPGRADE_MAX,
+  woodForRepair,
   type InventoryItem,
 } from '@/game';
 import { useFlash } from '@/hooks/useFlash';
@@ -38,10 +39,11 @@ export default function SmithyScreen() {
   const items = [...character.backpack].sort((a, b) => Number(isEquipped(character, b.uid)) - Number(isEquipped(character, a.uid)));
   const totalRepair = items.reduce((sum, i) => sum + repairCost(getItem(i.itemId), i.durability), 0);
 
-  const onRepairAll = () => {
-    const r = repairAll();
-    show(r.ok ? `Починил всё за ${r.kredits} кр.` : (r.reason ?? 'Не получилось'));
+  const onRepairAll = (pay: 'kredits' | 'wood' = 'kredits') => {
+    const r = repairAll(pay);
+    show(r.ok ? (pay === 'wood' ? 'Починил всё за дрова. Макар доволен.' : `Починил всё за ${r.kredits} кр.`) : (r.reason ?? 'Не получилось'));
   };
+  const woodNeeded = totalRepair > 0 ? woodForRepair(totalRepair) : 0;
 
   const onRepair = (inv: InventoryItem) => {
     const r = repairItem(inv.uid);
@@ -67,7 +69,16 @@ export default function SmithyScreen() {
 
       <Card title="Ремонт" right={totalRepair > 0 ? <Txt variant="gold">{totalRepair} кр.</Txt> : <Txt variant="small">всё цело</Txt>}>
         <Txt variant="small">Каждый бой снимает единицу прочности со всего надетого. Сломанная вещь висит мёртвым грузом.</Txt>
-        <Button title={totalRepair > 0 ? `Починить всё · ${totalRepair} кр.` : 'Чинить нечего'} onPress={onRepairAll} disabled={totalRepair === 0 || character.kredits < totalRepair} />
+        <Button title={totalRepair > 0 ? `Починить всё · ${totalRepair} кр.` : 'Чинить нечего'} onPress={() => onRepairAll('kredits')} disabled={totalRepair === 0 || character.kredits < totalRepair} />
+        {totalRepair > 0 ? (
+          <Button
+            small
+            variant="secondary"
+            title={`Или за дрова · ${woodNeeded} шт. (есть ${character.resources.wood})`}
+            onPress={() => onRepairAll('wood')}
+            disabled={character.resources.wood < woodNeeded}
+          />
+        ) : null}
       </Card>
 
       <Txt variant="heading">Твои вещи</Txt>

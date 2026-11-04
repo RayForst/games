@@ -6,11 +6,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
 import { CityMap } from '@/components/CityMap';
-import { ForestHub } from '@/components/ForestHub';
 import { GiIcon } from '@/components/GiIcon';
 import { TravelHub } from '@/components/TravelHub';
+import { WildsHub } from '@/components/WildsHub';
 import { Txt } from '@/components/Txt';
-import { activeInjury, BUILDINGS_BY_ID, CITY_START, dayKey, deriveCharacter, healCost, mineIsDone, mineSecondsLeft, questDone, wornItems, type BuildingId } from '@/game';
+import { activeInjury, BUILDINGS_BY_ID, CITY_START, dayKey, deriveCharacter, healCost, isWild, mineIsDone, mineSecondsLeft, questDone, wornItems, type BuildingId } from '@/game';
 import { useNow } from '@/hooks/useNow';
 import { useGame } from '@/store/useGame';
 import { formatDuration, plural } from '@/ui/format';
@@ -36,7 +36,7 @@ export default function PlaceScreen() {
   const location = useGame((s) => s.character?.location ?? 'city');
   const traveling = useGame((s) => !!s.travel);
   if (traveling) return <TravelHub />;
-  if (location === 'forest') return <ForestHub />;
+  if (isWild(location)) return <WildsHub wild={location} />;
   return <CityScreen />;
 }
 
@@ -47,6 +47,8 @@ function CityScreen() {
   const mining = useGame((s) => s.mining);
   const quests = useGame((s) => s.quests);
   const tournament = useGame((s) => s.tournament);
+  const roadNews = useGame((s) => s.roadNews);
+  const dismissRoadNews = useGame((s) => s.dismissRoadNews);
   const now = useNow();
   const insets = useSafeAreaInsets();
   const [selected, setSelected] = useState<BuildingId>(CITY_START);
@@ -133,6 +135,14 @@ function CityScreen() {
 
       <View style={styles.bottom} pointerEvents="box-none">
         <LinearGradient colors={[SCRIM, SCRIM_DARK]} style={StyleSheet.absoluteFill} pointerEvents="none" />
+        {roadNews ? (
+          <Pressable onPress={dismissRoadNews} accessibilityRole="button" accessibilityLabel="Дорожные вести" style={styles.news}>
+            <GiIcon name="event" size={20} />
+            <Txt variant="small" style={styles.flex}>
+              {roadNews}
+            </Txt>
+          </Pressable>
+        ) : null}
         <View style={styles.panel}>
           <View style={styles.panelHeader}>
             <Txt variant="heading">{building.name}</Txt>
@@ -187,4 +197,14 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   panelHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  news: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: 'rgba(20, 16, 12, 0.9)',
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.gold,
+    padding: spacing.sm,
+  },
 });
