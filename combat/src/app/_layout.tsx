@@ -54,6 +54,7 @@ export default function RootLayout() {
         <Stack.Screen name="mine" />
         <Stack.Screen name="smithy" />
         <Stack.Screen name="tavern" />
+        <Stack.Screen name="story" />
         <Stack.Screen name="castle" />
         <Stack.Screen name="world" />
         <Stack.Screen name="caravan" />

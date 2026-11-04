@@ -99,6 +99,7 @@
   (звери без стороны), `Guild.side`, `ChatAuthor.side`.
   Война сторон — `war.ts` (счёт по дням, `simulateWar` на тике, бонус `warKreditsMult` в `settle()`), стор `war`;
   перебежчик — `defectTo`, экран `castle.tsx`. Метка стороны — `SideBadge`, цвета `sideColors` в `theme.ts`.
+<<<<<<< HEAD
 - Портреты: `src/ui/portrait.ts` (черты по сиду-имени, `RIVAL_PORTRAITS` по `rivalId`, кэш `portraitSpec`), компонент
   `Portrait` (SVG, пропсы `seed`, `rivalId`, `size`, `hpRatio`, `injured`, `tight` для квадратных карточек); стоит в
   `Avatar`, `FighterCard` и списке арены. Новая черта — новое поле в `PortraitSpec`, слой в `Portrait.tsx` и тест.
@@ -111,6 +112,14 @@
   `RaidLog`, `raidOpponent`, `raidAfterFight`, ответный рейд `rollEnemyRaid`/`enemyRaidDueAt`), стор `crypt`/`raid`/`raids`,
   действия в блоке `// --- Склеп и рейды ---`, контексты боя `'crypt'`/`'raid'` (возврат в таб места). Хабы `CryptHub`,
   карточка обороны `DefenseCard`. Итоги боя — в `settle()` там же.
+=======
+- Портреты: `src/ui/portrait.ts` (черты по сиду-имени, пол `sexFromName` + сид, расы `applyRaceLook`, `RIVAL_PORTRAITS`
+  по `rivalId`, кэш `portraitSpec(seed, rivalId, race)`), компонент `Portrait` (SVG, пропсы `seed`, `rivalId`, `race`, `size`,
+  `hpRatio`, `injured`, `tight` для квадратных карточек; геометрия по полу и расе — `faceGeom`); стоит в `Avatar`,
+  `FighterCard` и списке арены, `race` прокидывается из `Character.race`/`Opponent.race`. Новая черта — новое поле
+  в `PortraitSpec`, слой в `Portrait.tsx` и тест. Порядок бросков rng в `rollPortrait` не менять — новые только в конец.
+  Фигура бойца в бою — `BodyFigure` (SVG-силуэт между столбцами `ZonePicker`, подсветка удара и блока, декоративная).
+>>>>>>> origin/main
 - Сервер (чат, гильдии, роли): `server/` (Node 22, `ws`, JSON-файл; `npm run dev`, `ADMIN_SECRET`), импортирует правила из
   `combat/src/game/`. Контракт `src/net/backend.ts`, протокол `src/net/protocol.ts`, адаптер `src/net/serverBackend.ts`,
   локальная реализация поверх стора `src/net/localBackend.ts`, выбор режима `src/net/index.ts` (`getBackend()`,
@@ -138,6 +147,12 @@
   `character.chests`, действия `claimDaily`/`ensureWeekly`/`trackWeekly`/`claimWeekly`/`openChest` в блоке
   `// --- Ежедневки, сундуки, события ---`; `track()` зовёт `trackWeekly`. Экран `daily.tsx`, входы из пивной и экрана персонажа.
   Новое событие — запись в `EVENTS` и слот в `CALENDAR`; новый множитель — поле `EventMults` и чтение в нужной формуле стора.
+- Сюжет и склонность: `story.ts` (линии `STORY_CHAINS`, движок `applyStoryEvent`/`chooseStoryOption`/`claimStoryReward`,
+  склонность `alignmentName`/`alignmentTone`/`alignmentPriceMult`/`shopPrice`), стор `story`, блок `// --- Сюжет и склонность ---`
+  (`storyApply` на локальном персонаже внутри `settle()`, действия `ensureStory`/`chooseStory`/`claimStory`), `track(event, amount, detail)`
+  с деталью (id именного, сторона, локация, арена). Экран `story.tsx` («Дела» из пивной). Поле `character.alignment`; реплики
+  именных `byAlignment` в `rivals.ts`, умения склонности в `perks.ts` (`perkAllowed`), сдвиг у дорожных событий `RoadEvent.alignment`.
+  Новая линия — запись в `STORY_CHAINS`; новое условие — ветка в `stepMet`; новое событие — `QuestEvent` и вызов `track()`.
 - Завершение боя — один хелпер `settle()` внутри стора (награда, уровень, умения, износ, рейтинг, турнир, трофей,
   задания, травма). Любая новая «после боя» логика добавляется туда.
 - Сейвы: `persist.version` и `normalizeCharacter()` дописывают новые поля старым сохранениям — обновлять при каждом

@@ -14,7 +14,8 @@ describe('умения', () => {
   });
 
   it('предложение не повторяет взятое и не повторяется внутри себя', () => {
-    const owned = PERKS.slice(0, PERKS.length - 2).map((p) => p.id);
+    const open = PERKS.filter((p) => !p.alignment);
+    const owned = open.slice(0, open.length - 2).map((p) => p.id);
     const offer = offerPerks(owned, Math.random);
     expect(offer).toHaveLength(2);
     for (const id of offer) expect(owned).not.toContain(id);
@@ -50,5 +51,15 @@ describe('умения', () => {
   it('умений хватает на все окна выбора с запасом', () => {
     expect(PERKS.length).toBeGreaterThanOrEqual(PERK_LEVELS.length * 3);
     expect(new Set(PERKS.map((p) => p.id)).size).toBe(PERKS.length);
+  });
+
+  it('умения склонности предлагают только на краях шкалы', () => {
+    const all = (alignment: number) => new Set(offerPerks([], () => 0, PERKS.length, alignment));
+    expect(all(0).has('clear-conscience')).toBe(false);
+    expect(all(0).has('black-heart')).toBe(false);
+    expect(all(60).has('clear-conscience')).toBe(true);
+    expect(all(60).has('black-heart')).toBe(false);
+    expect(all(-60).has('black-heart')).toBe(true);
+    expect(all(-60).has('clear-conscience')).toBe(false);
   });
 });

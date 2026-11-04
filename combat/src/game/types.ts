@@ -238,6 +238,8 @@ export interface Character {
   seals: number;
   /** Косметика: купленное и надетое, см. `cosmetics.ts`. */
   cosmetics: Cosmetics;
+  /** Склонность −100 (тёмная) … +100 (светлая): выборы в сюжете и дорожные события (story.ts). */
+  alignment: number;
 }
 
 export interface Ledger {

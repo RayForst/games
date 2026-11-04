@@ -29,3 +29,4 @@ export * from './events';
 export * from './chests';
 export * from './daily';
 export * from './cosmetics';
+export * from './story';

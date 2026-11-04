@@ -2,6 +2,7 @@ import { memo, useMemo } from 'react';
 import { type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Circle, ClipPath, Defs, Ellipse, G, Path, Rect } from 'react-native-svg';
 
+import type { RaceId } from '@/game/races';
 import { RIVAL_ID_BY_NAME } from '@/game/rivals';
 import { mixHex, portraitSpec, type FaceShape, type PortraitSpec } from '@/ui/portrait';
 import { colors } from '@/ui/theme';
@@ -11,6 +12,8 @@ interface Props {
   seed: string;
   /** Именной соперник: черты из таблицы `RIVAL_PORTRAITS`. */
   rivalId?: string;
+  /** Раса (`game/races.ts`): форма лица, уши, клыки, кожа. Без расы — обычный человек. */
+  race?: RaceId;
   size: number;
   /** Доля здоровья 0..1: ниже половины боец бледнеет и уходит в тень, ниже трети — кровь. */
   hpRatio?: number;
@@ -80,6 +83,52 @@ function headSegs(f: FaceGeom, grow = 0): Cubic[] {
   ];
 }
 
+/**
+ * Геометрия лица с поправками на пол и расу. У женщин уже челюсть и подбородок; карлы шире и с низким лбом,
+ * полукровки тоньше, орки с тяжёлой челюстью, у степняков шире скулы.
+ */
+function faceGeom(s: PortraitSpec): FaceGeom {
+  const f = { ...FACES[s.face] };
+  if (s.sex === 'f') {
+    f.jw *= 0.86;
+    f.chin *= 0.78;
+    f.fw *= 0.97;
+  }
+  switch (s.race) {
+    case 'karl':
+      f.fw *= 1.08;
+      f.cw *= 1.1;
+      f.jw *= 1.16;
+      f.chin *= 1.3;
+      f.top += 4;
+      f.bottom -= 1;
+      break;
+    case 'halfblood':
+      f.fw *= 0.93;
+      f.cw *= 0.9;
+      f.jw *= 0.86;
+      f.chin *= 0.8;
+      break;
+    case 'orc':
+      f.jw *= 1.22;
+      f.chin *= 1.45;
+      f.bottom += 2;
+      f.cw *= 1.04;
+      break;
+    case 'steppe':
+      f.cw *= 1.07;
+      f.jw *= 0.94;
+      break;
+    default:
+      break;
+  }
+  f.fw = Math.round(f.fw * 10) / 10;
+  f.cw = Math.round(f.cw * 10) / 10;
+  f.jw = Math.round(f.jw * 10) / 10;
+  f.chin = Math.round(f.chin * 10) / 10;
+  return f;
+}
+
 function headPath(f: FaceGeom, grow = 0): string {
   return symmetric(f.top - grow, headSegs(f, grow));
 }
@@ -93,12 +142,15 @@ function faceOpening(f: FaceGeom, fromY: number): string {
   ]);
 }
 
-export const Portrait = memo(function Portrait({ seed, rivalId, size, hpRatio = 1, injured = false, backdrop = false, tight = false, style }: Props) {
+export const Portrait = memo(function Portrait({ seed, rivalId, race, size, hpRatio = 1, injured = false, backdrop = false, tight = false, style }: Props) {
   // Именного соперника узнаём и по имени: в общем списке имён те же «Мясник» и «Тень».
-  const spec = portraitSpec(seed, rivalId ?? RIVAL_ID_BY_NAME[seed]);
+  const spec = portraitSpec(seed, rivalId ?? RIVAL_ID_BY_NAME[seed], race);
   // Здоровье округляем до двадцатых — иначе каждое очко hp перерисовывает портрет.
   const hp = Math.max(0, Math.min(1, Math.round(hpRatio * 20) / 20));
-  const clipId = useMemo(() => `pt${Math.abs(seed.length * 7919 + (rivalId?.length ?? 0))}-${seed.replace(/[^a-z0-9]/gi, '').slice(0, 8)}`, [seed, rivalId]);
+  const clipId = useMemo(
+    () => `pt${Math.abs(seed.length * 7919 + (rivalId?.length ?? 0))}-${race ?? 'x'}-${seed.replace(/[^a-z0-9]/gi, '').slice(0, 8)}`,
+    [seed, rivalId, race],
+  );
   const body = useMemo(() => render(spec, hp, injured, backdrop, clipId), [spec, hp, injured, backdrop, clipId]);
   if (tight) {
     return (
@@ -115,7 +167,12 @@ export const Portrait = memo(function Portrait({ seed, rivalId, size, hpRatio = 
 });
 
 function render(s: PortraitSpec, hp: number, injured: boolean, backdrop: boolean, clipId: string) {
-  const f = FACES[s.face];
+  const f = faceGeom(s);
+  const female = s.sex === 'f';
+  const orc = s.race === 'orc';
+  const bog = s.race === 'bog';
+  const steppe = s.race === 'steppe';
+  const halfblood = s.race === 'halfblood';
   // Чем меньше здоровья, тем бледнее кожа и глубже тень.
   const fade = Math.max(0, Math.min(1, (0.55 - hp) / 0.55));
   const skin = mixHex(s.skin, '#9b9a94', fade * 0.55);
@@ -146,13 +203,14 @@ function render(s: PortraitSpec, hp: number, injured: boolean, backdrop: boolean
   }
 
   // --- Волосы сзади (длинные) и задняя часть платка/капюшона — под головой.
-  if (s.hair === 'long') {
+  if (s.hair === 'long' || s.hair === 'loose') {
+    const wide = s.hair === 'loose' ? 4 : 0;
     push(
       <Path
         key="hairBack"
         d={symmetric(f.top - 5, [
-          [CX + f.fw + 2, f.top - 5, CX + f.cw + 6, 30, CX + f.cw + 7, 55],
-          [CX + f.cw + 8, 75, CX + f.cw + 12, 90, CX + f.cw + 6, 98],
+          [CX + f.fw + 2 + wide * 0.5, f.top - 5, CX + f.cw + 6 + wide, 30, CX + f.cw + 7 + wide, 55],
+          [CX + f.cw + 8 + wide, 75, CX + f.cw + 12 + wide * 1.5, 90, CX + f.cw + 6 + wide, 98],
         ])}
         fill={hairDark}
       />,
@@ -195,12 +253,37 @@ function render(s: PortraitSpec, hp: number, injured: boolean, backdrop: boolean
   push(<Path key="neck" d={`M ${CX - 9} 64 L ${CX + 9} 64 L ${CX + 10} 86 Q ${CX} 90 ${CX - 10} 86 Z`} fill={skinDark} />);
   push(<Path key="neckShade" d={`M ${CX - 9} 66 Q ${CX} 76 ${CX + 9} 66 L ${CX + 9} 64 L ${CX - 9} 64 Z`} fill="#000" opacity={0.3} />);
 
-  // --- Уши.
+  if (s.hair === 'braid') {
+    // Коса за плечом справа: сегменты через один светлее, видно плетение.
+    const bx = CX + f.cw + 3;
+    for (let i = 0; i < 6; i += 1) {
+      const y = 58 + i * 7;
+      push(<Ellipse key={`braid${i}`} cx={bx + Math.sin(i * 1.3) * 1.2} cy={y} rx={3.6 - i * 0.2} ry={4.2} fill={i % 2 ? hairDark : s.hairColor} />);
+    }
+    push(<Path key="braidTie" d={`M ${bx - 3} 96 L ${bx + 3} 97`} stroke="#6d5a3a" strokeWidth={1.4} />);
+    push(<Path key="braidTail" d={`M ${bx - 1} 98 L ${bx - 3} 106 M ${bx + 1} 98 L ${bx + 3} 105 M ${bx} 98 L ${bx} 107`} stroke={hairDark} strokeWidth={1} fill="none" />);
+  }
+
+  // --- Уши. У полукровок — острые, торчат вверх.
   const earY = 49;
-  push(<Ellipse key="earL" cx={CX - f.cw - 1} cy={earY} rx={3.6} ry={5.6} fill={skinDark} />);
-  push(<Ellipse key="earR" cx={CX + f.cw + 1} cy={earY} rx={3.6} ry={5.6} fill={skinDark} />);
-  push(<Ellipse key="earLi" cx={CX - f.cw - 1.5} cy={earY + 0.5} rx={1.8} ry={3.2} fill={skinDeep} />);
-  push(<Ellipse key="earRi" cx={CX + f.cw + 1.5} cy={earY + 0.5} rx={1.8} ry={3.2} fill={skinDeep} />);
+  if (halfblood) {
+    for (const side of [-1, 1] as const) {
+      const ex = CX + side * (f.cw + 0.5);
+      push(
+        <Path
+          key={`ear${side}`}
+          d={`M ${ex - side * 2} ${earY + 5} Q ${ex + side * 4} ${earY + 3} ${ex + side * 3.5} ${earY - 2} L ${ex + side * 5} ${earY - 10} Q ${ex + side * 1} ${earY - 6} ${ex - side * 1.5} ${earY - 4} Z`}
+          fill={skinDark}
+        />,
+      );
+      push(<Path key={`earIn${side}`} d={`M ${ex + side * 1} ${earY + 3} Q ${ex + side * 2.5} ${earY} ${ex + side * 3.5} ${earY - 6}`} stroke={skinDeep} strokeWidth={1} fill="none" />);
+    }
+  } else {
+    push(<Ellipse key="earL" cx={CX - f.cw - 1} cy={earY} rx={3.6} ry={5.6} fill={skinDark} />);
+    push(<Ellipse key="earR" cx={CX + f.cw + 1} cy={earY} rx={3.6} ry={5.6} fill={skinDark} />);
+    push(<Ellipse key="earLi" cx={CX - f.cw - 1.5} cy={earY + 0.5} rx={1.8} ry={3.2} fill={skinDeep} />);
+    push(<Ellipse key="earRi" cx={CX + f.cw + 1.5} cy={earY + 0.5} rx={1.8} ry={3.2} fill={skinDeep} />);
+  }
 
   // --- Голова: кожа, свет слева, тень справа и под скулами.
   push(<Path key="head" d={head} fill={skin} />);
@@ -211,6 +294,17 @@ function render(s: PortraitSpec, hp: number, injured: boolean, backdrop: boolean
       <Ellipse cx={CX - f.cw + 6} cy={58} rx={7} ry={5} fill="#1a120c" opacity={0.14} />
       <Ellipse cx={CX + f.cw - 6} cy={58} rx={7} ry={5} fill="#1a120c" opacity={0.24} />
       <Ellipse cx={CX} cy={f.top + 4} rx={f.fw} ry={10} fill="#1a120c" opacity={0.12} />
+      {steppe ? (
+        <>
+          <Path d={`M ${CX - f.cw + 2} 50 Q ${CX - f.cw + 9} 48 ${CX - 8} 54`} stroke="#fff6e0" strokeWidth={2.2} fill="none" opacity={0.1} />
+          <Path d={`M ${CX + f.cw - 2} 50 Q ${CX + f.cw - 9} 48 ${CX + 8} 54`} stroke="#fff6e0" strokeWidth={2.2} fill="none" opacity={0.07} />
+          <Path d={`M ${CX - f.cw + 3} 56 Q ${CX - f.cw + 10} 60 ${CX - 10} 60`} stroke="#1a120c" strokeWidth={2.5} fill="none" opacity={0.16} />
+          <Path d={`M ${CX + f.cw - 3} 56 Q ${CX + f.cw - 10} 60 ${CX + 10} 60`} stroke="#1a120c" strokeWidth={2.5} fill="none" opacity={0.22} />
+        </>
+      ) : null}
+      {orc ? <Path d={`M ${CX - f.jw - 2} 62 Q ${CX} 84 ${CX + f.jw + 2} 62 L ${CX + f.jw + 4} 90 L ${CX - f.jw - 4} 90 Z`} fill="#1a120c" opacity={0.18} /> : null}
+      {bog ? <Ellipse cx={CX} cy={56} rx={f.cw} ry={30} fill="#5c7a4c" opacity={0.1} /> : null}
+      {female ? <Ellipse cx={CX} cy={54} rx={f.cw - 4} ry={14} fill="#fff6e0" opacity={0.04} /> : null}
       {hidden ? <Rect x={0} y={0} width={W} height={56} fill="#0d0906" opacity={0.85} /> : null}
     </G>,
   );
@@ -222,7 +316,7 @@ function render(s: PortraitSpec, hp: number, injured: boolean, backdrop: boolean
     push(<Ellipse key="socketL" cx={CX - eyeDX} cy={eyeY + 1} rx={7} ry={4.5} fill="#1a120c" opacity={old ? 0.28 : 0.16} />);
     push(<Ellipse key="socketR" cx={CX + eyeDX} cy={eyeY + 1} rx={7} ry={4.5} fill="#1a120c" opacity={old ? 0.32 : 0.2} />);
     const narrow = s.eyes === 'narrow';
-    const ry = narrow ? 1.4 : 2.4;
+    const ry = narrow ? 1.4 : female ? 2.8 : 2.4;
     for (const side of [-1, 1] as const) {
       const patched = (side === -1 && s.eyes === 'patch-left') || (side === 1 && s.eyes === 'patch-right');
       const ex = CX + side * eyeDX;
@@ -234,7 +328,8 @@ function render(s: PortraitSpec, hp: number, injured: boolean, backdrop: boolean
       // Верхнее веко — тяжёлая тёмная дуга, нависает на глаз.
       push(<Path key={`lid${side}`} d={`M ${ex - 4.4} ${eyeY + 0.4} Q ${ex} ${eyeY - (narrow ? 1.8 : 3)} ${ex + 4.4} ${eyeY + 0.4}`} stroke="#1a120c" strokeWidth={1.3} fill="none" />);
       push(<Path key={`lidShade${side}`} d={`M ${ex - 4} ${eyeY - 0.2} Q ${ex} ${eyeY - (narrow ? 1.4 : 2.4)} ${ex + 4} ${eyeY - 0.2} Q ${ex} ${eyeY - 0.4} ${ex - 4} ${eyeY - 0.2} Z`} fill="#1a120c" opacity={0.45} />);
-      if (narrow || old) push(<Path key={`bag${side}`} d={`M ${ex - 4} ${eyeY + 3} Q ${ex} ${eyeY + 4.6} ${ex + 4} ${eyeY + 3}`} stroke="#1a120c" strokeWidth={0.7} fill="none" opacity={0.45} />);
+      if (female) push(<Path key={`lash${side}`} d={`M ${ex + side * 4.4} ${eyeY + 0.2} l ${side * 1.6} -1.2`} stroke="#1a120c" strokeWidth={1} strokeLinecap="round" />);
+      if (narrow || old || bog) push(<Path key={`bag${side}`} d={`M ${ex - 4} ${eyeY + 3} Q ${ex} ${eyeY + 4.6} ${ex + 4} ${eyeY + 3}`} stroke="#1a120c" strokeWidth={0.7} fill="none" opacity={0.45} />);
     }
     // Брови.
     const heavy = s.brow === 'heavy';
@@ -245,7 +340,8 @@ function render(s: PortraitSpec, hp: number, injured: boolean, backdrop: boolean
       const outer = ex + side * 6;
       const innerY = eyeY - (grim ? 4.2 : 5.5);
       const outerY = eyeY - (grim ? 6.8 : 6.5);
-      push(<Path key={`brow${side}`} d={`M ${inner} ${innerY} Q ${ex - side * 1} ${eyeY - (grim ? 6.5 : 7)} ${outer} ${outerY}`} stroke={hairDark} strokeWidth={heavy ? 2.8 : 1.5} strokeLinecap="round" fill="none" opacity={0.92} />);
+      const browW = female ? (heavy ? 1.9 : 1.1) : heavy ? 2.8 : 1.5;
+      push(<Path key={`brow${side}`} d={`M ${inner} ${innerY} Q ${ex - side * 1} ${eyeY - (grim ? 6.5 : 7)} ${outer} ${outerY}`} stroke={hairDark} strokeWidth={orc ? browW + 0.6 : browW} strokeLinecap="round" fill="none" opacity={0.92} />);
     }
   }
 
@@ -301,6 +397,20 @@ function render(s: PortraitSpec, hp: number, injured: boolean, backdrop: boolean
     push(<Path key="lip" d={`M ${CX - 5} ${mouthY + 1} Q ${CX} ${mouthY + 3} ${CX + 5} ${mouthY + 1}`} stroke={skinDeep} strokeWidth={0.8} fill="none" opacity={0.6} />);
   }
 
+  // --- Губы у женщин: нижняя чуть темнее кожи, без помады — не кабаре.
+  if (female && s.mouth !== 'grin') {
+    push(<Path key="lipLow" d={`M ${CX - 5.5} ${mouthY + 0.6} Q ${CX} ${mouthY + 3.6} ${CX + 5.5} ${mouthY + 0.6} Q ${CX} ${mouthY + 1.6} ${CX - 5.5} ${mouthY + 0.6} Z`} fill={mixHex(skin, '#6e3a3a', 0.4)} opacity={0.8} />);
+    push(<Path key="lipUp" d={`M ${CX - 5.5} ${mouthY - 0.2} Q ${CX - 2} ${mouthY - 2} ${CX} ${mouthY - 1} Q ${CX + 2} ${mouthY - 2} ${CX + 5.5} ${mouthY - 0.2} Q ${CX} ${mouthY + 0.4} ${CX - 5.5} ${mouthY - 0.2} Z`} fill={mixHex(skin, '#6e3a3a', 0.3)} opacity={0.7} />);
+  }
+
+  // --- Клыки орков: торчат из-под верхней губы наружу.
+  if (orc) {
+    for (const side of [-1, 1] as const) {
+      const tx = CX + side * 4.5;
+      push(<Path key={`tusk${side}`} d={`M ${tx - 1.1} ${mouthY + 0.6} L ${tx + side * 0.4} ${mouthY - 3.6} L ${tx + 1.1} ${mouthY + 0.6} Z`} fill="#b9ae93" stroke="#1a120c" strokeWidth={0.4} />);
+    }
+  }
+
   // --- Шрамы.
   const scarStroke = mixHex(skin, '#8a3a3a', 0.45);
   if (s.scar === 'cheek') {
@@ -322,7 +432,8 @@ function render(s: PortraitSpec, hp: number, injured: boolean, backdrop: boolean
   }
 
   // --- Волосы и головные уборы.
-  const hairFront = (d: string, fill = s.hairColor) => push(<Path key="hair" d={d} fill={fill} />);
+  // У болотников волосы редкие: сквозь них видно кожу.
+  const hairFront = (d: string, fill = s.hairColor) => push(<Path key="hair" d={d} fill={fill} opacity={bog ? 0.62 : 1} />);
   if (s.hair === 'cropped') {
     hairFront(
       symmetric(f.top - 1.5, [
@@ -349,6 +460,27 @@ function render(s: PortraitSpec, hp: number, injured: boolean, backdrop: boolean
     push(<Path key="parting" d={`M ${CX} ${f.top - 2} L ${CX} 27`} stroke={hairDark} strokeWidth={1} opacity={0.7} />);
     push(<Path key="hairSideL" d={`M ${CX - f.fw - 3} 40 C ${CX - f.fw - 6} 55 ${CX - f.cw - 3} 70 ${CX - f.cw - 2} 80 L ${CX - f.cw - 6} 82 C ${CX - f.cw - 8} 65 ${CX - f.fw - 8} 50 ${CX - f.fw - 3} 36 Z`} fill={s.hairColor} />);
     push(<Path key="hairSideR" d={`M ${CX + f.fw + 3} 40 C ${CX + f.fw + 6} 55 ${CX + f.cw + 3} 70 ${CX + f.cw + 2} 80 L ${CX + f.cw + 6} 82 C ${CX + f.cw + 8} 65 ${CX + f.fw + 8} 50 ${CX + f.fw + 3} 36 Z`} fill={hairDark} />);
+  } else if (s.hair === 'loose') {
+    // Распущенные: тяжёлые пряди по обе стороны лица до плеч, пробор посередине.
+    hairFront(
+      symmetric(f.top - 3, [
+        [CX + f.fw * 0.8, f.top - 4, CX + f.fw + 4, f.top + 4, CX + f.fw + 4, 42],
+        [CX + f.fw + 2, 40, CX + f.fw - 2, 30, CX + 1, 29],
+      ]),
+    );
+    push(<Path key="parting" d={`M ${CX} ${f.top - 2} L ${CX} 28`} stroke={hairDark} strokeWidth={1} opacity={0.6} />);
+    push(<Path key="hairSideL" d={`M ${CX - f.fw - 4} 42 C ${CX - f.fw - 9} 58 ${CX - f.cw - 8} 76 ${CX - f.cw - 6} 92 L ${CX - f.cw - 13} 94 C ${CX - f.cw - 14} 72 ${CX - f.fw - 11} 52 ${CX - f.fw - 4} 34 Z`} fill={s.hairColor} />);
+    push(<Path key="hairSideR" d={`M ${CX + f.fw + 4} 42 C ${CX + f.fw + 9} 58 ${CX + f.cw + 8} 76 ${CX + f.cw + 6} 92 L ${CX + f.cw + 13} 94 C ${CX + f.cw + 14} 72 ${CX + f.fw + 11} 52 ${CX + f.fw + 4} 34 Z`} fill={hairDark} />);
+    push(<Path key="strands" d={`M ${CX - f.fw - 6} 44 C ${CX - f.fw - 9} 60 ${CX - f.cw - 9} 76 ${CX - f.cw - 9} 90 M ${CX + f.fw + 7} 46 C ${CX + f.fw + 10} 62 ${CX + f.cw + 10} 78 ${CX + f.cw + 10} 90`} stroke={hairDark} strokeWidth={0.8} fill="none" opacity={0.6} />);
+  } else if (s.hair === 'braid') {
+    // Гладко зачёсано назад, коса уходит за плечо (нарисована под головой).
+    hairFront(
+      symmetric(f.top - 2, [
+        [CX + f.fw * 0.8, f.top - 3, CX + f.fw + 2, f.top + 5, CX + f.fw + 2, 38],
+        [CX + f.fw, 34, CX + f.fw - 2, 27, CX + 1, 26],
+      ]),
+    );
+    push(<Path key="combed" d={`M ${CX - f.fw + 2} 30 Q ${CX - f.fw * 0.5} 21 ${CX} ${f.top + 2} M ${CX + f.fw - 2} 30 Q ${CX + f.fw * 0.5} 21 ${CX} ${f.top + 2} M ${CX - 10} 27 Q ${CX - 4} 19 ${CX} ${f.top + 1}`} stroke={hairDark} strokeWidth={0.7} fill="none" opacity={0.55} />);
   } else if (s.hair === 'bald') {
     push(<Ellipse key="shine" cx={CX - 8} cy={f.top + 9} rx={9} ry={5} fill="#fff6e0" opacity={0.08} />);
   } else if (s.hair === 'hood') {

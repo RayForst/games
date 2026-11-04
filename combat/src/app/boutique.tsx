@@ -112,7 +112,7 @@ export default function BoutiqueScreen() {
       <Card title={trying ? 'Примерочная · примерка' : 'Примерочная'} right={trying ? <Button small variant="ghost" title="Сбросить" onPress={() => setTryOn({})} /> : undefined} style={styles.fitting}>
         <View style={styles.previewRow}>
           <View style={styles.previewAvatar}>
-            <Avatar seed={character.name} hpRatio={character.hp / derived.maxHp} injured={!!character.injury} frame={frame} cardBg={cardBg} />
+            <Avatar seed={character.name} race={character.race} hpRatio={character.hp / derived.maxHp} injured={!!character.injury} frame={frame} cardBg={cardBg} />
           </View>
           <View style={styles.previewInfo}>
             <View style={styles.nameRow}>
