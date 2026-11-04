@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
 
+import { BodyFigure } from './BodyFigure';
 import { Txt } from './Txt';
 import { colors, radius, spacing } from '@/ui/theme';
 import { BLOCKS, BLOCK_ZONES, ZONES, ZONE_LABELS, type Block, type Zone } from '@/game';
@@ -21,6 +22,8 @@ const GAP = 6;
 /**
  * Выбор зоны удара (5) и блока (4). Кнопки блока стоят «между» зонами,
  * показывая, что каждый блок закрывает две соседние. Плитки крупные — под большой палец.
+ * Между столбцами — силуэт бойца (`BodyFigure`): зоны стоят в линию с плитками, выбранный удар горит красным,
+ * закрытые блоком зоны — синим. Кнопками остаются плитки, фигура только показывает.
  */
 export function ZonePicker({ attack, block, onAttack, onBlock, disabled, highlight }: Props) {
   // Пульс подсказки: одна Animated.Value на оба столбца, крутится только пока есть что подсвечивать.
@@ -66,6 +69,13 @@ export function ZonePicker({ attack, block, onAttack, onBlock, disabled, highlig
         })}
       </View>
 
+      <View style={styles.figureCol}>
+        <Txt variant="small" center style={styles.colTitle}>
+          {' '}
+        </Txt>
+        <BodyFigure attack={attack} block={block} row={ROW} gap={GAP} />
+      </View>
+
       <View style={[styles.col, highlight === 'block' && styles.hinted]}>
         {highlight === 'block' ? <Animated.View pointerEvents="none" style={[styles.hintBorder, { opacity: glow }]} /> : null}
         <Txt variant="small" center style={[styles.colTitle, highlight === 'block' && styles.colTitleHinted]}>
@@ -96,8 +106,9 @@ export function ZonePicker({ attack, block, onAttack, onBlock, disabled, highlig
 }
 
 const styles = StyleSheet.create({
-  wrap: { flexDirection: 'row', gap: spacing.md },
+  wrap: { flexDirection: 'row', gap: spacing.sm },
   col: { flex: 1, gap: GAP, borderRadius: radius.md },
+  figureCol: { alignItems: 'center' },
   hinted: { padding: 4, margin: -4 },
   hintBorder: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: radius.lg, borderWidth: 2, borderColor: colors.gold },
   colTitle: { letterSpacing: 2, marginBottom: 2 },
