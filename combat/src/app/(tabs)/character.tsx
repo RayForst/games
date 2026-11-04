@@ -29,6 +29,7 @@ import {
   type Slot,
 } from '@/game';
 import { useNow } from '@/hooks/useNow';
+import { playSfx } from '@/ui/sfx';
 import { useGame } from '@/store/useGame';
 import { colors, radius, spacing } from '@/ui/theme';
 
@@ -49,6 +50,8 @@ export default function CharacterScreen() {
   const unequip = useGame((s) => s.unequip);
   const guild = useGame((s) => s.guild);
   const account = useGame((s) => s.account);
+  const sound = useGame((s) => s.settings.sound);
+  const setSound = useGame((s) => s.setSound);
   const now = useNow();
 
   if (!character) return null;
@@ -211,18 +214,33 @@ export default function CharacterScreen() {
         )}
       </Pressable>
 
-      <Pressable onPress={() => router.push('/admin')} accessibilityRole="button" accessibilityLabel="Служебный вход" style={styles.service}>
-        <Txt variant="small" center color={account.gmUnlocked ? colors.red : colors.textDim}>
-          {account.gmUnlocked ? `Режим мастера: ${ROLE_LABELS[account.role]}` : 'Служебный вход'}
-        </Txt>
-      </Pressable>
+      <View style={styles.footer}>
+        <Pressable
+          onPress={() => {
+            setSound(!sound);
+            if (!sound) playSfx('coin');
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={sound ? 'Выключить звук' : 'Включить звук'}
+          style={styles.service}>
+          <Txt variant="small" center color={colors.textDim}>
+            {sound ? 'Звук: вкл' : 'Звук: выкл'}
+          </Txt>
+        </Pressable>
+        <Pressable onPress={() => router.push('/admin')} accessibilityRole="button" accessibilityLabel="Служебный вход" style={styles.service}>
+          <Txt variant="small" center color={account.gmUnlocked ? colors.red : colors.textDim}>
+            {account.gmUnlocked ? `Режим мастера: ${ROLE_LABELS[account.role]}` : 'Служебный вход'}
+          </Txt>
+        </Pressable>
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  service: { paddingVertical: spacing.sm },
+  service: { paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
+  footer: { flexDirection: 'row', justifyContent: 'center', gap: spacing.lg },
   header: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.md, paddingTop: spacing.sm },
   record: { alignItems: 'flex-end', flexShrink: 0 },
   recordNumbers: { fontSize: 17, lineHeight: 22 },

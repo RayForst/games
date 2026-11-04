@@ -14,6 +14,7 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { useFlash } from '@/hooks/useFlash';
 import { useGame } from '@/store/useGame';
+import { playSfx } from '@/ui/sfx';
 import { colors, spacing } from '@/ui/theme';
 
 type Filter = 'all' | Slot;
@@ -95,6 +96,7 @@ export default function ShopScreen() {
                 disabled: !affordable,
                 onPress: () => {
                   const r = buyItem(item.id);
+                  playSfx(r.ok ? 'coin' : 'error');
                   show(r.ok ? `${item.name} — в рюкзаке` : (r.reason ?? 'Не получилось'));
                 },
               },

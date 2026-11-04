@@ -12,6 +12,7 @@ import { Txt } from '@/components/Txt';
 import { ZonePicker } from '@/components/ZonePicker';
 import { BLOCK_LABELS, deriveCharacter, TOURNAMENT_ROUNDS, ZONE_LABELS, type Block, type Zone } from '@/game';
 import { useGame } from '@/store/useGame';
+import { playSfx, playStrikes } from '@/ui/sfx';
 import { colors, spacing } from '@/ui/theme';
 
 export default function FightScreen() {
@@ -32,7 +33,16 @@ export default function FightScreen() {
     const type =
       status === 'won' ? Haptics.NotificationFeedbackType.Success : status === 'lost' ? Haptics.NotificationFeedbackType.Error : Haptics.NotificationFeedbackType.Warning;
     Haptics.notificationAsync(type).catch(() => {});
+    playSfx(status === 'won' ? 'win' : 'lose');
   }, [status]);
+
+  // Новый уровень — своя нота, после рёва победы.
+  const levelsGained = fight?.reward?.levelsGained ?? 0;
+  useEffect(() => {
+    if (levelsGained <= 0) return;
+    const t = setTimeout(() => playSfx('levelup'), 900);
+    return () => clearTimeout(t);
+  }, [levelsGained]);
 
   // Откуда пришли, туда и вернёмся: арена, замок, место на карте или гильдейский стол. Стор помнит это и после того, как бой закрыт.
   const lastContext = useGame((s) => s.lastFightContext);
@@ -60,6 +70,8 @@ export default function FightScreen() {
     if (!attack || !block) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     playTurn({ attack, block });
+    const strikes = useGame.getState().fight?.lastStrikes;
+    if (strikes) playStrikes([strikes[0]?.outcome, strikes[1]?.outcome]);
   };
 
 

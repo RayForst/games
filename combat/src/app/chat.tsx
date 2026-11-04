@@ -12,6 +12,7 @@ import { Txt } from '@/components/Txt';
 import { can, CHANNELS, CHANNELS_BY_ID, isMuted, MESSAGE_MAX, ROLE_TAGS, visibleMessages, type ChannelId, type ChatMessage } from '@/game';
 import { useFlash } from '@/hooks/useFlash';
 import { useGame } from '@/store/useGame';
+import { playSfx } from '@/ui/sfx';
 import { colors, radius, spacing } from '@/ui/theme';
 
 function hhmm(at: number): string {
@@ -57,6 +58,7 @@ export default function ChatScreen() {
       show(r.reason ?? 'Не отправилось');
       return;
     }
+    playSfx('message');
     setText('');
   };
 

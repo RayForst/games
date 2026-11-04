@@ -206,6 +206,8 @@ export interface GameState {
   skirmish: { guildId: string } | null;
   /** Стычек сегодня. */
   skirmishes: { day: string; count: number } | null;
+  /** Настройки игрока. */
+  settings: { sound: boolean };
   hydrated: boolean;
 
   setHydrated: () => void;
@@ -306,6 +308,8 @@ export interface GameState {
   gmEditGuild: (guildId: string, patch: Partial<Pick<Guild, 'name' | 'tag' | 'motto' | 'level' | 'treasury' | 'rating'>>) => Check;
   gmDisbandGuild: (guildId: string) => Check;
   gmResetSave: () => Check;
+
+  setSound: (on: boolean) => void;
 }
 
 export interface GatherResult extends Check {
@@ -565,6 +569,7 @@ export const useGame = create<GameState>()(
       npcGuilds: normalizeGuilds(undefined),
       skirmish: null,
       skirmishes: null,
+      settings: { sound: true },
       hydrated: false,
 
       setHydrated: () => set({ hydrated: true }),
@@ -1553,6 +1558,8 @@ export const useGame = create<GameState>()(
         return { ok: true };
       },
 
+      setSound: (on) => set({ settings: { ...get().settings, sound: on } }),
+
       gmResetSave: () => {
         const p = need('save.reset');
         if (!p.ok) return p;
@@ -1609,6 +1616,7 @@ export const useGame = create<GameState>()(
         npcGuilds: s.npcGuilds,
         skirmish: s.skirmish,
         skirmishes: s.skirmishes,
+        settings: s.settings,
       }),
       // Старые сейвы дописываем недостающими полями (прочность, заточка, будущие фичи).
       migrate: (persisted) => {
@@ -1621,6 +1629,7 @@ export const useGame = create<GameState>()(
         state.chat = normalizeChat(state.chat);
         state.npcGuilds = normalizeGuilds(state.npcGuilds);
         state.account = state.account ?? newAccount();
+        state.settings = { sound: state.settings?.sound ?? true };
         state.setHydrated();
       },
     },

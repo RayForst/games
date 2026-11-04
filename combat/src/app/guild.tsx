@@ -38,6 +38,7 @@ import {
 } from '@/game';
 import { useFlash } from '@/hooks/useFlash';
 import { SKIRMISHES_PER_DAY, useGame } from '@/store/useGame';
+import { playSfx } from '@/ui/sfx';
 import { plural } from '@/ui/format';
 import { colors, radius, spacing } from '@/ui/theme';
 
@@ -81,6 +82,7 @@ function NoGuild({ show }: { show: (t: string) => void }) {
 
   const found = () => {
     const r = foundGuild(name, tag, emblem, motto);
+    if (r.ok) playSfx('unlock');
     show(r.ok ? `Гильдия «${name.trim()}» основана. Стол ваш.` : (r.reason ?? 'Не получилось'));
   };
 

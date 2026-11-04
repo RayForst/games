@@ -21,6 +21,7 @@ import {
 import { useFlash } from '@/hooks/useFlash';
 import { useNow } from '@/hooks/useNow';
 import { useGame } from '@/store/useGame';
+import { playSfx } from '@/ui/sfx';
 import { formatDuration } from '@/ui/format';
 import { colors, spacing } from '@/ui/theme';
 
@@ -68,6 +69,7 @@ export function JobPanel({ job, rateHint, idleHint, startTitle, workingTitle, co
       onAmbush?.();
       return;
     }
+    if (r.kredits) playSfx('coin');
     show(r.kredits ? collectedText(r.kredits) : 'Ты и начать не успел.');
   };
 

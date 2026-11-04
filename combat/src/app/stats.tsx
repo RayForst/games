@@ -12,6 +12,7 @@ import { Txt } from '@/components/Txt';
 import { ACHIEVEMENTS, ARMOR_ZONE_LABELS, ARMOR_ZONES, deriveCharacter, PERKS_BY_ID, rankFor, STAT_HINTS, STAT_KEYS, STAT_LABELS, type PerkId } from '@/game';
 import { useFlash } from '@/hooks/useFlash';
 import { useGame } from '@/store/useGame';
+import { playSfx } from '@/ui/sfx';
 import { colors, spacing } from '@/ui/theme';
 
 /** Лист с цифрами: характеристики (и раскидка очков), модификаторы, броня. Открывается модалкой поверх табов. */
@@ -30,6 +31,7 @@ export default function StatsScreen() {
 
   const onClaim = (id: string) => {
     const r = claimAchievement(id);
+    if (r.ok) playSfx('achievement');
     show(r.ok ? `+${r.kredits} кр. за достижение` : (r.reason ?? 'Не получилось'));
   };
 

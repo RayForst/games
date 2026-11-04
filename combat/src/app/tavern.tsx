@@ -14,6 +14,7 @@ import { Txt } from '@/components/Txt';
 import { BUILDINGS_BY_ID, dailyRumors, questDone, questReward, questTitle, unreadCount } from '@/game';
 import { useFlash } from '@/hooks/useFlash';
 import { useGame } from '@/store/useGame';
+import { playSfx } from '@/ui/sfx';
 import { colors, radius, spacing } from '@/ui/theme';
 
 /** Пивная: три задания на день и слухи завсегдатаев. */
@@ -35,6 +36,7 @@ export default function TavernScreen() {
 
   const onClaim = (id: string) => {
     const r = claimQuest(id);
+    if (r.ok) playSfx('coin');
     show(r.ok ? `Хозяйка отсчитала ${r.kredits} кр.` : (r.reason ?? 'Не получилось'));
   };
 

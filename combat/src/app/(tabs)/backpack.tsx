@@ -10,6 +10,7 @@ import { canEquip, getItem, isEquipped, RESOURCES, sellPrice, SLOTS } from '@/ga
 import { GiIcon } from '@/components/GiIcon';
 import { useFlash } from '@/hooks/useFlash';
 import { useGame } from '@/store/useGame';
+import { playSfx } from '@/ui/sfx';
 import { colors, spacing } from '@/ui/theme';
 
 export default function BackpackScreen() {
@@ -37,6 +38,7 @@ export default function BackpackScreen() {
         style: 'destructive',
         onPress: () => {
           const r = sellItem(uid);
+          if (r.ok) playSfx('coin');
           show(r.ok ? `+${price} кр.` : (r.reason ?? 'Не получилось'));
         },
       },
