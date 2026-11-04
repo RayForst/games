@@ -99,9 +99,12 @@
   (звери без стороны), `Guild.side`, `ChatAuthor.side`.
   Война сторон — `war.ts` (счёт по дням, `simulateWar` на тике, бонус `warKreditsMult` в `settle()`), стор `war`;
   перебежчик — `defectTo`, экран `castle.tsx`. Метка стороны — `SideBadge`, цвета `sideColors` в `theme.ts`.
-- Портреты: `src/ui/portrait.ts` (черты по сиду-имени, `RIVAL_PORTRAITS` по `rivalId`, кэш `portraitSpec`), компонент
-  `Portrait` (SVG, пропсы `seed`, `rivalId`, `size`, `hpRatio`, `injured`, `tight` для квадратных карточек); стоит в
-  `Avatar`, `FighterCard` и списке арены. Новая черта — новое поле в `PortraitSpec`, слой в `Portrait.tsx` и тест.
+- Портреты: `src/ui/portrait.ts` (черты по сиду-имени, пол `sexFromName` + сид, расы `applyRaceLook`, `RIVAL_PORTRAITS`
+  по `rivalId`, кэш `portraitSpec(seed, rivalId, race)`), компонент `Portrait` (SVG, пропсы `seed`, `rivalId`, `race`, `size`,
+  `hpRatio`, `injured`, `tight` для квадратных карточек; геометрия по полу и расе — `faceGeom`); стоит в `Avatar`,
+  `FighterCard` и списке арены, `race` прокидывается из `Character.race`/`Opponent.race`. Новая черта — новое поле
+  в `PortraitSpec`, слой в `Portrait.tsx` и тест. Порядок бросков rng в `rollPortrait` не менять — новые только в конец.
+  Фигура бойца в бою — `BodyFigure` (SVG-силуэт между столбцами `ZonePicker`, подсветка удара и блока, декоративная).
 - Сервер (чат, гильдии, роли): `server/` (Node 22, `ws`, JSON-файл; `npm run dev`, `ADMIN_SECRET`), импортирует правила из
   `combat/src/game/`. Контракт `src/net/backend.ts`, протокол `src/net/protocol.ts`, адаптер `src/net/serverBackend.ts`,
   локальная реализация поверх стора `src/net/localBackend.ts`, выбор режима `src/net/index.ts` (`getBackend()`,
